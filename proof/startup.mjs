@@ -34,6 +34,7 @@ export async function verifyStartup({
 
   for (const scenario of [
     'geo',
+    'geo-cached-adult',
     'refresh',
     'foreground',
     'age',
@@ -46,11 +47,14 @@ export async function verifyStartup({
     console.log(
       `Startup fixture: ${phone ? 'WebKit phone' : 'Chromium'} ${scenario}`,
     )
-    const storageState = structuredClone(seed)
+    const storageState =
+      scenario === 'geo-cached-adult'
+        ? await seedPage.context().storageState({indexedDB: true})
+        : structuredClone(seed)
     const entries = storageState.origins.find(
       entry => entry.origin === origin,
     ).localStorage
-    if (scenario === 'geo') {
+    if (scenario === 'geo' || scenario === 'geo-cached-adult') {
       for (let index = entries.length - 1; index >= 0; index--) {
         if (
           /bsky_device\\(?:geolocationServiceResponse|mergedGeolocation)$/.test(
@@ -59,6 +63,67 @@ export async function verifyStartup({
         )
           entries.splice(index, 1)
       }
+    }
+    if (scenario === 'geo-cached-adult') {
+      const database = storageState.origins
+        .find(entry => entry.origin === origin)
+        .indexedDB.find(
+          entry => entry.name === 'react-query-cache-age-assurance',
+        )
+      assert.ok(database, 'The fixture reuses the actual persisted AA database')
+      const record = database.stores
+        .find(entry => entry.name === database.name)
+        .records.find(entry => entry.key === 'age-assurance-query-client')
+      const cache = JSON.parse(record.value)
+      const config = cache.clientState.queries.find(
+        query => JSON.stringify(query.queryKey) === '["config"]',
+      )
+      const account = cache.clientState.queries.find(
+        query =>
+          JSON.stringify(query.queryKey) ===
+          JSON.stringify(['otherRequiredData', did]),
+      )
+      assert.ok(
+        config && account,
+        'Real config and adult account queries must already be cached',
+      )
+      config.state.data = {
+        regions: [
+          {
+            countryCode: 'GB',
+            minAccessAge: 13,
+            rules: [
+              {
+                $type:
+                  'app.bsky.ageassurance.defs#configRegionRuleIfAssuredOverAge',
+                age: 18,
+                access: 'full',
+              },
+              {
+                $type: 'app.bsky.ageassurance.defs#configRegionRuleDefault',
+                access: 'safe',
+              },
+            ],
+          },
+        ],
+      }
+      assert.equal(account.state.data.birthdate.slice(0, 10), '1990-01-01')
+      const serverStateKey = ['serverState', did]
+      let serverState = cache.clientState.queries.find(
+        query =>
+          JSON.stringify(query.queryKey) === JSON.stringify(serverStateKey),
+      )
+      if (!serverState) {
+        serverState = structuredClone(config)
+        serverState.queryKey = serverStateKey
+        serverState.queryHash = JSON.stringify(serverStateKey)
+        cache.clientState.queries.push(serverState)
+      }
+      serverState.state.data = {
+        state: {status: 'assured', access: 'full'},
+        metadata: {accountCreatedAt: '2024-01-01T00:00:00.000Z'},
+      }
+      record.value = JSON.stringify(cache)
     }
     if (scenario === 'refresh' || scenario === 'foreground') {
       const entry = entries.find(entry => entry.name === 'BSKY_STORAGE')
@@ -133,7 +198,9 @@ export async function verifyStartup({
         })
       }
       const matches = url =>
-        scenario === 'geo' || scenario === 'cached-geo'
+        scenario === 'geo' ||
+        scenario === 'geo-cached-adult' ||
+        scenario === 'cached-geo'
           ? url.origin === origin &&
             url.pathname === '/api/skyanchor/geolocation/geolocation'
           : scenario === 'refresh' || scenario === 'foreground'
@@ -187,7 +254,10 @@ export async function verifyStartup({
       })
       const started = Date.now()
       const thresholdMs = 20_000
-      await current.goto(origin + '/', {waitUntil: 'commit'})
+      await current.goto(
+        origin + (scenario === 'geo-cached-adult' ? '/moderation' : '/'),
+        {waitUntil: 'commit'},
+      )
       if (!scenario.startsWith('fade-'))
         await expect.poll(() => reached, {timeout: 5000}).toBeGreaterThan(0)
       if (scenario === 'foreground') {
@@ -221,6 +291,27 @@ export async function verifyStartup({
         () =>
           document.documentElement.dataset.skyanchorStartupPhase ?? 'scripts',
       )
+      if (scenario === 'geo-cached-adult') {
+        await expect(current.getByTestId('moderationScreen')).toBeVisible()
+        const adultToggle = current.getByRole('checkbox', {
+          name: 'Toggle to enable or disable adult content',
+          exact: true,
+        })
+        await expect(
+          current.getByText('Content filters', {exact: true}),
+        ).toBeVisible()
+        await expect(adultToggle).toHaveCount(0)
+        await expect(regionalRetry).toBeVisible()
+        await expect.poll(() => failures.length, {timeout: 5000}).toBe(1)
+        assert.equal(
+          await current.evaluate(key => localStorage.getItem(key), readingKey),
+          saved,
+          'Restricted startup must preserve the saved reading window',
+        )
+        report.checks.push(
+          `${phone ? 'WebKit phone' : 'Chromium'}: cached adult and assured/full AA data cannot enable adult content after uncached geo times out; visible Retry remains available.`,
+        )
+      }
       if (scenario === 'age') {
         await expect
           .poll(() => failures.length, {timeout: 10_000})
@@ -296,8 +387,26 @@ export async function verifyStartup({
         }
       }
       release()
-      if (scenario === 'geo') {
+      if (scenario === 'geo' || scenario === 'geo-cached-adult') {
         await current.evaluate(() => window.dispatchEvent(new Event('online')))
+      }
+      if (scenario === 'geo-cached-adult') {
+        await expect(regionalRetry).toHaveCount(0)
+        await expect(
+          current.getByRole('checkbox', {
+            name: 'Toggle to enable or disable adult content',
+            exact: true,
+          }),
+        ).toBeEnabled()
+        const confirmed = await current.evaluate(
+          () =>
+            JSON.parse(
+              localStorage.getItem('bsky_device\\geolocationServiceResponse'),
+            ).data,
+        )
+        assert.equal(confirmed.countryCode, 'CA')
+        assert.equal(confirmed.regionCode, 'ON')
+        await current.goto(origin + '/')
       }
       await current.getByTestId('HomeScreen').waitFor({timeout: 20_000})
       await current.getByTestId('skyanchor-reading-button').waitFor()

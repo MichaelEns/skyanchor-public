@@ -27,6 +27,7 @@ import {
   getAgeAssuranceRegionConfigForGeolocation,
   getAgeAssuranceRegionConfigWithFallback,
 } from '#/ageAssurance/util'
+import {IS_WEB} from '#/env'
 import {type Geolocation, useGeolocation} from '#/geolocation'
 import {type app} from '#/lexicons'
 import {device} from '#/storage'
@@ -63,6 +64,15 @@ export function computeAgeAssuranceState({
       access: AgeAssuranceAccess.Safe,
     }
 
+  const isWebRegionUnknown = IS_WEB && !geolocation.countryCode
+  if (isWebRegionUnknown && state?.status === 'blocked') {
+    return {
+      lastInitiatedAt: state.lastInitiatedAt,
+      status: AgeAssuranceStatus.Blocked,
+      access: AgeAssuranceAccess.None,
+    }
+  }
+
   /**
    * This can happen if the prefetch fails (such as due to network issues).
    * The query handler will try it again, but if it continues to fail, of
@@ -88,7 +98,7 @@ export function computeAgeAssuranceState({
    * If we are in a terminal state and AA is required for this region,
    * we can trust the server state completely and avoid recomputing.
    */
-  if (isTerminalState && isAARequired) {
+  if (isTerminalState && isAARequired && !isWebRegionUnknown) {
     return {
       lastInitiatedAt: state.lastInitiatedAt,
       status: parseStatusFromString(state.status),
@@ -132,6 +142,21 @@ export function computeAgeAssuranceState({
     access: result
       ? parseAccessFromString(result.access)
       : AgeAssuranceAccess.Full,
+  }
+  if (isWebRegionUnknown) {
+    /*
+     * The wildcard fallback checks minimum age, not physical region. Cached
+     * adult metadata or assurance from another region cannot grant full access
+     * until geolocation resolves; retain any stricter denial.
+     */
+    return {
+      ...computed,
+      status: AgeAssuranceStatus.Unknown,
+      access:
+        computed.access === AgeAssuranceAccess.None || state?.access === 'none'
+          ? AgeAssuranceAccess.None
+          : AgeAssuranceAccess.Safe,
+    }
   }
   logger.debug('computeAgeAssuranceState', {
     region,

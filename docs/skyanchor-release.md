@@ -33,9 +33,14 @@ Web startup bounds uncached geolocation to 3 seconds and session resume to
 10 seconds. A failed resume offers Retry without clearing credentials or the
 saved window. Optional age-assurance prefetch no longer gates web resume;
 mounted queries retain their fail-closed loading/error behavior and bound their
-requests to 8 seconds. Unknown geolocation stays unknown, with a visible status
-and retry on connectivity return. A 15-second HTML watchdog also covers missing
-entry/language chunks before React recovery can render. Its minimal English
+requests to 8 seconds. On web, an unknown country caps age-assurance access at
+Safe, even with cached adult metadata or assured/full server state. Minimum-age
+denials, blocked state and account-data errors remain more restrictive; neither
+adult content nor chat is enabled by the unknown-region fallback. Normally
+cached known-country and native behavior are unchanged. Geolocation remains
+unknown, with a visible status and retry on connectivity return; confirmed
+geolocation restores normal regional evaluation. A 15-second HTML watchdog also
+covers missing entry/language chunks before React recovery can render. Its minimal English
 fallback is marked `lang="en"`; normal recovery UI uses Lingui.
 
 Foreground/pageshow checks reconcile elapsed request deadlines and the splash
