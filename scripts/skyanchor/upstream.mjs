@@ -290,10 +290,33 @@ export function reconstruct(root, base, release) {
   }
 }
 
-export function requireMainProtection(protection) {
+function requirePersonalOwner(info, actor) {
+  if (
+    info?.full_name !== repository ||
+    info.id !== repositoryId ||
+    info.owner?.type !== 'User' ||
+    info.owner.login !== 'MichaelEns' ||
+    info.owner.id !== 44419611 ||
+    info.permissions?.admin !== true ||
+    actor?.type !== 'User' ||
+    actor.login !== info.owner.login ||
+    actor.id !== info.owner.id
+  )
+    throw new Error(
+      'Authenticated bound personal owner with admin access required',
+    )
+}
+
+export function requireMainProtection(protection, personalOwner) {
   const checks = protection?.required_status_checks
-  const bypass =
-    protection?.required_pull_request_reviews?.bypass_pull_request_allowances
+  const reviews = protection?.required_pull_request_reviews
+  const bypass = reviews?.bypass_pull_request_allowances
+  const personalUnsupported =
+    personalOwner !== undefined &&
+    reviews != null &&
+    !Object.hasOwn(reviews, 'bypass_pull_request_allowances')
+  if (personalOwner !== undefined)
+    requirePersonalOwner(personalOwner.info, personalOwner.actor)
   if (
     checks?.strict !== true ||
     !Array.isArray(checks.checks) ||
@@ -306,11 +329,12 @@ export function requireMainProtection(protection) {
     protection.allow_fork_syncing?.enabled !== false ||
     protection.required_pull_request_reviews
       ?.required_approving_review_count !== 0 ||
-    !bypass ||
-    Object.keys(bypass).sort().join(',') !== 'apps,teams,users' ||
-    Object.values(bypass).some(
-      value => !Array.isArray(value) || value.length,
-    ) ||
+    (!personalUnsupported &&
+      (!bypass ||
+        Object.keys(bypass).sort().join(',') !== 'apps,teams,users' ||
+        Object.values(bypass).some(
+          value => !Array.isArray(value) || value.length,
+        ))) ||
     protection.restrictions != null
   )
     throw new Error('Strict app-bound protection without bypass is required')
@@ -354,8 +378,14 @@ export function requirePublicPolicy(info, variables, attestation) {
 
 export async function verifyOwnerSetup(request, evidence) {
   const info = await request('')
+  const actor = await request('/user')
+  requirePersonalOwner(info, actor)
   const raw = await request('branches/main/protection')
-  requireMainProtection(raw)
+  requireMainProtection(raw, {info, actor})
+  const personalBypassUnsupported = !Object.hasOwn(
+    raw.required_pull_request_reviews,
+    'bypass_pull_request_allowances',
+  )
   const fork = await request('actions/permissions/fork-pr-contributor-approval')
   const rulesets = await request('rulesets?includes_parents=true')
   const rules = await request('rules/branches/main')
@@ -372,6 +402,12 @@ export async function verifyOwnerSetup(request, evidence) {
       'restrictions',
     ].map(key => [key, raw[key] ?? null]),
   )
+  if (personalBypassUnsupported) {
+    protection.required_pull_request_reviews = {
+      ...raw.required_pull_request_reviews,
+      bypass_pull_request_allowances: {users: [], teams: [], apps: []},
+    }
+  }
   const attestation = {
     schemaVersion: 1,
     repository,
@@ -381,6 +417,18 @@ export async function verifyOwnerSetup(request, evidence) {
     forkApprovalPolicy: fork.approval_policy,
     additionalRulesets: rulesets,
     evidence,
+    ownerVerification: {
+      ownerType: info.owner.type,
+      ownerId: info.owner.id,
+      authenticatedOwnerId: actor.id,
+      admin: true,
+      bypassAllowances: personalBypassUnsupported
+        ? 'not-applicable-personal-api-unsupported'
+        : 'explicit-empty-api-lists',
+      effectiveAllowanceRepresentation: personalBypassUnsupported
+        ? 'Derived empty sets for schema-1 compatibility; API field absent, not API-returned arrays. No supported personal allowances; administrator enforcement required.'
+        : 'API-returned empty lists',
+    },
   }
   requirePublicPolicy(
     info,
@@ -427,7 +475,9 @@ export async function verifyRuntimePolicy(request, variables, main) {
 async function api(endpoint, options = {}) {
   if (!process.env.GH_TOKEN) throw new Error('Scoped workflow token required')
   const response = await fetch(
-    `https://api.github.com/repos/${repository}${endpoint ? '/' + endpoint : ''}`,
+    endpoint === '/user'
+      ? 'https://api.github.com/user'
+      : `https://api.github.com/repos/${repository}${endpoint ? '/' + endpoint : ''}`,
     {
       ...options,
       headers: {

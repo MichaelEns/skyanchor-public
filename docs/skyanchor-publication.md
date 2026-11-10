@@ -2,7 +2,8 @@
 
 ## Status and owner prerequisites
 
-This tree is prepared locally, not a public repository or an enabled service.
+The sanitized source is public; Actions and automatic merging remain disabled
+pending owner verification and protected-check acceptance.
 Never push the private repository, a private commit, bundle, object database or
 release ledger. The first public commit must be a clean, parentless sanitized
 snapshot with the owner's GitHub no-reply author and committer. Keep the private
@@ -23,8 +24,9 @@ issue may attest to the verified configuration without exposing billing data.
 The owner verified an account-wide $0 Actions budget with Stop usage enabled
 after a settings-page reload at setup. Private verification evidence remains
 outside source. This is an owner attestation, not an API-verified billing claim.
-Public visibility, protection and actual protected-merge acceptance are still
-parent-only prerequisites; this source does not claim they are configured.
+The owner reports public visibility and strict app-bound main protection
+configured. Native-token preflight and actual protected-merge acceptance remain
+parent-only prerequisites; this source does not claim those have completed.
 
 Before any push, independently review every reachable new Git object with
 private markers held outside this repository. Run the publication inventory,
@@ -68,11 +70,39 @@ the owner runs `node scripts/skyanchor/upstream.mjs verify-setup` with a local
 `GH_TOKEN` authorized to read those settings and
 `SKYANCHOR_ADMIN_POLICY_EVIDENCE` set to a sanitized owner-reviewed issue URL.
 This read-only command validates the actual public repository ID, full strict
-app-bound protection, administrator enforcement, explicit empty bypass lists,
+app-bound protection, administrator enforcement, no effective bypass allowances,
 fork approval policy and absence of additional rulesets. It prints a JSON
 attestation; install that exact output as repository variable
 `SKYANCHOR_ADMIN_POLICY_ATTESTATION`. Do not copy tokens or private billing
-evidence. Missing bypass fields are unknown, never an empty safe list.
+evidence.
+
+For this personal repository, setup also verifies repository
+`MichaelEns/skyanchor-public` ID 1452249834, owner type `User`, owner
+`MichaelEns` ID 44419611, repository administrator access and the same
+authenticated identity from `GET /user`. GitHub rejected even empty
+`bypass_pull_request_allowances` payloads for this personal repository with
+HTTP 422 and omitted that organization-only field in its administrative
+readback. Only this verified personal-owner case can classify **field absence**
+as `not-applicable-personal-api-unsupported`. Missing fields for organization
+or unknown ownership remain errors; present unknown, malformed or nonempty
+allowances are rejected. Strict status checks and administrator enforcement
+remain mandatory. The branch is never unprotected to bootstrap the fix.
+
+The schema-1 attestation represents the resulting empty **effective** allowance
+sets in its existing protection fields so published main can validate it.
+`ownerVerification` explicitly records the personal API omission and derived
+representation: these arrays are not claimed to have come from GitHub.
+Setup never mutates the API readback. The owning regression loads the actual
+published `fb76bfb` validator and proves it accepts this canonical output
+while still rejecting the unclassified raw personal response.
+
+The parent runs the reviewed local fix branch with `GH_REPOSITORY` set to
+`MichaelEns/skyanchor-public`, `SKYANCHOR_ADMIN_POLICY_EVIDENCE` set to
+`https://github.com/MichaelEns/skyanchor-public/issues/2` and its personal
+owner token in local `GH_TOKEN`, then invokes
+`node scripts/skyanchor/upstream.mjs verify-setup`. Keep the token outside CI
+and source. Review that output before setting the attestation variable; the
+fix PR must satisfy the existing required check without an administrator bypass.
 
 Runtime policy validates that owner attestation, then uses ordinary public
 repository/branch metadata, effective branch rules and the main ref. It requires

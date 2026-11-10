@@ -2,6 +2,7 @@ import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
+import {isDeepStrictEqual} from 'node:util'
 import {
   classify,
   latestRelease,
@@ -47,7 +48,10 @@ const info = {
   fork: false,
   default_branch: 'main',
   archived: false,
+  owner: {type: 'User', login: 'MichaelEns', id: 44419611},
+  permissions: {admin: true},
 }
+const actor = {type: 'User', login: 'MichaelEns', id: 44419611}
 const attestation = {
   schemaVersion: 1,
   repository,
@@ -193,6 +197,7 @@ test('Public identity, cost evidence and strict app-bound protection fail closed
 test('Owner-admin setup reads privileged policy once; omitted bypass evidence never means safe', async () => {
   const replies = {
     '': info,
+    '/user': actor,
     'branches/main/protection': protection,
     'actions/permissions/fork-pr-contributor-approval': {
       approval_policy: 'all_external_contributors',
@@ -235,6 +240,210 @@ test('Owner-admin setup reads privileged policy once; omitted bypass evidence ne
     () => verifyOwnerSetup(request, attestation.evidence),
     /ruleset/,
   )
+})
+
+test('Personal owner setup classifies unsupported bypass explicitly and remains compatible with published runtime', async () => {
+  const personalProtection = {
+    ...protection,
+    restrictions: null,
+    required_status_checks: {
+      ...protection.required_status_checks,
+      contexts: ['SkyAnchor exact candidate'],
+    },
+    required_pull_request_reviews: {
+      dismiss_stale_reviews: true,
+      require_code_owner_reviews: false,
+      require_last_push_approval: false,
+      required_approving_review_count: 0,
+    },
+  }
+  const replies = {
+    '': info,
+    '/user': actor,
+    'branches/main/protection': personalProtection,
+    'actions/permissions/fork-pr-contributor-approval': {
+      approval_policy: 'all_external_contributors',
+    },
+    'rulesets?includes_parents=true': [],
+    'rules/branches/main': [],
+  }
+  const request = async endpoint => {
+    assert.ok(Object.hasOwn(replies, endpoint), endpoint)
+    return replies[endpoint]
+  }
+  const verified = await verifyOwnerSetup(
+    request,
+    `https://github.com/${repository}/issues/2`,
+  )
+  assert.equal(
+    verified.ownerVerification.bypassAllowances,
+    'not-applicable-personal-api-unsupported',
+  )
+  assert.match(
+    verified.ownerVerification.effectiveAllowanceRepresentation,
+    /Derived empty sets.*API field absent/,
+  )
+  assert.equal(
+    Object.hasOwn(
+      personalProtection.required_pull_request_reviews,
+      'bypass_pull_request_allowances',
+    ),
+    false,
+  )
+  requirePublicPolicy(info, policy, verified)
+  const published = gitAt(process.cwd(), [
+    'show',
+    'fb76bfb70177a2e6c85675441669926d713c87b9:scripts/skyanchor/upstream.mjs',
+  ])
+  const start = published.indexOf('export function requireMainProtection(')
+  const end = published.indexOf('export async function verifyOwnerSetup(')
+  assert.ok(start >= 0 && end > start)
+  const publishedValidator = new Function(
+    'repository',
+    'repositoryId',
+    'context',
+    'isDeepStrictEqual',
+    published.slice(start, end).replaceAll('export function ', 'function ') +
+      '\nreturn requirePublicPolicy;',
+  )(repository, info.id, 'SkyAnchor exact candidate', isDeepStrictEqual)
+  publishedValidator(info, policy, verified)
+  const main = 'a'.repeat(40)
+  const live = {
+    '': info,
+    'branches/main': {
+      name: 'main',
+      commit: {sha: main},
+      protected: true,
+      protection: {
+        enabled: true,
+        required_status_checks: {
+          enforcement_level: 'everyone',
+          contexts: ['SkyAnchor exact candidate'],
+          checks: [{context: 'SkyAnchor exact candidate', app_id: 15368}],
+        },
+      },
+    },
+    'rules/branches/main': [],
+    'git/ref/heads/main': {object: {sha: main}},
+  }
+  await verifyRuntimePolicy(
+    async endpoint => {
+      assert.ok(Object.hasOwn(live, endpoint), endpoint)
+      return live[endpoint]
+    },
+    {...policy, SKYANCHOR_ADMIN_POLICY_ATTESTATION: JSON.stringify(verified)},
+    main,
+  )
+  assert.throws(
+    () =>
+      publishedValidator(info, policy, {
+        ...verified,
+        protection: personalProtection,
+      }),
+    /protection/,
+  )
+  for (const owner of [
+    {type: 'Organization', login: 'MichaelEns', id: 44419611},
+    {login: 'MichaelEns', id: 44419611},
+    {...info.owner, id: 1},
+    {...info.owner, login: 'other'},
+  ]) {
+    replies[''] = {...info, owner}
+    await assert.rejects(
+      () => verifyOwnerSetup(request, verified.evidence),
+      /personal owner/,
+    )
+    assert.throws(
+      () =>
+        requireMainProtection(personalProtection, {info: replies[''], actor}),
+      /personal owner/,
+    )
+  }
+  replies[''] = info
+  for (const change of [
+    {id: 1},
+    {full_name: 'example/other'},
+    {permissions: {admin: false}},
+    {permissions: undefined},
+  ]) {
+    replies[''] = {...info, ...change}
+    await assert.rejects(
+      () => verifyOwnerSetup(request, verified.evidence),
+      /personal owner/,
+    )
+  }
+  replies[''] = info
+  for (const changedActor of [
+    {...actor, id: 1},
+    {...actor, type: 'Organization'},
+    undefined,
+  ]) {
+    replies['/user'] = changedActor
+    await assert.rejects(
+      () => verifyOwnerSetup(request, verified.evidence),
+      /personal owner/,
+    )
+  }
+  replies['/user'] = actor
+  assert.throws(() => requireMainProtection(personalProtection), /protection/)
+  requireMainProtection(protection)
+  for (const bypass of [
+    null,
+    {},
+    {users: [], teams: []},
+    {users: ['owner'], teams: [], apps: []},
+    {users: [], teams: [], apps: ['app']},
+    {users: [], teams: [], apps: [], unknown: []},
+  ]) {
+    replies['branches/main/protection'] = {
+      ...personalProtection,
+      required_pull_request_reviews: {
+        ...personalProtection.required_pull_request_reviews,
+        bypass_pull_request_allowances: bypass,
+      },
+    }
+    await assert.rejects(
+      () => verifyOwnerSetup(request, verified.evidence),
+      /protection/,
+    )
+  }
+  for (const change of [
+    {enforce_admins: {enabled: false}},
+    {
+      required_status_checks: {
+        ...personalProtection.required_status_checks,
+        strict: false,
+      },
+    },
+    {
+      required_status_checks: {
+        ...personalProtection.required_status_checks,
+        checks: [{context: 'SkyAnchor exact candidate', app_id: 1}],
+      },
+    },
+    {allow_force_pushes: {enabled: true}},
+    {allow_deletions: {enabled: true}},
+    {allow_fork_syncing: {enabled: true}},
+    {restrictions: {users: []}},
+  ]) {
+    replies['branches/main/protection'] = {...personalProtection, ...change}
+    await assert.rejects(
+      () => verifyOwnerSetup(request, verified.evidence),
+      /protection/,
+    )
+  }
+  replies['branches/main/protection'] = personalProtection
+  for (const endpoint of [
+    'rulesets?includes_parents=true',
+    'rules/branches/main',
+  ]) {
+    replies[endpoint] = [{id: 1}]
+    await assert.rejects(
+      () => verifyOwnerSetup(request, verified.evidence),
+      /ruleset/,
+    )
+    replies[endpoint] = []
+  }
 })
 
 test('Native-token runtime reads only public policy surfaces and halts on unknown or denied data', async () => {
