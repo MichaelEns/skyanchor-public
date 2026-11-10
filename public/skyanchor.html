@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SkyAnchor - privacy, terms and support</title>
+    <style>
+      body {
+        max-width: 48rem;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        font:
+          1rem/1.6 system-ui,
+          sans-serif;
+        color: #123344;
+        background: #f4f9fc;
+      }
+      a {
+        color: #075c8c;
+      }
+      h1,
+      h2 {
+        line-height: 1.2;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>SkyAnchor</h1>
+    <p>
+      A personal web/PWA fork maintained by Michael Ens, not a Bluesky Social
+      PBC product. <a href="/">Open SkyAnchor</a>.
+    </p>
+    <h2 id="privacy">Privacy and retention</h2>
+    <p>
+      The upstream account session is stored in your browser. Following reading
+      data is account-scoped: a local window of at most 90 occurrences and 1
+      MiB, a within-post offset, up to eight neighbors, and a separate bounded
+      Return checkpoint. It is not an encrypted vault or complete archive.
+    </p>
+    <p>
+      Private sync is optional. Connect private sync once per device to consent
+      to debounced cloud saves. The same-origin Worker verifies a bsky.social
+      access token without receiving your password or refresh token. D1 stores
+      your verified DID, device UUID, reading occurrence/offset/neighbors,
+      revision and update time. Session rows contain a token hash, CSRF token
+      and ten-minute expiry, not a stored access token.
+    </p>
+    <p>
+      Expired sessions are removed on the next session creation and may remain
+      physically stored until then. Cloud progress has no automatic expiry.
+      Delete cloud progress and disconnect removes progress while retaining a
+      revision tombstone to reject stale writes; your local place is unchanged.
+      Disconnect other devices too to stop their future saves. Signing out
+      clears this device's account reading/Return data and revokes its own sync
+      session. Tombstones and the monotonic clock have no TTL.
+    </p>
+    <p>
+      No remote analytics delivery is enabled. The service worker does not cache
+      responses, private APIs, media or feeds. Internet connectivity is required
+      for cold startup; background delivery on iPhone is not guaranteed.
+      Bluesky, your PDS, appview, chat, video, media, moderation and
+      age-assurance providers receive their normal service requests, and
+      Cloudflare has its own infrastructure policies.
+      <a href="https://bsky.social/about/support/privacy-policy"
+        >Bluesky provider privacy policy</a
+      >.
+    </p>
+    <h2 id="terms">Terms and independent providers</h2>
+    <p>
+      SkyAnchor is a personal fork distributed as-is without an uptime or
+      support guarantee. Its code uses the upstream MIT license; artwork and
+      fonts have separate licenses.
+      <a href="/licenses/LICENSE.txt">Code license</a> and
+      <a href="/licenses/NOTICE.md">third-party notices</a> accompany this
+      export. SkyAnchor is not endorsed by Bluesky Social PBC and cannot resolve
+      provider account appeals.
+    </p>
+    <p>
+      Your accounts and posts remain subject to your providers' rules, including
+      the <a href="https://bsky.social/about/support/tos">Bluesky terms</a> and
+      <a href="https://bsky.social/about/support/community-guidelines"
+        >community guidelines</a
+      >. Normal moderation and age-assurance requirements are not bypassed.
+    </p>
+    <h2 id="support">Support and installation</h2>
+    <p>
+      Report SkyAnchor bugs through
+      <a href="https://github.com/MichaelEns/skyanchor-public/issues"
+        >SkyAnchor public issues</a
+      >. This source repository may not yet be published. Do not include
+      passwords or tokens in a report. For provider account issues, use the
+      <a href="https://blueskyweb.zendesk.com/hc/en-us"
+        >Bluesky provider help desk</a
+      >.
+    </p>
+    <p>
+      Windows: open SkyAnchor in Edge or Chrome; optionally install it from the
+      browser's app-install menu. iPhone: open it in Safari, then Share, Add to
+      Home Screen, and Open as Web App when offered. Sign in and enable private
+      sync separately in each browser/app storage context. There is no native
+      store app, web push or offline whole-feed cache.
+    </p>
+  </body>
+</html>

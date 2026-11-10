@@ -1,0 +1,1927 @@
+[
+  {
+    "file": "src\\components\\icons\\Accessibility.tsx",
+    "export": "Accessibility_Stroke2_Corner2_Rounded",
+    "source": "accessibility"
+  },
+  {
+    "file": "src\\components\\icons\\Alien.tsx",
+    "export": "Alien_Stroke2_Corner0_Rounded",
+    "source": "bot"
+  },
+  {
+    "file": "src\\components\\icons\\Apple.tsx",
+    "export": "Apple_Stroke2_Corner0_Rounded",
+    "source": "apple"
+  },
+  {
+    "file": "src\\components\\icons\\Arrow.tsx",
+    "export": "ArrowBottom_Stroke2_Corner0_Rounded",
+    "source": "arrow-down"
+  },
+  {
+    "file": "src\\components\\icons\\Arrow.tsx",
+    "export": "ArrowBoxLeft_Stroke2_Corner0_Rounded",
+    "source": "log-out"
+  },
+  {
+    "file": "src\\components\\icons\\Arrow.tsx",
+    "export": "ArrowBoxLeft_Stroke2_Corner2_Rounded",
+    "source": "log-out"
+  },
+  {
+    "file": "src\\components\\icons\\Arrow.tsx",
+    "export": "ArrowBoxRight_Stroke2_Corner3_Rounded",
+    "source": "log-in"
+  },
+  {
+    "file": "src\\components\\icons\\Arrow.tsx",
+    "export": "ArrowCornerDownRight_Stroke2_Corner2_Rounded",
+    "source": "corner-down-right"
+  },
+  {
+    "file": "src\\components\\icons\\Arrow.tsx",
+    "export": "ArrowCornerDownRight_Stroke2_Corner3_Rounded",
+    "source": "corner-down-right"
+  },
+  {
+    "file": "src\\components\\icons\\Arrow.tsx",
+    "export": "ArrowLeft_Stroke2_Corner0_Rounded",
+    "source": "arrow-left"
+  },
+  {
+    "file": "src\\components\\icons\\Arrow.tsx",
+    "export": "ArrowOutOfBox_Stroke2_Corner0_Rounded",
+    "source": "share"
+  },
+  {
+    "file": "src\\components\\icons\\Arrow.tsx",
+    "export": "ArrowOutOfBoxModified_Stroke2_Corner2_Rounded",
+    "source": "share"
+  },
+  {
+    "file": "src\\components\\icons\\Arrow.tsx",
+    "export": "ArrowRight_Stroke2_Corner0_Rounded",
+    "source": "arrow-right"
+  },
+  {
+    "file": "src\\components\\icons\\Arrow.tsx",
+    "export": "ArrowRotateClockwise_Stroke2_Corner0_Rounded",
+    "source": "rotate-cw"
+  },
+  {
+    "file": "src\\components\\icons\\Arrow.tsx",
+    "export": "ArrowRotateCounterClockwise_Stroke2_Corner0_Rounded",
+    "source": "rotate-ccw"
+  },
+  {
+    "file": "src\\components\\icons\\Arrow.tsx",
+    "export": "ArrowShareRight_Stroke2_Corner2_Rounded",
+    "source": "forward"
+  },
+  {
+    "file": "src\\components\\icons\\Arrow.tsx",
+    "export": "ArrowTop_Stroke2_Corner0_Rounded",
+    "source": "arrow-up"
+  },
+  {
+    "file": "src\\components\\icons\\Arrow.tsx",
+    "export": "ArrowTopCircle_Stroke2_Corner0_Rounded",
+    "source": "circle-arrow-up"
+  },
+  {
+    "file": "src\\components\\icons\\Arrow.tsx",
+    "export": "ArrowTopRight_Stroke2_Corner0_Rounded",
+    "source": "arrow-up-right"
+  },
+  {
+    "file": "src\\components\\icons\\Arrow.tsx",
+    "export": "ArrowTriangleBottom_Stroke2_Corner1_Rounded",
+    "source": "chevron-down"
+  },
+  {
+    "file": "src\\components\\icons\\ArrowBoxLeft.tsx",
+    "export": "ArrowBoxLeft_Stroke2_Corner0_Rounded",
+    "source": "log-out"
+  },
+  {
+    "file": "src\\components\\icons\\ArrowBoxRight.tsx",
+    "export": "ArrowBoxRight_Stroke2_Corner3_Rounded",
+    "source": "log-in"
+  },
+  {
+    "file": "src\\components\\icons\\ArrowCornerDownRight.tsx",
+    "export": "ArrowCornerDownRight_Stroke2_Corner2_Rounded",
+    "source": "corner-down-right"
+  },
+  {
+    "file": "src\\components\\icons\\ArrowCornerDownRight.tsx",
+    "export": "ArrowCornerDownRight_Stroke2_Corner3_Rounded",
+    "source": "corner-down-right"
+  },
+  {
+    "file": "src\\components\\icons\\ArrowOutOfBox.tsx",
+    "export": "ArrowOutOfBox_Stroke2_Corner0_Rounded",
+    "source": "share"
+  },
+  {
+    "file": "src\\components\\icons\\ArrowOutOfBox.tsx",
+    "export": "ArrowOutOfBoxModified_Stroke2_Corner2_Rounded",
+    "source": "share"
+  },
+  {
+    "file": "src\\components\\icons\\ArrowRotate.tsx",
+    "export": "ArrowRotateClockwise_Stroke2_Corner0_Rounded",
+    "source": "rotate-cw"
+  },
+  {
+    "file": "src\\components\\icons\\ArrowRotate.tsx",
+    "export": "ArrowRotateCounterClockwise_Stroke2_Corner0_Rounded",
+    "source": "rotate-ccw"
+  },
+  {
+    "file": "src\\components\\icons\\ArrowsDiagonal.tsx",
+    "export": "ArrowsDiagonalIn_Stroke2_Corner0_Rounded",
+    "source": "minimize-2"
+  },
+  {
+    "file": "src\\components\\icons\\ArrowsDiagonal.tsx",
+    "export": "ArrowsDiagonalIn_Stroke2_Corner2_Rounded",
+    "source": "minimize-2"
+  },
+  {
+    "file": "src\\components\\icons\\ArrowsDiagonal.tsx",
+    "export": "ArrowsDiagonalOut_Stroke2_Corner0_Rounded",
+    "source": "maximize-2"
+  },
+  {
+    "file": "src\\components\\icons\\ArrowsDiagonal.tsx",
+    "export": "ArrowsDiagonalOut_Stroke2_Corner2_Rounded",
+    "source": "maximize-2"
+  },
+  {
+    "file": "src\\components\\icons\\ArrowShareRight.tsx",
+    "export": "ArrowShareRight_Stroke2_Corner2_Rounded",
+    "source": "forward"
+  },
+  {
+    "file": "src\\components\\icons\\ArrowTopCircle.tsx",
+    "export": "ArrowTopCircle_Stroke2_Corner0_Rounded",
+    "source": "circle-arrow-up"
+  },
+  {
+    "file": "src\\components\\icons\\AspectRatio.tsx",
+    "export": "AspectRatio11_Stroke2_Corner0_Rounded",
+    "source": "square"
+  },
+  {
+    "file": "src\\components\\icons\\AspectRatio.tsx",
+    "export": "AspectRatio34_Stroke2_Corner0_Rounded",
+    "source": "rectangle-vertical"
+  },
+  {
+    "file": "src\\components\\icons\\AspectRatio.tsx",
+    "export": "AspectRatio43_Stroke2_Corner0_Rounded",
+    "source": "rectangle-horizontal"
+  },
+  {
+    "file": "src\\components\\icons\\At.tsx",
+    "export": "At_Stroke2_Corner0_Rounded",
+    "source": "at-sign"
+  },
+  {
+    "file": "src\\components\\icons\\At.tsx",
+    "export": "At_Stroke2_Corner2_Rounded",
+    "source": "at-sign"
+  },
+  {
+    "file": "src\\components\\icons\\Atom.tsx",
+    "export": "Atom_Stroke2_Corner0_Rounded",
+    "source": "atom"
+  },
+  {
+    "file": "src\\components\\icons\\Bars3.tsx",
+    "export": "Bars3_Stroke2_Corner0_Rounded",
+    "source": "chart-no-axes-column"
+  },
+  {
+    "file": "src\\components\\icons\\Beaker.tsx",
+    "export": "Beaker_Stroke2_Corner2_Rounded",
+    "source": "beaker"
+  },
+  {
+    "file": "src\\components\\icons\\Bell.tsx",
+    "export": "Bell_Filled_Corner0_Rounded",
+    "source": "bell"
+  },
+  {
+    "file": "src\\components\\icons\\Bell.tsx",
+    "export": "Bell_Stroke2_Corner0_Rounded",
+    "source": "bell"
+  },
+  {
+    "file": "src\\components\\icons\\Bell.tsx",
+    "export": "Bell2_Filled_Corner0_Rounded",
+    "source": "bell"
+  },
+  {
+    "file": "src\\components\\icons\\Bell.tsx",
+    "export": "Bell2_Stroke2_Corner0_Rounded",
+    "source": "bell"
+  },
+  {
+    "file": "src\\components\\icons\\Bell.tsx",
+    "export": "Bell2Off_Filled_Corner0_Rounded",
+    "source": "bell-off"
+  },
+  {
+    "file": "src\\components\\icons\\Bell.tsx",
+    "export": "Bell2Off_Stroke2_Corner0_Rounded",
+    "source": "bell-off"
+  },
+  {
+    "file": "src\\components\\icons\\Bell.tsx",
+    "export": "BellPlus_Stroke2_Corner0_Rounded",
+    "source": "bell-plus"
+  },
+  {
+    "file": "src\\components\\icons\\Bell.tsx",
+    "export": "BellRinging_Filled_Corner0_Rounded",
+    "source": "bell-ring"
+  },
+  {
+    "file": "src\\components\\icons\\Bell.tsx",
+    "export": "BellRinging_Stroke2_Corner0_Rounded",
+    "source": "bell-ring"
+  },
+  {
+    "file": "src\\components\\icons\\Bell2.tsx",
+    "export": "Bell2_Stroke2_Corner0_Rounded",
+    "source": "bell"
+  },
+  {
+    "file": "src\\components\\icons\\Bell2.tsx",
+    "export": "Bell2Off_Filled_Corner0_Rounded",
+    "source": "bell-off"
+  },
+  {
+    "file": "src\\components\\icons\\Bell2.tsx",
+    "export": "Bell2Off_Stroke2_Corner0_Rounded",
+    "source": "bell-off"
+  },
+  {
+    "file": "src\\components\\icons\\BellPlus.tsx",
+    "export": "BellPlus_Stroke2_Corner0_Rounded",
+    "source": "bell-plus"
+  },
+  {
+    "file": "src\\components\\icons\\BellRinging.tsx",
+    "export": "BellRinging_Filled_Corner0_Rounded",
+    "source": "bell-ring"
+  },
+  {
+    "file": "src\\components\\icons\\BellRinging.tsx",
+    "export": "BellRinging_Stroke2_Corner0_Rounded",
+    "source": "bell-ring"
+  },
+  {
+    "file": "src\\components\\icons\\BirthdayCake.tsx",
+    "export": "BirthdayCake_Stroke2_Corner2_Rounded",
+    "source": "cake"
+  },
+  {
+    "file": "src\\components\\icons\\Bookmark.tsx",
+    "export": "Bookmark_Filled_Corner0_Rounded",
+    "source": "bookmark"
+  },
+  {
+    "file": "src\\components\\icons\\Bookmark.tsx",
+    "export": "Bookmark_Stroke2_Corner0_Rounded",
+    "source": "bookmark"
+  },
+  {
+    "file": "src\\components\\icons\\Bookmark.tsx",
+    "export": "BookmarkDelete_Stroke2_Corner0_Rounded_Large",
+    "source": "bookmark-minus"
+  },
+  {
+    "file": "src\\components\\icons\\Bot.tsx",
+    "export": "Bot_Filled_Corner0_Rounded",
+    "source": "bot"
+  },
+  {
+    "file": "src\\components\\icons\\Bot.tsx",
+    "export": "Bot_Stroke2_Corner0_Rounded",
+    "source": "bot"
+  },
+  {
+    "file": "src\\components\\icons\\brands\\AndroidLogo.tsx",
+    "export": "AndroidLogo",
+    "source": "smartphone"
+  },
+  {
+    "file": "src\\components\\icons\\brands\\AppleLogo.tsx",
+    "export": "AppleLogo",
+    "source": "smartphone"
+  },
+  {
+    "file": "src\\components\\icons\\brands\\Attie.tsx",
+    "export": "Attie_Filled_Corner0_Rounded",
+    "source": "bot"
+  },
+  {
+    "file": "src\\components\\icons\\brands\\EnvelopeNotification.tsx",
+    "export": "EnvelopeNotification_Filled_Corner2_Rounded",
+    "source": "mail-plus"
+  },
+  {
+    "file": "src\\components\\icons\\brands\\Mark.tsx",
+    "export": "Mark",
+    "source": "skyanchor-original"
+  },
+  {
+    "file": "src\\components\\icons\\brands\\Newskie.tsx",
+    "export": "Newskie",
+    "source": "skyanchor-original"
+  },
+  {
+    "file": "src\\components\\icons\\brands\\StarterPack.tsx",
+    "export": "StarterPack_Stroke2_Corner0_Rounded",
+    "source": "package-plus"
+  },
+  {
+    "file": "src\\components\\icons\\brands\\StarterPack.tsx",
+    "export": "StarterPackMultiPathLarge",
+    "source": "package-plus"
+  },
+  {
+    "file": "src\\components\\icons\\brands\\VerifiedCheck.tsx",
+    "export": "VerifiedCheck",
+    "source": "badge-check"
+  },
+  {
+    "file": "src\\components\\icons\\brands\\VerifierCheck.tsx",
+    "export": "VerifierCheck",
+    "source": "shield-check"
+  },
+  {
+    "file": "src\\components\\icons\\BroomSparkle.tsx",
+    "export": "BroomSparkle_Stroke2_Corner2_Rounded",
+    "source": "brush"
+  },
+  {
+    "file": "src\\components\\icons\\Bubble.tsx",
+    "export": "Bubble_Filled_Stroke2_Corner2_Rounded",
+    "source": "message-circle"
+  },
+  {
+    "file": "src\\components\\icons\\Bubble.tsx",
+    "export": "Bubble_Stroke2_Corner2_Rounded",
+    "source": "message-circle"
+  },
+  {
+    "file": "src\\components\\icons\\Bubble.tsx",
+    "export": "Bubble_Stroke2_Corner3_Rounded",
+    "source": "message-circle"
+  },
+  {
+    "file": "src\\components\\icons\\Bubble.tsx",
+    "export": "BubbleInfo_Stroke2_Corner2_Rounded",
+    "source": "message-circle-question"
+  },
+  {
+    "file": "src\\components\\icons\\Bubble.tsx",
+    "export": "BubbleQuestion_Stroke2_Corner0_Rounded",
+    "source": "message-circle-question"
+  },
+  {
+    "file": "src\\components\\icons\\Bubble.tsx",
+    "export": "BubbleSmile_Stroke2_Corner2_Rounded_Large",
+    "source": "message-circle-heart"
+  },
+  {
+    "file": "src\\components\\icons\\Bubble.tsx",
+    "export": "Bubbles_Stroke2_Corner2_Rounded",
+    "source": "messages-square"
+  },
+  {
+    "file": "src\\components\\icons\\BubbleInfo.tsx",
+    "export": "BubbleInfo_Stroke2_Corner2_Rounded",
+    "source": "message-circle-question"
+  },
+  {
+    "file": "src\\components\\icons\\Bubbles.tsx",
+    "export": "Bubbles_Stroke2_Corner2_Rounded",
+    "source": "messages-square"
+  },
+  {
+    "file": "src\\components\\icons\\BulletList.tsx",
+    "export": "BulletList_Filled_Corner0_Rounded",
+    "source": "list"
+  },
+  {
+    "file": "src\\components\\icons\\BulletList.tsx",
+    "export": "BulletList_Stroke1_Corner0_Rounded",
+    "source": "list"
+  },
+  {
+    "file": "src\\components\\icons\\BulletList.tsx",
+    "export": "BulletList_Stroke2_Corner0_Rounded",
+    "source": "list"
+  },
+  {
+    "file": "src\\components\\icons\\Calendar.tsx",
+    "export": "Calendar_Stroke2_Corner0_Rounded",
+    "source": "calendar"
+  },
+  {
+    "file": "src\\components\\icons\\Calendar.tsx",
+    "export": "CalendarClock_Stroke2_Corner0_Rounded",
+    "source": "calendar-clock"
+  },
+  {
+    "file": "src\\components\\icons\\Calendar.tsx",
+    "export": "CalendarDays_Stroke2_Corner0_Rounded",
+    "source": "calendar-days"
+  },
+  {
+    "file": "src\\components\\icons\\CalendarClock.tsx",
+    "export": "CalendarClock_Stroke2_Corner0_Rounded",
+    "source": "calendar-clock"
+  },
+  {
+    "file": "src\\components\\icons\\CalendarDays.tsx",
+    "export": "CalendarDays_Stroke2_Corner0_Rounded",
+    "source": "calendar-days"
+  },
+  {
+    "file": "src\\components\\icons\\Camera.tsx",
+    "export": "Camera_Filled_Stroke2_Corner0_Rounded",
+    "source": "camera"
+  },
+  {
+    "file": "src\\components\\icons\\Camera.tsx",
+    "export": "Camera_Stroke2_Corner0_Rounded",
+    "source": "camera"
+  },
+  {
+    "file": "src\\components\\icons\\Car.tsx",
+    "export": "Car_Stroke2_Corner2_Rounded",
+    "source": "car"
+  },
+  {
+    "file": "src\\components\\icons\\CC.tsx",
+    "export": "CC_Filled_Corner0_Rounded",
+    "source": "captions"
+  },
+  {
+    "file": "src\\components\\icons\\CC.tsx",
+    "export": "CC_Stroke2_Corner0_Rounded",
+    "source": "captions"
+  },
+  {
+    "file": "src\\components\\icons\\Celebrate.tsx",
+    "export": "Celebrate_Stroke2_Corner0_Rounded",
+    "source": "party-popper"
+  },
+  {
+    "file": "src\\components\\icons\\ChainLink.tsx",
+    "export": "ChainLink_Stroke2_Corner0_Rounded",
+    "source": "link"
+  },
+  {
+    "file": "src\\components\\icons\\ChainLink.tsx",
+    "export": "ChainLinkBroken_Stroke2_Corner0_Rounded",
+    "source": "unlink"
+  },
+  {
+    "file": "src\\components\\icons\\Check.tsx",
+    "export": "Check_Stroke2_Corner0_Rounded",
+    "source": "check"
+  },
+  {
+    "file": "src\\components\\icons\\Check.tsx",
+    "export": "CheckThick_Stroke2_Corner0_Rounded",
+    "source": "check"
+  },
+  {
+    "file": "src\\components\\icons\\Chevron.tsx",
+    "export": "ChevronBottom_Stroke2_Corner0_Rounded",
+    "source": "chevron-down"
+  },
+  {
+    "file": "src\\components\\icons\\Chevron.tsx",
+    "export": "ChevronLeft_Stroke2_Corner0_Rounded",
+    "source": "chevron-left"
+  },
+  {
+    "file": "src\\components\\icons\\Chevron.tsx",
+    "export": "ChevronRight_Stroke2_Corner0_Rounded",
+    "source": "chevron-right"
+  },
+  {
+    "file": "src\\components\\icons\\Chevron.tsx",
+    "export": "ChevronTop_Stroke2_Corner0_Rounded",
+    "source": "chevron-up"
+  },
+  {
+    "file": "src\\components\\icons\\Chevron.tsx",
+    "export": "ChevronTopBottom_Stroke2_Corner0_Rounded",
+    "source": "chevrons-up-down"
+  },
+  {
+    "file": "src\\components\\icons\\Chevron.tsx",
+    "export": "TinyChevronBottom_Stroke2_Corner0_Rounded",
+    "source": "chevron-down"
+  },
+  {
+    "file": "src\\components\\icons\\Circle.tsx",
+    "export": "Circle_Stroke2_Corner0_Rounded",
+    "source": "circle"
+  },
+  {
+    "file": "src\\components\\icons\\Circle.tsx",
+    "export": "CircleAndSquare_Stroke1_Corner0_Rounded_Filled",
+    "source": "shapes"
+  },
+  {
+    "file": "src\\components\\icons\\Circle.tsx",
+    "export": "CircleBanSign_Stroke2_Corner0_Rounded",
+    "source": "ban"
+  },
+  {
+    "file": "src\\components\\icons\\Circle.tsx",
+    "export": "CircleCheck_Stroke2_Corner0_Rounded",
+    "source": "circle-check"
+  },
+  {
+    "file": "src\\components\\icons\\Circle.tsx",
+    "export": "CircleInfo_Stroke2_Corner0_Rounded",
+    "source": "info"
+  },
+  {
+    "file": "src\\components\\icons\\Circle.tsx",
+    "export": "CirclePlus_Stroke2_Corner0_Rounded",
+    "source": "circle-plus"
+  },
+  {
+    "file": "src\\components\\icons\\Circle.tsx",
+    "export": "CircleQuestion_Stroke2_Corner2_Rounded",
+    "source": "circle-help"
+  },
+  {
+    "file": "src\\components\\icons\\Circle.tsx",
+    "export": "CircleX_Stroke2_Corner0_Rounded",
+    "source": "circle-x"
+  },
+  {
+    "file": "src\\components\\icons\\CircleAndSquare.tsx",
+    "export": "Circle_And_Square_Stroke1_Corner0_Rounded_Filled",
+    "source": "circle"
+  },
+  {
+    "file": "src\\components\\icons\\CircleBanSign.tsx",
+    "export": "CircleBanSign_Stroke2_Corner0_Rounded",
+    "source": "ban"
+  },
+  {
+    "file": "src\\components\\icons\\CircleCheck.tsx",
+    "export": "CircleCheck_Stroke2_Corner0_Rounded",
+    "source": "circle-check"
+  },
+  {
+    "file": "src\\components\\icons\\CircleInfo.tsx",
+    "export": "CircleInfo_Stroke2_Corner0_Rounded",
+    "source": "info"
+  },
+  {
+    "file": "src\\components\\icons\\CirclePlus.tsx",
+    "export": "CirclePlus_Stroke2_Corner0_Rounded",
+    "source": "circle-plus"
+  },
+  {
+    "file": "src\\components\\icons\\CircleQuestion.tsx",
+    "export": "CircleQuestion_Stroke2_Corner2_Rounded",
+    "source": "circle-help"
+  },
+  {
+    "file": "src\\components\\icons\\CircleX.tsx",
+    "export": "CircleX_Stroke2_Corner0_Rounded",
+    "source": "circle-x"
+  },
+  {
+    "file": "src\\components\\icons\\Clipboard.tsx",
+    "export": "Clipboard_Stroke2_Corner2_Rounded",
+    "source": "clipboard"
+  },
+  {
+    "file": "src\\components\\icons\\Clock.tsx",
+    "export": "Clock_Stroke2_Corner0_Rounded",
+    "source": "clock"
+  },
+  {
+    "file": "src\\components\\icons\\CloseQuote.tsx",
+    "export": "CloseQuote_Filled_Stroke2_Corner0_Rounded",
+    "source": "quote"
+  },
+  {
+    "file": "src\\components\\icons\\CloseQuote.tsx",
+    "export": "CloseQuote_Stroke2_Corner0_Rounded",
+    "source": "quote"
+  },
+  {
+    "file": "src\\components\\icons\\CloseQuote.tsx",
+    "export": "CloseQuote_Stroke2_Corner1_Rounded",
+    "source": "quote"
+  },
+  {
+    "file": "src\\components\\icons\\Code.tsx",
+    "export": "CodeBrackets_Stroke2_Corner0_Rounded",
+    "source": "code"
+  },
+  {
+    "file": "src\\components\\icons\\Code.tsx",
+    "export": "CodeBrackets_Stroke2_Corner2_Rounded",
+    "source": "code"
+  },
+  {
+    "file": "src\\components\\icons\\Code.tsx",
+    "export": "CodeLines_Stroke2_Corner2_Rounded",
+    "source": "file-code"
+  },
+  {
+    "file": "src\\components\\icons\\CodeBrackets.tsx",
+    "export": "CodeBrackets_Stroke2_Corner0_Rounded",
+    "source": "code"
+  },
+  {
+    "file": "src\\components\\icons\\CodeBrackets.tsx",
+    "export": "CodeBrackets_Stroke2_Corner2_Rounded",
+    "source": "code"
+  },
+  {
+    "file": "src\\components\\icons\\CodeLines.tsx",
+    "export": "CodeLines_Stroke2_Corner2_Rounded",
+    "source": "file-code"
+  },
+  {
+    "file": "src\\components\\icons\\ColorPalette.tsx",
+    "export": "ColorPalette_Stroke2_Corner0_Rounded",
+    "source": "palette"
+  },
+  {
+    "file": "src\\components\\icons\\community\\BackerKit.tsx",
+    "export": "BackerKit",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\BigCartel.tsx",
+    "export": "BigCartel",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Boosty.tsx",
+    "export": "Boosty",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Booth.tsx",
+    "export": "Booth",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\BuyMeACoffee.tsx",
+    "export": "BuyMeACoffee",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\CashApp.tsx",
+    "export": "CashApp",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Chuffed.tsx",
+    "export": "Chuffed",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Crowdfundr.tsx",
+    "export": "Crowdfundr",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Donorbox.tsx",
+    "export": "Donorbox",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Etsy.tsx",
+    "export": "Etsy",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Fantia.tsx",
+    "export": "Fantia",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Fourthwall.tsx",
+    "export": "Fourthwall",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Github.tsx",
+    "export": "Github",
+    "source": "github"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Givebutter.tsx",
+    "export": "Givebutter",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\GiveSendGo.tsx",
+    "export": "GiveSendGo",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\GoFundMe.tsx",
+    "export": "GoFundMe",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Gumroad.tsx",
+    "export": "Gumroad",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Indiegogo.tsx",
+    "export": "Indiegogo",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Inprint.tsx",
+    "export": "Inprint",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\ItchIo.tsx",
+    "export": "ItchIo",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\JustGiving.tsx",
+    "export": "JustGiving",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Kickstarter.tsx",
+    "export": "Kickstarter",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\KoFi.tsx",
+    "export": "KoFi",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Leaflet.tsx",
+    "export": "Leaflet",
+    "source": "book-open"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Liberapay.tsx",
+    "export": "Liberapay",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Offprint.tsx",
+    "export": "Offprint",
+    "source": "book-open-text"
+  },
+  {
+    "file": "src\\components\\icons\\community\\OpenCollective.tsx",
+    "export": "OpenCollective",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Patreon.tsx",
+    "export": "Patreon",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\PayPal.tsx",
+    "export": "PayPal",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Pckt.tsx",
+    "export": "Pckt",
+    "source": "book-marked"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Pckt.tsx",
+    "export": "PcktFull",
+    "source": "book-marked"
+  },
+  {
+    "file": "src\\components\\icons\\community\\PixivFanbox.tsx",
+    "export": "PixivFanbox",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Redbubble.tsx",
+    "export": "Redbubble",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Skeb.tsx",
+    "export": "Skeb",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\StandardSite.tsx",
+    "export": "StandardSite",
+    "source": "globe"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Stripe.tsx",
+    "export": "Stripe",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\SubscribeStar.tsx",
+    "export": "SubscribeStar",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Substack.tsx",
+    "export": "Substack",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Throne.tsx",
+    "export": "Throne",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Venmo.tsx",
+    "export": "Venmo",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Vgen.tsx",
+    "export": "Vgen",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\community\\Zeffy.tsx",
+    "export": "Zeffy",
+    "source": "hand-coins"
+  },
+  {
+    "file": "src\\components\\icons\\Contacts.tsx",
+    "export": "Contacts_Filled_Corner2_Rounded",
+    "source": "contact"
+  },
+  {
+    "file": "src\\components\\icons\\Contacts.tsx",
+    "export": "Contacts_Stroke2_Corner2_Rounded",
+    "source": "contact"
+  },
+  {
+    "file": "src\\components\\icons\\Crop.tsx",
+    "export": "Crop_Stroke2_Corner0_Rounded",
+    "source": "crop"
+  },
+  {
+    "file": "src\\components\\icons\\DotGrid.tsx",
+    "export": "DotGrid2x3_Stroke2_Corner0_Rounded",
+    "source": "grip-vertical"
+  },
+  {
+    "file": "src\\components\\icons\\DotGrid.tsx",
+    "export": "DotGrid3x1_Stroke2_Corner0_Rounded",
+    "source": "ellipsis"
+  },
+  {
+    "file": "src\\components\\icons\\Download.tsx",
+    "export": "Download_Stroke2_Corner0_Rounded",
+    "source": "download"
+  },
+  {
+    "file": "src\\components\\icons\\Earth.tsx",
+    "export": "Earth_Stroke2_Corner0_Rounded",
+    "source": "earth"
+  },
+  {
+    "file": "src\\components\\icons\\Earth.tsx",
+    "export": "Earth_Stroke2_Corner2_Rounded",
+    "source": "earth"
+  },
+  {
+    "file": "src\\components\\icons\\EditBig.tsx",
+    "export": "EditBig_Stroke1_Corner0_Rounded",
+    "source": "square-pen"
+  },
+  {
+    "file": "src\\components\\icons\\EditBig.tsx",
+    "export": "EditBig_Stroke2_Corner0_Rounded",
+    "source": "square-pen"
+  },
+  {
+    "file": "src\\components\\icons\\EditBig.tsx",
+    "export": "EditBig_Stroke2_Corner2_Rounded",
+    "source": "square-pen"
+  },
+  {
+    "file": "src\\components\\icons\\Emoji.tsx",
+    "export": "EmojiArc_Stroke2_Corner0_Rounded",
+    "source": "smile"
+  },
+  {
+    "file": "src\\components\\icons\\Emoji.tsx",
+    "export": "EmojiHeartEyes_Stroke2_Corner0_Rounded",
+    "source": "heart"
+  },
+  {
+    "file": "src\\components\\icons\\Emoji.tsx",
+    "export": "EmojiSad_Stroke2_Corner0_Rounded",
+    "source": "frown"
+  },
+  {
+    "file": "src\\components\\icons\\Emoji.tsx",
+    "export": "EmojiSmile_Stroke2_Corner0_Rounded",
+    "source": "smile"
+  },
+  {
+    "file": "src\\components\\icons\\Envelope.tsx",
+    "export": "Envelope_Filled_Stroke2_Corner0_Rounded",
+    "source": "mail"
+  },
+  {
+    "file": "src\\components\\icons\\Envelope.tsx",
+    "export": "Envelope_Stroke2_Corner0_Rounded",
+    "source": "mail"
+  },
+  {
+    "file": "src\\components\\icons\\Envelope.tsx",
+    "export": "Envelope_Stroke2_Corner2_Rounded",
+    "source": "mail"
+  },
+  {
+    "file": "src\\components\\icons\\Envelope.tsx",
+    "export": "EnvelopeOpen_Stroke2_Corner0_Rounded",
+    "source": "mail-open"
+  },
+  {
+    "file": "src\\components\\icons\\EnveopeOpen.tsx",
+    "export": "Envelope_Open_Stroke2_Corner0_Rounded",
+    "source": "mail"
+  },
+  {
+    "file": "src\\components\\icons\\ExclamationCircle.tsx",
+    "export": "ExclamationCircle_Stroke2_Corner0_Rounded",
+    "source": "circle-alert"
+  },
+  {
+    "file": "src\\components\\icons\\Explosion.tsx",
+    "export": "Explosion_Stroke2_Corner0_Rounded",
+    "source": "sparkles"
+  },
+  {
+    "file": "src\\components\\icons\\Eye.tsx",
+    "export": "Eye_Stroke2_Corner0_Rounded",
+    "source": "eye"
+  },
+  {
+    "file": "src\\components\\icons\\Eye.tsx",
+    "export": "Eye_Stroke2_Corner2_Rounded",
+    "source": "eye"
+  },
+  {
+    "file": "src\\components\\icons\\Eye.tsx",
+    "export": "EyeSlash_Stroke2_Corner0_Rounded",
+    "source": "eye-off"
+  },
+  {
+    "file": "src\\components\\icons\\EyeSlash.tsx",
+    "export": "EyeSlash_Stroke2_Corner0_Rounded",
+    "source": "eye-off"
+  },
+  {
+    "file": "src\\components\\icons\\Filter.tsx",
+    "export": "Filter_Stroke2_Corner0_Rounded",
+    "source": "list-filter"
+  },
+  {
+    "file": "src\\components\\icons\\Filter.tsx",
+    "export": "FilterTimeline_Stroke2_Corner0_Rounded",
+    "source": "list-filter"
+  },
+  {
+    "file": "src\\components\\icons\\FilterTimeline.tsx",
+    "export": "FilterTimeline_Stroke2_Corner0_Rounded",
+    "source": "list-filter"
+  },
+  {
+    "file": "src\\components\\icons\\Flag.tsx",
+    "export": "Flag_Stroke2_Corner0_Rounded",
+    "source": "flag"
+  },
+  {
+    "file": "src\\components\\icons\\Flame.tsx",
+    "export": "Flame_Stroke2_Corner1_Rounded",
+    "source": "flame"
+  },
+  {
+    "file": "src\\components\\icons\\Flip.tsx",
+    "export": "FlipHorizontal_Stroke2_Corner0_Rounded",
+    "source": "flip-horizontal"
+  },
+  {
+    "file": "src\\components\\icons\\Flip.tsx",
+    "export": "FlipVertical_Stroke2_Corner0_Rounded",
+    "source": "flip-vertical"
+  },
+  {
+    "file": "src\\components\\icons\\FloppyDisk.tsx",
+    "export": "FloppyDisk_Stroke2_Corner0_Rounded",
+    "source": "save"
+  },
+  {
+    "file": "src\\components\\icons\\Freeze.tsx",
+    "export": "Freeze_Stroke2_Corner2_Rounded",
+    "source": "snowflake"
+  },
+  {
+    "file": "src\\components\\icons\\GameController.tsx",
+    "export": "GameController_Stroke2_Corner0_Rounded",
+    "source": "gamepad-2"
+  },
+  {
+    "file": "src\\components\\icons\\Gif.tsx",
+    "export": "Gif_Stroke2_Corner0_Rounded",
+    "source": "image-play"
+  },
+  {
+    "file": "src\\components\\icons\\Gif.tsx",
+    "export": "GifSquare_Stroke2_Corner2_Rounded",
+    "source": "image-play"
+  },
+  {
+    "file": "src\\components\\icons\\Gift1.tsx",
+    "export": "Gift1_Filled_Corner0_Rounded",
+    "source": "gift"
+  },
+  {
+    "file": "src\\components\\icons\\Gift1.tsx",
+    "export": "Gift1_Stroke2_Corner0_Rounded",
+    "source": "gift"
+  },
+  {
+    "file": "src\\components\\icons\\Globe.tsx",
+    "export": "Globe_Stroke2_Corner0_Rounded",
+    "source": "globe"
+  },
+  {
+    "file": "src\\components\\icons\\Globe.tsx",
+    "export": "Earth_Stroke2_Corner0_Rounded",
+    "source": "earth"
+  },
+  {
+    "file": "src\\components\\icons\\Globe.tsx",
+    "export": "Earth_Stroke2_Corner2_Rounded",
+    "source": "earth"
+  },
+  {
+    "file": "src\\components\\icons\\Group.tsx",
+    "export": "Group3_Stroke2_Corner0_Rounded",
+    "source": "users-round"
+  },
+  {
+    "file": "src\\components\\icons\\Group3.tsx",
+    "export": "Group3_Stroke2_Corner0_Rounded",
+    "source": "users-round"
+  },
+  {
+    "file": "src\\components\\icons\\Growth.tsx",
+    "export": "Growth_Stroke2_Corner0_Rounded",
+    "source": "trending-up"
+  },
+  {
+    "file": "src\\components\\icons\\Haptic.tsx",
+    "export": "Haptic_Stroke2_Corner2_Rounded",
+    "source": "vibrate"
+  },
+  {
+    "file": "src\\components\\icons\\Hashtag.tsx",
+    "export": "Hashtag_Filled_Corner0_Rounded",
+    "source": "hash"
+  },
+  {
+    "file": "src\\components\\icons\\Hashtag.tsx",
+    "export": "Hashtag_Stroke2_Corner0_Rounded",
+    "source": "hash"
+  },
+  {
+    "file": "src\\components\\icons\\Hashtag.tsx",
+    "export": "HashtagWide_Stroke1_Corner0_Rounded",
+    "source": "hash"
+  },
+  {
+    "file": "src\\components\\icons\\Heart2.tsx",
+    "export": "Heart2_Filled_Stroke2_Corner0_Rounded",
+    "source": "heart"
+  },
+  {
+    "file": "src\\components\\icons\\Heart2.tsx",
+    "export": "Heart2_Stroke1_Corner0_Rounded",
+    "source": "heart"
+  },
+  {
+    "file": "src\\components\\icons\\Heart2.tsx",
+    "export": "Heart2_Stroke2_Corner0_Rounded",
+    "source": "heart"
+  },
+  {
+    "file": "src\\components\\icons\\Heart2.tsx",
+    "export": "LikeRepost_Stroke2_Corner2_Rounded",
+    "source": "repeat-2"
+  },
+  {
+    "file": "src\\components\\icons\\Home.tsx",
+    "export": "Home_Filled_Corner0_Rounded",
+    "source": "house"
+  },
+  {
+    "file": "src\\components\\icons\\Home.tsx",
+    "export": "Home_Stroke2_Corner0_Rounded",
+    "source": "house"
+  },
+  {
+    "file": "src\\components\\icons\\Home.tsx",
+    "export": "Home_Stroke2_Corner2_Rounded",
+    "source": "house"
+  },
+  {
+    "file": "src\\components\\icons\\Home.tsx",
+    "export": "HomeOpen_Filled_Corner0_Rounded",
+    "source": "house"
+  },
+  {
+    "file": "src\\components\\icons\\Home.tsx",
+    "export": "HomeOpen_Stroke2_Corner0_Rounded",
+    "source": "house"
+  },
+  {
+    "file": "src\\components\\icons\\HomeOpen.tsx",
+    "export": "HomeOpen_Filled_Corner0_Rounded",
+    "source": "house"
+  },
+  {
+    "file": "src\\components\\icons\\HomeOpen.tsx",
+    "export": "HomeOpen_Stoke2_Corner0_Rounded",
+    "source": "house"
+  },
+  {
+    "file": "src\\components\\icons\\Image.tsx",
+    "export": "Image_Stroke1_Corner0_Rounded",
+    "source": "image"
+  },
+  {
+    "file": "src\\components\\icons\\Image.tsx",
+    "export": "Image_Stroke2_Corner2_Rounded",
+    "source": "image"
+  },
+  {
+    "file": "src\\components\\icons\\Inbox.tsx",
+    "export": "Inbox_Stroke2_Corner2_Rounded",
+    "source": "inbox"
+  },
+  {
+    "file": "src\\components\\icons\\Inbox.tsx",
+    "export": "Inbox_Stroke2_Corner2_Rounded_Large",
+    "source": "inbox"
+  },
+  {
+    "file": "src\\components\\icons\\Key.tsx",
+    "export": "Key_Stroke2_Corner2_Rounded",
+    "source": "key-round"
+  },
+  {
+    "file": "src\\components\\icons\\Lab.tsx",
+    "export": "Lab_Stroke2_Corner0_Rounded",
+    "source": "flask-conical"
+  },
+  {
+    "file": "src\\components\\icons\\Language.tsx",
+    "export": "Language_Stroke2_Corner2_Rounded",
+    "source": "languages"
+  },
+  {
+    "file": "src\\components\\icons\\Leaf.tsx",
+    "export": "Leaf_Stroke2_Corner0_Rounded",
+    "source": "leaf"
+  },
+  {
+    "file": "src\\components\\icons\\LikeRepost.tsx",
+    "export": "LikeRepost_Stroke2_Corner2_Rounded",
+    "source": "repeat-2"
+  },
+  {
+    "file": "src\\components\\icons\\List.tsx",
+    "export": "ListMagnifyingGlass_Stroke2_Corner0_Rounded",
+    "source": "list-filter"
+  },
+  {
+    "file": "src\\components\\icons\\List.tsx",
+    "export": "ListPlus_Stroke2_Corner0_Rounded",
+    "source": "list-plus"
+  },
+  {
+    "file": "src\\components\\icons\\List.tsx",
+    "export": "ListSparkle_Stroke2_Corner0_Rounded",
+    "source": "list-plus"
+  },
+  {
+    "file": "src\\components\\icons\\ListMagnifyingGlass.tsx",
+    "export": "ListMagnifyingGlass_Stroke2_Corner0_Rounded",
+    "source": "list-filter"
+  },
+  {
+    "file": "src\\components\\icons\\ListSparkle.tsx",
+    "export": "ListSparkle_Stroke2_Corner0_Rounded",
+    "source": "list-plus"
+  },
+  {
+    "file": "src\\components\\icons\\Live.tsx",
+    "export": "Live_Stroke2_Corner0_Rounded",
+    "source": "radio"
+  },
+  {
+    "file": "src\\components\\icons\\Loader.tsx",
+    "export": "Loader_Stroke2_Corner0_Rounded",
+    "source": "loader"
+  },
+  {
+    "file": "src\\components\\icons\\Lock.tsx",
+    "export": "Lock_Stroke2_Corner0_Rounded",
+    "source": "lock"
+  },
+  {
+    "file": "src\\components\\icons\\Lock.tsx",
+    "export": "Lock_Stroke2_Corner2_Rounded",
+    "source": "lock"
+  },
+  {
+    "file": "src\\components\\icons\\Lock.tsx",
+    "export": "Unlock_Stroke2_Corner2_Rounded",
+    "source": "lock-open"
+  },
+  {
+    "file": "src\\components\\icons\\Macintosh.tsx",
+    "export": "Macintosh_Stroke2_Corner2_Rounded",
+    "source": "monitor"
+  },
+  {
+    "file": "src\\components\\icons\\MagnifyingGlass.tsx",
+    "export": "MagnifyingGlass_Filled_Stroke2_Corner0_Rounded",
+    "source": "search"
+  },
+  {
+    "file": "src\\components\\icons\\MagnifyingGlass.tsx",
+    "export": "MagnifyingGlass_Stroke2_Corner0_Rounded",
+    "source": "search"
+  },
+  {
+    "file": "src\\components\\icons\\MagnifyingGlass.tsx",
+    "export": "MagnifyingGlassX_Stroke2_Corner0_Rounded",
+    "source": "search-x"
+  },
+  {
+    "file": "src\\components\\icons\\MagnifyingGlass.tsx",
+    "export": "MagnifyingGlassX_Stroke2_Corner0_Rounded_Large",
+    "source": "search-x"
+  },
+  {
+    "file": "src\\components\\icons\\Megaphone.tsx",
+    "export": "Megaphone_Filled_Corner0_Rounded",
+    "source": "megaphone"
+  },
+  {
+    "file": "src\\components\\icons\\Menu.tsx",
+    "export": "Menu_Stroke2_Corner0_Rounded",
+    "source": "menu"
+  },
+  {
+    "file": "src\\components\\icons\\Message.tsx",
+    "export": "Message_Stroke1_Corner0_Rounded_Filled",
+    "source": "message-square"
+  },
+  {
+    "file": "src\\components\\icons\\Message.tsx",
+    "export": "Message_Stroke2_Corner0_Rounded",
+    "source": "message-square"
+  },
+  {
+    "file": "src\\components\\icons\\Message.tsx",
+    "export": "Message_Stroke2_Corner0_Rounded_Filled",
+    "source": "message-square"
+  },
+  {
+    "file": "src\\components\\icons\\Message.tsx",
+    "export": "MessagePlus_Stroke2_Corner0_Rounded",
+    "source": "message-square-plus"
+  },
+  {
+    "file": "src\\components\\icons\\Moon.tsx",
+    "export": "Moon_Stroke2_Corner0_Rounded",
+    "source": "moon"
+  },
+  {
+    "file": "src\\components\\icons\\MusicNote.tsx",
+    "export": "MusicNote_Stroke2_Corner0_Rounded",
+    "source": "music"
+  },
+  {
+    "file": "src\\components\\icons\\Mute.tsx",
+    "export": "Mute_Stroke2_Corner0_Rounded",
+    "source": "volume-x"
+  },
+  {
+    "file": "src\\components\\icons\\News2.tsx",
+    "export": "News2_Stroke2_Corner0_Rounded",
+    "source": "newspaper"
+  },
+  {
+    "file": "src\\components\\icons\\Newskie.tsx",
+    "export": "Newskie",
+    "source": "skyanchor-original"
+  },
+  {
+    "file": "src\\components\\icons\\Newspaper.tsx",
+    "export": "Newspaper_Stroke2_Corner2_Rounded",
+    "source": "newspaper"
+  },
+  {
+    "file": "src\\components\\icons\\Notification.tsx",
+    "export": "NotificationActivitySmall_Filled_Corner0_Rounded",
+    "source": "bell"
+  },
+  {
+    "file": "src\\components\\icons\\Notification.tsx",
+    "export": "NotificationFollowSmall_Filled_Corner0_Rounded",
+    "source": "user-plus"
+  },
+  {
+    "file": "src\\components\\icons\\Notification.tsx",
+    "export": "NotificationLikeSmall_Filled_Corner0_Rounded",
+    "source": "heart"
+  },
+  {
+    "file": "src\\components\\icons\\Notification.tsx",
+    "export": "NotificationMentionSmall_Filled_Corner0_Rounded",
+    "source": "at-sign"
+  },
+  {
+    "file": "src\\components\\icons\\Notification.tsx",
+    "export": "NotificationQuoteSmall_Filled_Corner0_Rounded",
+    "source": "quote"
+  },
+  {
+    "file": "src\\components\\icons\\Notification.tsx",
+    "export": "NotificationReplySmall_Filled_Corner0_Rounded",
+    "source": "reply"
+  },
+  {
+    "file": "src\\components\\icons\\Notification.tsx",
+    "export": "NotificationRepostSmall_Filled_Corner0_Rounded",
+    "source": "repeat-2"
+  },
+  {
+    "file": "src\\components\\icons\\Notification.tsx",
+    "export": "NotificationStarterPackSmall_Filled_Corner0_Rounded",
+    "source": "package-plus"
+  },
+  {
+    "file": "src\\components\\icons\\Notification.tsx",
+    "export": "NotificationVerifiedSmall_Filled_Corner0_Rounded",
+    "source": "badge-check"
+  },
+  {
+    "file": "src\\components\\icons\\OpenQuote.tsx",
+    "export": "OpenQuote_Filled_Stroke2_Corner0_Rounded",
+    "source": "quote"
+  },
+  {
+    "file": "src\\components\\icons\\OpenQuote.tsx",
+    "export": "OpenQuote_Stroke2_Corner0_Rounded",
+    "source": "quote"
+  },
+  {
+    "file": "src\\components\\icons\\Page.tsx",
+    "export": "PageText_Stroke2_Corner0_Rounded",
+    "source": "file-text"
+  },
+  {
+    "file": "src\\components\\icons\\Page.tsx",
+    "export": "PageX_Stroke2_Corner0_Rounded_Large",
+    "source": "file-x"
+  },
+  {
+    "file": "src\\components\\icons\\PageText.tsx",
+    "export": "PageText_Stroke2_Corner0_Rounded",
+    "source": "file-text"
+  },
+  {
+    "file": "src\\components\\icons\\PageX.tsx",
+    "export": "PageX_Stroke2_Corner0_Rounded_Large",
+    "source": "file-x"
+  },
+  {
+    "file": "src\\components\\icons\\PaintRoller.tsx",
+    "export": "PaintRoller_Stroke2_Corner2_Rounded",
+    "source": "paint-roller"
+  },
+  {
+    "file": "src\\components\\icons\\PaperPlane.tsx",
+    "export": "PaperPlane_Stroke2_Corner0_Rounded",
+    "source": "send"
+  },
+  {
+    "file": "src\\components\\icons\\PaperPlane.tsx",
+    "export": "PaperPlaneVertical_Filled_Stroke2_Corner1_Rounded",
+    "source": "send"
+  },
+  {
+    "file": "src\\components\\icons\\Pause.tsx",
+    "export": "Pause_Filled_Corner0_Rounded",
+    "source": "pause"
+  },
+  {
+    "file": "src\\components\\icons\\Pause.tsx",
+    "export": "Pause_Filled_Corner2_Rounded",
+    "source": "pause"
+  },
+  {
+    "file": "src\\components\\icons\\Pause.tsx",
+    "export": "Pause_Stroke2_Corner0_Rounded",
+    "source": "pause"
+  },
+  {
+    "file": "src\\components\\icons\\Pause.tsx",
+    "export": "Pause_Stroke2_Corner2_Rounded",
+    "source": "pause"
+  },
+  {
+    "file": "src\\components\\icons\\Pencil.tsx",
+    "export": "Pencil_Stroke2_Corner0_Rounded",
+    "source": "pencil"
+  },
+  {
+    "file": "src\\components\\icons\\Pencil.tsx",
+    "export": "PencilLine_Stroke2_Corner0_Rounded",
+    "source": "pencil-line"
+  },
+  {
+    "file": "src\\components\\icons\\Pencil.tsx",
+    "export": "PencilLine_Stroke2_Corner2_Rounded",
+    "source": "pencil-line"
+  },
+  {
+    "file": "src\\components\\icons\\PeopleRemove2.tsx",
+    "export": "PeopleRemove2_Stroke1_Corner0_Rounded",
+    "source": "user-minus"
+  },
+  {
+    "file": "src\\components\\icons\\PeopleRemove2.tsx",
+    "export": "PeopleRemove2_Stroke2_Corner0_Rounded",
+    "source": "user-minus"
+  },
+  {
+    "file": "src\\components\\icons\\Person.tsx",
+    "export": "Person_Filled_Corner2_Rounded",
+    "source": "user-round"
+  },
+  {
+    "file": "src\\components\\icons\\Person.tsx",
+    "export": "Person_Stroke2_Corner0_Rounded",
+    "source": "user-round"
+  },
+  {
+    "file": "src\\components\\icons\\Person.tsx",
+    "export": "Person_Stroke2_Corner2_Rounded",
+    "source": "user-round"
+  },
+  {
+    "file": "src\\components\\icons\\Person.tsx",
+    "export": "PersonCheck_Stroke2_Corner0_Rounded",
+    "source": "user-check"
+  },
+  {
+    "file": "src\\components\\icons\\Person.tsx",
+    "export": "PersonGroup_Stroke2_Corner2_Rounded",
+    "source": "users"
+  },
+  {
+    "file": "src\\components\\icons\\Person.tsx",
+    "export": "PersonPlus_Filled_Stroke2_Corner0_Rounded",
+    "source": "user-plus"
+  },
+  {
+    "file": "src\\components\\icons\\Person.tsx",
+    "export": "PersonPlus_Stroke2_Corner0_Rounded",
+    "source": "user-plus"
+  },
+  {
+    "file": "src\\components\\icons\\Person.tsx",
+    "export": "PersonPlus_Stroke2_Corner2_Rounded",
+    "source": "user-plus"
+  },
+  {
+    "file": "src\\components\\icons\\Person.tsx",
+    "export": "PersonX_Stroke2_Corner0_Rounded",
+    "source": "user-x"
+  },
+  {
+    "file": "src\\components\\icons\\Person.tsx",
+    "export": "PersonX_Stroke2_Corner0_Rounded_Large",
+    "source": "user-x"
+  },
+  {
+    "file": "src\\components\\icons\\Phone.tsx",
+    "export": "Phone_Stroke2_Corner0_Rounded",
+    "source": "smartphone"
+  },
+  {
+    "file": "src\\components\\icons\\Phone.tsx",
+    "export": "PhoneHaptic_Stroke2_Corner2_Rounded",
+    "source": "vibrate"
+  },
+  {
+    "file": "src\\components\\icons\\Pin.tsx",
+    "export": "Pin_Filled_Corner0_Rounded",
+    "source": "pin"
+  },
+  {
+    "file": "src\\components\\icons\\Pin.tsx",
+    "export": "Pin_Stroke2_Corner0_Rounded",
+    "source": "pin"
+  },
+  {
+    "file": "src\\components\\icons\\Pin.tsx",
+    "export": "PinLocation_Stroke2_Corner0_Rounded",
+    "source": "map-pin"
+  },
+  {
+    "file": "src\\components\\icons\\Pin.tsx",
+    "export": "PinLocationFilled_Stroke2_Corner0_Rounded",
+    "source": "map-pin"
+  },
+  {
+    "file": "src\\components\\icons\\PinLocation.tsx",
+    "export": "PinLocation_Stroke2_Corner0_Rounded",
+    "source": "map-pin"
+  },
+  {
+    "file": "src\\components\\icons\\Pizza.tsx",
+    "export": "Pizza_Stroke2_Corner0_Rounded",
+    "source": "pizza"
+  },
+  {
+    "file": "src\\components\\icons\\Play.tsx",
+    "export": "Play_Filled_Corner0_Rounded",
+    "source": "play"
+  },
+  {
+    "file": "src\\components\\icons\\Play.tsx",
+    "export": "Play_Filled_Corner2_Rounded",
+    "source": "play"
+  },
+  {
+    "file": "src\\components\\icons\\Play.tsx",
+    "export": "Play_Stroke2_Corner0_Rounded",
+    "source": "play"
+  },
+  {
+    "file": "src\\components\\icons\\Play.tsx",
+    "export": "Play_Stroke2_Corner2_Rounded",
+    "source": "play"
+  },
+  {
+    "file": "src\\components\\icons\\Plus.tsx",
+    "export": "PlusLarge_Stroke2_Corner0_Rounded",
+    "source": "plus"
+  },
+  {
+    "file": "src\\components\\icons\\Plus.tsx",
+    "export": "PlusSmall_Stroke2_Corner0_Rounded",
+    "source": "plus"
+  },
+  {
+    "file": "src\\components\\icons\\QrCode.tsx",
+    "export": "QrCode_Stroke2_Corner0_Rounded",
+    "source": "qr-code"
+  },
+  {
+    "file": "src\\components\\icons\\Quote.tsx",
+    "export": "CloseQuote_Stroke2_Corner0_Rounded",
+    "source": "quote"
+  },
+  {
+    "file": "src\\components\\icons\\Quote.tsx",
+    "export": "CloseQuote_Stroke2_Corner1_Rounded",
+    "source": "quote"
+  },
+  {
+    "file": "src\\components\\icons\\RaisingHand.tsx",
+    "export": "RaisingHand4Finger_Stroke2_Corner2_Rounded",
+    "source": "hand"
+  },
+  {
+    "file": "src\\components\\icons\\RaisingHand4Finger.tsx",
+    "export": "RaisingHand4Finger_Stroke2_Corner0_Rounded",
+    "source": "hand"
+  },
+  {
+    "file": "src\\components\\icons\\RaisingHand4Finger.tsx",
+    "export": "RaisingHand4Finger_Stroke2_Corner2_Rounded",
+    "source": "hand"
+  },
+  {
+    "file": "src\\components\\icons\\Reply.tsx",
+    "export": "Reply_Stroke2_Corner0_Rounded",
+    "source": "reply"
+  },
+  {
+    "file": "src\\components\\icons\\Repost.tsx",
+    "export": "Repost_Stroke2_Corner0_Rounded",
+    "source": "repeat-2"
+  },
+  {
+    "file": "src\\components\\icons\\Repost.tsx",
+    "export": "Repost_Stroke2_Corner2_Rounded",
+    "source": "repeat-2"
+  },
+  {
+    "file": "src\\components\\icons\\Repost.tsx",
+    "export": "Repost_Stroke2_Corner3_Rounded",
+    "source": "repeat-2"
+  },
+  {
+    "file": "src\\components\\icons\\Repost.tsx",
+    "export": "RepostRepost_Stroke2_Corner2_Rounded",
+    "source": "repeat-2"
+  },
+  {
+    "file": "src\\components\\icons\\Repost.tsx",
+    "export": "RepostStrike_Stroke2_Corner0_Rounded",
+    "source": "repeat-2"
+  },
+  {
+    "file": "src\\components\\icons\\Rose.tsx",
+    "export": "Rose_Stroke2_Corner0_Rounded",
+    "source": "flower-2"
+  },
+  {
+    "file": "src\\components\\icons\\Settings.tsx",
+    "export": "SettingsGear2_Filled_Corner0_Rounded",
+    "source": "settings"
+  },
+  {
+    "file": "src\\components\\icons\\Settings.tsx",
+    "export": "SettingsGear2_Stroke2_Corner0_Rounded",
+    "source": "settings"
+  },
+  {
+    "file": "src\\components\\icons\\Settings.tsx",
+    "export": "SettingsSliderVertical_Stroke2_Corner0_Rounded",
+    "source": "sliders-vertical"
+  },
+  {
+    "file": "src\\components\\icons\\SettingsGear2.tsx",
+    "export": "SettingsGear2_Stroke2_Corner0_Rounded",
+    "source": "settings"
+  },
+  {
+    "file": "src\\components\\icons\\SettingsSlider.tsx",
+    "export": "SettingsSliderVertical_Stroke2_Corner0_Rounded",
+    "source": "sliders-vertical"
+  },
+  {
+    "file": "src\\components\\icons\\Shaka.tsx",
+    "export": "Shaka_Stroke2_Corner0_Rounded",
+    "source": "hand"
+  },
+  {
+    "file": "src\\components\\icons\\Shapes.tsx",
+    "export": "Shapes_Stroke2_Corner0_Rounded",
+    "source": "shapes"
+  },
+  {
+    "file": "src\\components\\icons\\Shield.tsx",
+    "export": "Shield_Stroke2_Corner0_Rounded",
+    "source": "shield"
+  },
+  {
+    "file": "src\\components\\icons\\Shield.tsx",
+    "export": "ShieldCheck_Stroke2_Corner0_Rounded",
+    "source": "shield-check"
+  },
+  {
+    "file": "src\\components\\icons\\Sparkle.tsx",
+    "export": "Sparkle_Stroke2_Corner0_Rounded",
+    "source": "sparkles"
+  },
+  {
+    "file": "src\\components\\icons\\Speaker.tsx",
+    "export": "SpeakerVolumeFull_Stroke2_Corner0_Rounded",
+    "source": "volume-2"
+  },
+  {
+    "file": "src\\components\\icons\\SpeakerVolumeFull.tsx",
+    "export": "SpeakerVolumeFull_Stroke2_Corner0_Rounded",
+    "source": "volume-2"
+  },
+  {
+    "file": "src\\components\\icons\\Square.tsx",
+    "export": "SquareArrowTopRight_Stroke2_Corner0_Rounded",
+    "source": "square-arrow-out-up-right"
+  },
+  {
+    "file": "src\\components\\icons\\Square.tsx",
+    "export": "SquareBehindSquare_Stroke2_Corner2_Rounded",
+    "source": "layers"
+  },
+  {
+    "file": "src\\components\\icons\\Square.tsx",
+    "export": "SquareBehindSquare4_Stroke2_Corner0_Rounded",
+    "source": "layers"
+  },
+  {
+    "file": "src\\components\\icons\\SquareArrowTopRight.tsx",
+    "export": "SquareArrowTopRight_Stroke2_Corner0_Rounded",
+    "source": "square-arrow-out-up-right"
+  },
+  {
+    "file": "src\\components\\icons\\SquareBehindSquare4.tsx",
+    "export": "SquareBehindSquare_Stroke2_Corner2_Rounded",
+    "source": "layers"
+  },
+  {
+    "file": "src\\components\\icons\\SquareBehindSquare4.tsx",
+    "export": "SquareBehindSquare4_Stroke2_Corner0_Rounded",
+    "source": "layers"
+  },
+  {
+    "file": "src\\components\\icons\\Star.tsx",
+    "export": "Star_Filled_Corner0_Rounded",
+    "source": "star"
+  },
+  {
+    "file": "src\\components\\icons\\Star.tsx",
+    "export": "Star_Stroke2_Corner0_Rounded",
+    "source": "star"
+  },
+  {
+    "file": "src\\components\\icons\\StarterPack.tsx",
+    "export": "StarterPack_Stroke2_Corner0_Rounded",
+    "source": "package-plus"
+  },
+  {
+    "file": "src\\components\\icons\\StarterPack.tsx",
+    "export": "StarterPackMultiPathLarge",
+    "source": "package-plus"
+  },
+  {
+    "file": "src\\components\\icons\\StreamingLive.tsx",
+    "export": "StreamingLive_Stroke2_Corner0_Rounded",
+    "source": "radio"
+  },
+  {
+    "file": "src\\components\\icons\\TextSize.tsx",
+    "export": "TextSize_Stroke2_Corner0_Rounded",
+    "source": "a-large-small"
+  },
+  {
+    "file": "src\\components\\icons\\Ticket.tsx",
+    "export": "Ticket_Stroke2_Corner0_Rounded",
+    "source": "ticket"
+  },
+  {
+    "file": "src\\components\\icons\\Times.tsx",
+    "export": "TimesLarge_Stroke2_Corner0_Rounded",
+    "source": "x"
+  },
+  {
+    "file": "src\\components\\icons\\TimesLarge.tsx",
+    "export": "TimesLarge_Stroke2_Corner0_Rounded",
+    "source": "x"
+  },
+  {
+    "file": "src\\components\\icons\\TinyChevronBottom.tsx",
+    "export": "TinyChevronBottom_Stroke2_Corner0_Rounded",
+    "source": "chevron-down"
+  },
+  {
+    "file": "src\\components\\icons\\TitleCase.tsx",
+    "export": "TitleCase_Stroke2_Corner0_Rounded",
+    "source": "case-sensitive"
+  },
+  {
+    "file": "src\\components\\icons\\Trash.tsx",
+    "export": "Trash_Stroke2_Corner0_Rounded",
+    "source": "trash-2"
+  },
+  {
+    "file": "src\\components\\icons\\Trash.tsx",
+    "export": "Trash_Stroke2_Corner2_Rounded",
+    "source": "trash-2"
+  },
+  {
+    "file": "src\\components\\icons\\Tree.tsx",
+    "export": "Tree_Stroke2_Corner0_Rounded",
+    "source": "tree-pine"
+  },
+  {
+    "file": "src\\components\\icons\\Trending.tsx",
+    "export": "Trending2_Stroke2_Corner2_Rounded",
+    "source": "trending-up"
+  },
+  {
+    "file": "src\\components\\icons\\Trending.tsx",
+    "export": "Trending3_Stroke2_Corner1_Rounded",
+    "source": "trending-up"
+  },
+  {
+    "file": "src\\components\\icons\\TriangleExclamation.tsx",
+    "export": "TriangleExclamation_Stroke2_Corner2_Rounded",
+    "source": "triangle-alert"
+  },
+  {
+    "file": "src\\components\\icons\\UFO.tsx",
+    "export": "UFO_Stroke2_Corner0_Rounded",
+    "source": "orbit"
+  },
+  {
+    "file": "src\\components\\icons\\Unlock.tsx",
+    "export": "Unlock_Stroke2_Corner2_Rounded",
+    "source": "lock-open"
+  },
+  {
+    "file": "src\\components\\icons\\UserCircle.tsx",
+    "export": "UserCircle_Filled_Corner0_Rounded",
+    "source": "circle-user-round"
+  },
+  {
+    "file": "src\\components\\icons\\UserCircle.tsx",
+    "export": "UserCircle_Stroke2_Corner0_Rounded",
+    "source": "circle-user-round"
+  },
+  {
+    "file": "src\\components\\icons\\Verified.tsx",
+    "export": "Verified_Stroke2_Corner2_Rounded",
+    "source": "badge-check"
+  },
+  {
+    "file": "src\\components\\icons\\VerifiedCheck.tsx",
+    "export": "VerifiedCheck",
+    "source": "badge-check"
+  },
+  {
+    "file": "src\\components\\icons\\VerifierCheck.tsx",
+    "export": "VerifierCheck",
+    "source": "shield-check"
+  },
+  {
+    "file": "src\\components\\icons\\VideoClip.tsx",
+    "export": "VideoClip_Stroke1_Corner0_Rounded",
+    "source": "video"
+  },
+  {
+    "file": "src\\components\\icons\\VideoClip.tsx",
+    "export": "VideoClip_Stroke2_Corner0_Rounded",
+    "source": "video"
+  },
+  {
+    "file": "src\\components\\icons\\Warning.tsx",
+    "export": "Warning_Stroke2_Corner0_Rounded",
+    "source": "triangle-alert"
+  },
+  {
+    "file": "src\\components\\icons\\Window.tsx",
+    "export": "Window_Stroke2_Corner2_Rounded",
+    "source": "panels-top-left"
+  },
+  {
+    "file": "src\\components\\icons\\Wrench.tsx",
+    "export": "Wrench_Stroke2_Corner2_Rounded",
+    "source": "wrench"
+  },
+  {
+    "file": "src\\components\\icons\\Zap.tsx",
+    "export": "Zap_Stroke2_Corner0_Rounded",
+    "source": "zap"
+  }
+]

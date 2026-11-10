@@ -1,0 +1,280 @@
+import {useEffect, useState} from 'react'
+import {ActivityIndicator, Pressable, View} from 'react-native'
+import Animated, {
+  type AnimatedRef,
+  Extrapolation,
+  interpolate,
+  type SharedValue,
+  useAnimatedProps,
+  useAnimatedReaction,
+  useAnimatedStyle,
+  useDerivedValue,
+} from 'react-native-reanimated'
+import {useSafeAreaInsets} from 'react-native-safe-area-context'
+import {scheduleOnRN} from 'react-native-worklets'
+import {BlurView} from 'expo-blur'
+import {useIsFetching} from '@tanstack/react-query'
+
+import {RQKEY_ROOT as STARTERPACK_RQKEY_ROOT} from '#/state/queries/actor-starter-packs'
+import {RQKEY_ROOT as FEED_RQKEY_ROOT} from '#/state/queries/post-feed'
+import {RQKEY_ROOT as FEEDGEN_RQKEY_ROOT} from '#/state/queries/profile-feedgens'
+import {RQKEY_ROOT as LIST_RQKEY_ROOT} from '#/state/queries/profile-lists'
+import {usePagerHeaderContext} from '#/view/com/pager/PagerHeaderContext'
+import {atoms as a} from '#/alf'
+import {IS_IOS} from '#/env'
+import {PROFILE_BANNER_HEIGHT} from './layout'
+
+const AnimatedBlurView = Animated.createAnimatedComponent(BlurView)
+
+export function GrowableBanner({
+  backButton,
+  children,
+  onPress,
+  bannerRef,
+  testID,
+  label,
+}: {
+  backButton?: React.ReactNode
+  children: React.ReactNode
+  onPress?: () => void
+  bannerRef?: AnimatedRef
+  testID?: string
+  label?: string
+}) {
+  const pagerContext = usePagerHeaderContext()
+
+  // plain non-growable mode for Android/Web
+  if (!pagerContext || !IS_IOS) {
+    return (
+      <Pressable
+        testID={testID}
+        onPress={onPress}
+        accessibilityRole="image"
+        accessibilityLabel={label}
+        accessibilityHint=""
+        style={[a.w_full, a.h_full]}>
+        <Animated.View ref={bannerRef} style={[a.w_full, a.h_full]}>
+          {children}
+        </Animated.View>
+        {backButton}
+      </Pressable>
+    )
+  }
+
+  const {scrollY} = pagerContext
+
+  return (
+    <GrowableBannerInner
+      scrollY={scrollY}
+      backButton={backButton}
+      onPress={onPress}
+      bannerRef={bannerRef}
+      testID={testID}
+      label={label}>
+      {children}
+    </GrowableBannerInner>
+  )
+}
+
+function GrowableBannerInner({
+  scrollY,
+  backButton,
+  children,
+  onPress,
+  bannerRef,
+  testID,
+  label,
+}: {
+  scrollY: SharedValue<number>
+  backButton?: React.ReactNode
+  children: React.ReactNode
+  onPress?: () => void
+  bannerRef?: AnimatedRef
+  testID?: string
+  label?: string
+}) {
+  const {top: topInset} = useSafeAreaInsets()
+  const isFetching = useIsProfileFetching()
+  const animateSpinner = useShouldAnimateSpinner({isFetching, scrollY})
+
+  /*
+   * The transforms are derived so their styles only update while the values
+   * change (mostly while overscrolling), not on every scroll frame.
+   */
+  const scale = useDerivedValue(() =>
+    interpolate(scrollY.get(), [-150, 0], [2, 1], {
+      extrapolateRight: Extrapolation.CLAMP,
+    }),
+  )
+  const backButtonTranslateY = useDerivedValue(() =>
+    interpolate(scrollY.get(), [-150, 10], [-150, 10], {
+      extrapolateRight: Extrapolation.CLAMP,
+    }),
+  )
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{scale: scale.get()}],
+  }))
+
+  const animatedBlurViewProps = useAnimatedProps(() => {
+    return {
+      intensity: interpolate(
+        scrollY.get(),
+        [-300, -65, -15],
+        [50, 40, 0],
+        Extrapolation.CLAMP,
+      ),
+    }
+  })
+
+  const animatedSpinnerStyle = useAnimatedStyle(() => {
+    const scrollYValue = scrollY.get()
+    /*
+     * Return the same style while the header isn't overscrolled, so Reanimated
+     * skips the update. Otherwise every scroll frame commits this hidden view,
+     * and Yoga never cleans the dirty flags of a `display: none` subtree, so
+     * each commit re-runs layout over the whole tree.
+     */
+    if (scrollYValue >= 0) {
+      return {display: 'none'}
+    }
+    return {
+      display: 'flex',
+      opacity: interpolate(
+        scrollYValue,
+        [-60, -15],
+        [1, 0],
+        Extrapolation.CLAMP,
+      ),
+      transform: [
+        {translateY: interpolate(scrollYValue, [-150, 0], [-75, 0])},
+        {rotate: '90deg'},
+      ],
+    }
+  })
+
+  const animatedBackButtonStyle = useAnimatedStyle(() => ({
+    transform: [{translateY: backButtonTranslateY.get()}],
+  }))
+
+  return (
+    <>
+      <Animated.View
+        style={[
+          a.absolute,
+          {left: 0, right: 0, bottom: 0},
+          {height: PROFILE_BANNER_HEIGHT},
+          {transformOrigin: 'bottom'},
+          animatedStyle,
+        ]}>
+        <Pressable
+          testID={testID}
+          onPress={onPress}
+          accessibilityRole="image"
+          accessibilityLabel={label}
+          accessibilityHint=""
+          style={[a.w_full, a.h_full]}>
+          <Animated.View
+            ref={bannerRef}
+            collapsable={false}
+            style={[a.w_full, a.h_full]}>
+            {children}
+          </Animated.View>
+        </Pressable>
+        <AnimatedBlurView
+          pointerEvents="none"
+          style={[a.absolute, a.inset_0]}
+          tint="dark"
+          animatedProps={animatedBlurViewProps}
+        />
+      </Animated.View>
+      <View
+        pointerEvents="none"
+        style={[
+          a.absolute,
+          a.inset_0,
+          {top: topInset - (IS_IOS ? 15 : 0)},
+          a.justify_center,
+          a.align_center,
+        ]}>
+        <Animated.View style={[animatedSpinnerStyle]}>
+          <ActivityIndicator
+            key={animateSpinner ? 'spin' : 'stop'}
+            size="large"
+            color="white"
+            animating={animateSpinner}
+            hidesWhenStopped={false}
+          />
+        </Animated.View>
+      </View>
+      <Animated.View style={[animatedBackButtonStyle]}>
+        {backButton}
+      </Animated.View>
+    </>
+  )
+}
+
+function useIsProfileFetching() {
+  // are any of the profile-related queries fetching?
+  return [
+    useIsFetching({queryKey: [FEED_RQKEY_ROOT]}),
+    useIsFetching({queryKey: [FEEDGEN_RQKEY_ROOT]}),
+    useIsFetching({queryKey: [LIST_RQKEY_ROOT]}),
+    useIsFetching({queryKey: [STARTERPACK_RQKEY_ROOT]}),
+  ].some(isFetching => isFetching)
+}
+
+function useShouldAnimateSpinner({
+  isFetching,
+  scrollY,
+}: {
+  isFetching: boolean
+  scrollY: SharedValue<number>
+}) {
+  const [isOverscrolled, setIsOverscrolled] = useState(false)
+  // HACK: it reports a scroll pos of 0 for a tick when fetching finishes
+  // so paper over that by keeping it true for a bit -sfn
+  const stickyIsOverscrolled = useStickyToggle(isOverscrolled, 10)
+
+  useAnimatedReaction(
+    () => scrollY.get() < -5,
+    (value, prevValue) => {
+      if (value !== prevValue) {
+        scheduleOnRN(setIsOverscrolled, value)
+      }
+    },
+  )
+
+  const [isAnimating, setIsAnimating] = useState(isFetching)
+
+  if (isFetching && !isAnimating) {
+    setIsAnimating(true)
+  }
+
+  if (!isFetching && isAnimating && !stickyIsOverscrolled) {
+    setIsAnimating(false)
+  }
+
+  return isAnimating
+}
+
+// stayed true for at least `delay` ms before returning to false
+function useStickyToggle(value: boolean, delay: number) {
+  const [prevValue, setPrevValue] = useState(value)
+  const [isSticking, setIsSticking] = useState(false)
+
+  useEffect(() => {
+    if (isSticking) {
+      const timeout = setTimeout(() => setIsSticking(false), delay)
+      return () => clearTimeout(timeout)
+    }
+  }, [isSticking, delay])
+
+  if (value !== prevValue) {
+    setIsSticking(prevValue) // Going true -> false should stick.
+    setPrevValue(value)
+    return prevValue ? true : value
+  }
+
+  return isSticking ? true : value
+}

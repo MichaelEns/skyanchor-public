@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 3,
+  "status": "sanitized-snapshot-requires-fresh-exact-gate",
+  "registry": "https://registry.npmjs.org/",
+  "tooling": {"node": "24.22.1", "pnpm": "11.28.5"},
+  "zod": {
+    "identity": "zod@3.25.76",
+    "provenance": "patches/zod-security.json",
+    "supplierAdvisoryRemainsVisible": "GHSA-mrhx-c7xc-m3w5",
+    "notVendorFixedVersion": true,
+    "pristineSupplierCompatibilityTests": 545
+  },
+  "residualAssessment": {
+    "policy": "patches/security-usage.json",
+    "rule": "Exact advisory identity, installed direct-consumer inventories, frozen lock and reviewed release boundaries required. Unknown findings or drift block release."
+  },
+  "releaseCommand": "pnpm skyanchor:verify",
+  "deployment": "Not authorized by this source receipt."
+}

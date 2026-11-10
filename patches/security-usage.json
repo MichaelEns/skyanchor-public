@@ -1,0 +1,214 @@
+{
+  "schemaVersion": 1,
+  "scope": "Reviewed personal static-web release commands only, not general Expo/native/Atlas tooling safety. No exemption may apply to a bundled browser or Worker package.",
+  "lockSha256": "9c246c36a50f595e34bee17d1c075a38a24635ffb1f587c33791e2b61551363a",
+  "boundarySha256": "898f4dfc30319be730be3b3866ccc84678e930b0de2c6707a4a115df8162034f",
+  "boundaryFiles": [
+    ".gitattributes",
+    "worker/index.ts",
+    "worker/migrations/0002_author_places.sql",
+    "src/features/skyanchor/domain.ts",
+    "src/features/skyanchor/auth-service.ts",
+    "src/features/skyanchor/feed.ts",
+    "src/features/skyanchor/sync.web.ts",
+    "src/features/skyanchor/ReadingToolbar.web.tsx",
+    "src/features/skyanchor/ReadingPlaceSlot.web.tsx",
+    "src/features/skyanchor/useReadingPlace.web.ts",
+    "package.json",
+    "app.config.js",
+    "babel.config.js",
+    "metro.config.ts",
+    "lingui.config.ts",
+    "fingerprint.config.js",
+    "jest/jestSetup.js",
+    "proof/runtime.mjs",
+    "scripts/skyanchor/build-web.mjs",
+    "scripts/skyanchor/build-worker.mjs",
+    "scripts/skyanchor/catalogs.mjs",
+    "scripts/skyanchor/verify.mjs",
+    "scripts/skyanchor/worker-dry-run.mjs",
+    "scripts/skyanchor/pnpm-cli.mjs",
+    "scripts/skyanchor/upstream.mjs",
+    "scripts/skyanchor/publication.mjs",
+    "scripts/skyanchor/release-commands.mjs",
+    "scripts/skyanchor/inputs.mjs",
+    "scripts/check-asset-notices.mjs",
+    "NOTICE.md",
+    "licenses/lucide-ISC.txt",
+    "licenses/react-navigation-MIT.txt",
+    "licenses/tiptap-MIT.txt",
+    "licenses/zod-MIT.txt",
+    ".github/dependabot.yml",
+    "scripts/skyanchor/bundle-evidence.mjs",
+    "scripts/skyanchor/dependency-evidence.mjs",
+    "scripts/skyanchor/security-gate.mjs",
+    "scripts/skyanchor/security-policy.mjs",
+    "scripts/skyanchor/zod-runtime-evidence.mjs",
+    "scripts/skyanchor/zod-fixture.mjs",
+    "patches/zod-security.json",
+    "worker/wrangler.jsonc",
+    ".github/workflows/skyanchor-candidate.yml",
+    ".github/workflows/skyanchor-upstream.yml",
+    ".github/workflows/asset-notices.yml",
+    ".github/workflows/zizmor.yml"
+  ],
+  "reviews": {
+    "uuid": {
+      "inventorySha256": "d8554de93d3232ca06c6ff332b9fcd8fef84a86034d648299c359766bb1f4b64",
+      "assessment": "xcode 3.0.1 lib/pbxProject.js generateUuid calls uuid.v4() without a buffer. jest-junit 16.0.0 utils/getOptions.js destructures v1 and calls it without a buffer for an XML filename. Neither invokes vulnerable v3/v5/v6 with caller-supplied buffers. These are the only installed direct consumers; all consumer/package source trees are pinned. Xcode is native configuration tooling, not a server API.",
+      "advisories": [
+        {
+          "id": "GHSA-w5hq-g745-h8pq",
+          "supplierId": 1119441,
+          "cwe": "CWE-787, CWE-1285",
+          "url": "https://github.com/advisories/GHSA-w5hq-g745-h8pq",
+          "package": "uuid",
+          "severity": "moderate",
+          "title": "uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided",
+          "vulnerable": "<11.1.1",
+          "patched": ">=11.1.1",
+          "versions": ["7.0.3", "8.3.2"]
+        }
+      ]
+    },
+    "sharp": {
+      "inventorySha256": "7f819eecf9751d4fb8a7c23273ecdbfef49bf34106f804267d4fffdd2cd5214f",
+      "assessment": "The only vulnerable copy is miniflare 4.20251105.0/node_modules/sharp 0.33.5. Its dist/src/index.js IMAGES_PLUGIN getBindings/getNodeBindings/getServices return empty when options.images is absent; imagesLocalFetcher dynamically imports sharp only for that binding. proof/runtime.mjs enables modules/D1 and a fixed mocked outbound verifier, not images. Production wrangler.jsonc has assets/D1 only. Real Wrangler 4.158.0 uses its separate miniflare 5 copy with sharp 0.35.5; root asset generation also uses sharp 0.35.5. Static assets are offloaded, never decoded by the production Worker. Enabling Images or changing these exact source/config trees requires a new review or compatible upgrade.",
+      "advisories": [
+        {
+          "id": "GHSA-f88m-g3jw-g9cj",
+          "supplierId": 1124066,
+          "cwe": "CWE-1395",
+          "url": "https://github.com/advisories/GHSA-f88m-g3jw-g9cj",
+          "package": "sharp",
+          "severity": "high",
+          "title": "sharp inherited vulnerabilities in libvips: CVE-2026-33327, CVE-2026-33328, CVE-2026-35590, CVE-2026-35591",
+          "vulnerable": "<0.35.0",
+          "patched": ">=0.35.0",
+          "versions": ["0.33.5"]
+        },
+        {
+          "id": "GHSA-rgj7-g3m4-5g8c",
+          "supplierId": 1193725,
+          "cwe": "CWE-122",
+          "url": "https://github.com/advisories/GHSA-rgj7-g3m4-5g8c",
+          "package": "sharp",
+          "severity": "high",
+          "title": "sharp: Vulnerabilities in libheif: GHSA-g89c-p67h-r497 and GHSA-2jg2-4ch7-h545",
+          "vulnerable": "<0.35.4",
+          "patched": ">=0.35.4",
+          "versions": ["0.33.5"]
+        },
+        {
+          "id": "GHSA-wq5f-xc86-pv6w",
+          "supplierId": 1241331,
+          "cwe": "CWE-416, CWE-1395",
+          "url": "https://github.com/advisories/GHSA-wq5f-xc86-pv6w",
+          "package": "sharp",
+          "severity": "high",
+          "title": "sharp : Vulnerability in librsvg dependency CVE-2026-96889",
+          "vulnerable": "<0.35.5",
+          "patched": ">=0.35.5",
+          "versions": ["0.33.5"]
+        }
+      ]
+    },
+    "stream-json": {
+      "inventorySha256": "cbd031325a512ef47c73cee873ca87853d0a722bdc7292572a72ef5809588162",
+      "assessment": "The sole consumer is expo-atlas 0.4.3 build/src/utils/jsonl.js. It imports Disassembler and Stringer to serialize bundler-owned object data, not affected filters, JSONC parser/verifier or Assembler. parseJsonLine uses native JSON.parse on a local generated line. The personal export removes EXPO_ATLAS from its child environment and never serves the Atlas development UI. The general open-analyzer/generate-web-stats upstream scripts are outside this reviewed release boundary and must not be exposed to uploaded traces. Full Atlas and stream-json trees are pinned; any new import or consumer invalidates this assessment.",
+      "advisories": [
+        {
+          "id": "GHSA-528h-pc64-c93x",
+          "supplierId": 1164823,
+          "cwe": "CWE-407",
+          "url": "https://github.com/advisories/GHSA-528h-pc64-c93x",
+          "package": "stream-json",
+          "severity": "moderate",
+          "title": "stream-json: pick/ignore/filter/replace filters are O(depth²) on nested input — small crafted JSON blocks the event loop for seconds→minutes (DoS)",
+          "vulnerable": "<=3.4.0",
+          "patched": ">=3.5.0",
+          "versions": ["1.9.1"]
+        },
+        {
+          "id": "GHSA-hqr4-qq8f-hg3x",
+          "supplierId": 1241262,
+          "cwe": "CWE-407",
+          "url": "https://github.com/advisories/GHSA-hqr4-qq8f-hg3x",
+          "package": "stream-json",
+          "severity": "moderate",
+          "title": "stream-json: JSONC parser and verifier re-scan the whole accumulated comment on every input chunk",
+          "vulnerable": "<=3.5.0",
+          "patched": ">=3.6.0",
+          "versions": ["1.9.1"]
+        },
+        {
+          "id": "GHSA-mjw6-4jj6-33hc",
+          "supplierId": 1241263,
+          "cwe": "CWE-1321",
+          "url": "https://github.com/advisories/GHSA-mjw6-4jj6-33hc",
+          "package": "stream-json",
+          "severity": "moderate",
+          "title": "stream-json has a prototype pollution issue: Assembler writes this.current[this.key] on plain objects",
+          "vulnerable": "<3.6.0",
+          "patched": ">=3.6.0",
+          "versions": ["1.9.1"]
+        }
+      ]
+    },
+    "deepmerge": {
+      "inventorySha256": "d0fe32636cb23f7871a3206b7b3c677eb08c2acd015973d41437bd8e042d44ff",
+      "assessment": "All installed consumers are @expo/config 58.0.8 and 11.0.10 Config.js, and jest-config 30.5.2 build/index.js. They merge checked-in executable application/plugin config and Jest defaults/presets/globals, not feed/API/upload JSON. The vulnerable target-own __proto__ copy remains in deepmerge 4.3.1; this is not claimed patched. Release runs only reviewed static export/test configs from the exact candidate with frozen integrity-checked dependencies. Candidate jobs have read-only permissions and no deploy/write credentials. Native prebuild, arbitrary supplied presets and user config services are not an accepted release operation. Config/consumer/lock drift requires review.",
+      "advisories": [
+        {
+          "id": "GHSA-gcqx-w48m-w2h4",
+          "supplierId": 1243505,
+          "cwe": "CWE-1321",
+          "url": "https://github.com/advisories/GHSA-gcqx-w48m-w2h4",
+          "unpublishedPatch": true,
+          "package": "deepmerge",
+          "severity": "low",
+          "title": "deepmerge mergeObject() allows prototype poisoning of returned objects",
+          "vulnerable": ">=4.2.0 <=4.3.1",
+          "patched": null,
+          "versions": ["4.3.1"]
+        }
+      ]
+    },
+    "glob": {
+      "inventorySha256": "146bb9ff25209cf1ed7c252c703a0b028d081147f2644df22a19fcf63f36cb46",
+      "assessment": "Full installed direct-consumer inventory includes Expo config/plugins/fingerprint/Metro/CLI, Jest config/runtime/reporters/test-exclude, Lingui, Babel module resolver, sucrase, Sentry build plugins, expo-updates and rimraf. Active export/test/catalog calls use local project/package globs, not remote patterns or a request timeout as a traversal security boundary. Babel normalizeRoot uses glob.sync on configured roots; Metro getWatchFolders searches package.json; Jest uses sync project/module/coverage paths; Lingui uses sync checked-in catalogs. Expo CLI utils/glob.js anyMatchAsync does have AbortController first-match cancellation, but no consumer imports/calls it in this exact installed CLI tree; it must not be treated as a safe timeout. Sentry upload paths are not invoked in the personal export. No hosted glob/native/dev service is deployed. All copies and every direct consumer tree plus release configs/lock are pinned, including unaffected glob 7. A new glob service, imported cancellation helper or changed patterns invalidates this bounded build assessment.",
+      "advisories": [
+        {
+          "id": "GHSA-3g3m-2fjr-6pw4",
+          "supplierId": 1244013,
+          "cwe": "CWE-400",
+          "url": "https://github.com/advisories/GHSA-3g3m-2fjr-6pw4",
+          "package": "glob",
+          "severity": "moderate",
+          "title": "Glob: AbortSignal cancellation bypass allows post-timeout filesystem traversal",
+          "vulnerable": ">=9.0.0 <=14.0.1",
+          "patched": ">=14.0.2",
+          "versions": ["10.5.0", "11.1.0", "13.0.6", "9.3.5"]
+        }
+      ]
+    },
+    "minimatch": {
+      "inventorySha256": "e2b7eff992050c95878d08647a1d3d17dc9e0f352e623f0d81146b1efbcb03f6",
+      "assessment": "Consumers are the fully inventoried glob copies, test-exclude, @expo/fingerprint, @ts-morph/common and ESLint configuration tooling. The release uses checked-in catalog/module/project/instrumentation patterns and package-owned fixed glob patterns, not network-supplied globparts. test-exclude matches filename against configured include/exclude; fingerprint Path.js builds matchers from local ignore patterns; ts-morph common uses minimatch for source-file patterns in lexicon generation. Lexicon source and build configs are versioned, not a public schema/pattern upload endpoint. Existing vulnerable amplification is not claimed fixed; release CI is a bounded read-only job and public requests cannot invoke this toolchain. Package/consumer/pattern/config/lock drift or runtime bundling fails closed; do not use this assessment for an untrusted build-as-a-service.",
+      "advisories": [
+        {
+          "id": "GHSA-g3hv-75wg-m249",
+          "supplierId": 1244623,
+          "cwe": "CWE-405",
+          "url": "https://github.com/advisories/GHSA-g3hv-75wg-m249",
+          "package": "minimatch",
+          "severity": "moderate",
+          "title": "minimatch has potential denial of service via globparts amplification",
+          "vulnerable": ">=7.0.0 <11.0.1",
+          "patched": ">=11.0.1",
+          "versions": ["10.2.5", "8.0.7", "9.0.9"]
+        }
+      ]
+    }
+  }
+}

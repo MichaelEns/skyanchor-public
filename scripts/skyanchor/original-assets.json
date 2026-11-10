@@ -1,0 +1,2692 @@
+[
+  {
+    "file": "assets\\icons\\ui\\Accessibility_Stroke2_Corner2_Rounded.svg",
+    "sha256": "098e953668ae4bfc7a873bc17f484cc42b65fbe9b1c3864a1167a2c5bd504c63",
+    "fragments": [
+      "M4 12a8 8 0 1 1 16 0 8 8 0 0 1-16 0Zm8-10C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Alien_Stroke2_Corner0_Rounded.svg",
+    "sha256": "4d46d5d6a03a799fb65685ec13002903527e78e95664a9d192c2b1bae4154081",
+    "fragments": [
+      "M5 11a7 7 0 0 1 14 0c0 2.625-1.547 5.138-3.354 7.066a17 17 0 0 1-2.55 2.242 8 8 0 0 1-.924.577 3 3 0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Apple_Stroke2_Corner0_Rounded.svg",
+    "sha256": "2291b213613d6db479e23e70298326d3b56e8f94379397b967e50ff24577eb68",
+    "fragments": [
+      "M8.148 2.034a1 1 0 0 1 1.35-.419c1.054.556 1.873 1.266 2.46 2.174.369.57.63 1.197.807 1.873 1.143-.3"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ArrowBottom_Stroke2_Corner0_Rounded.svg",
+    "sha256": "7b41687704d8c95e815699b3aa4eadac05a8ce831f871156d40133e474340956",
+    "fragments": [
+      "M12 21a1 1 0 0 1-.707-.293l-6-6a1 1 0 1 1 1.414-1.414L11 17.586V4a1 1 0 1 1 2 0v13.586l4.293-4.293a1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ArrowBoxLeft_Stroke2_Corner0_Rounded.svg",
+    "sha256": "477ef7e5f741f52d7a96101998581c9632ae198b6f58e76aa6aa883c6225accd",
+    "fragments": [
+      "M3.293 3.293A1 1 0 0 1 4 3h7.25a1 1 0 1 1 0 2H5v14h6.25a1 1 0 1 1 0 2H4a1 1 0 0 1-1-1V4a1 1 0 0 1 .2"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ArrowBoxLeft_Stroke2_Corner2_Rounded.svg",
+    "sha256": "0337deae11f88a4d53b8e40d7d47bb32adb56e79a4296ad821f67217a1c175a2",
+    "fragments": [
+      "M6 5a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h5.25a1 1 0 1 1 0 2H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h5.25a1 1 0 1 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ArrowBoxRight_Stroke2_Corner3_Rounded.svg",
+    "sha256": "4cc315c7d2878767eb50866e5cab9635b01f88f4ad66f38804a41488669785d4",
+    "fragments": [
+      "M17 3a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4h-2a1 1 0 1 1 0-2h2a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2a1 1 0 1 1 0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ArrowCornerDownRight_Stroke2_Corner2_Rounded.svg",
+    "sha256": "01d599d8b144ee2a788fe9e208fa59dea2421f1fa6f6a1e066ad68e2a7dbc6a5",
+    "fragments": [
+      "M15.793 10.293a1 1 0 0 1 1.338-.068l.076.068 3.293 3.293a2 2 0 0 1 .138 2.677l-.138.151-3.293 3.293a"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ArrowCornerDownRight_Stroke2_Corner3_Rounded.svg",
+    "sha256": "8405e173879a3c64070ce258c9034ed6041f1489bf1a8bb73626d78b6830c79e",
+    "fragments": [
+      "M5 5a1 1 0 0 0-2 0v4a7 7 0 0 0 7 7h8.086l-2.293 2.293a1 1 0 0 0 1.414 1.414l2.94-2.94a2.5 2.5 0 0 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ArrowLeft_Stroke2_Corner0_Rounded.svg",
+    "sha256": "cf4c933cac8cdc1a4ec3f15af86a5980334eec7b7ad12fb0423bdfeb8f54e053",
+    "fragments": [
+      "M3 12a1 1 0 0 1 .293-.707l6-6a1 1 0 0 1 1.414 1.414L6.414 11H20a1 1 0 1 1 0 2H6.414l4.293 4.293a1 1 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ArrowOutOfBoxModified_Stroke2_Corner2_Rounded.svg",
+    "sha256": "7ab5dd498ec8be4ab8d6dbd6564ea55596d75466fefdaa23b63610326a5d3bdc",
+    "fragments": [
+      "M20 13.75a1 1 0 0 1 1 1V18a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-3.25a1 1 0 1 1 2 0V18a1 1 0 0 0 1 1h12a1 1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ArrowOutOfBox_Stroke2_Corner0_Rounded.svg",
+    "sha256": "3dab568a400c47e0b63331dfd2ee6cb4df605cb9e51abe1ef104ffb6d2e42cd7",
+    "fragments": [
+      "M12.707 3.293a1 1 0 0 0-1.414 0l-4.5 4.5a1 1 0 0 0 1.414 1.414L11 6.414v8.836a1 1 0 1 0 2 0V6.414l2."
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ArrowRight_Stroke2_Corner0_Rounded.svg",
+    "sha256": "8b8ac607c4d91a53259d834e90008dc065a1a59a78b0bab66847567301746626",
+    "fragments": [
+      "M21 12a1 1 0 0 1-.293.707l-6 6a1 1 0 0 1-1.414-1.414L17.586 13H4a1 1 0 1 1 0-2h13.586l-4.293-4.293a1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ArrowRotateClockwise_Stroke2_Corner0_Rounded.svg",
+    "sha256": "9bbbd51d72e9c8ee7f23b4fc65b9be50a530aea537f041dde44ac46dde728f23",
+    "fragments": [
+      "M2.972 12a9 9 0 0 1 9-9c1.726 0 3.165.423 4.448 1.21A10 10 0 0 1 18 5.428V4a1 1 0 1 1 2 0v4a1 1 0 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ArrowRotateCounterClockwise_Stroke2_Corner0_Rounded.svg",
+    "sha256": "d58960d5b5b3846dc1c6d0f38ae625b4799d60a71eaa4e29bdf029c5c8146ed6",
+    "fragments": [
+      "M5 3a1 1 0 0 1 1 1v1.423c.498-.46 1.02-.869 1.58-1.213C8.863 3.423 10.302 3 12.028 3a9 9 0 1 1-8.487"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ArrowsDiagonalIn_Stroke2_Corner0_Rounded.svg",
+    "sha256": "2d5d125b5aabb340311bb6f8fab7833550f56936e260cf52c90126c076a3621e",
+    "fragments": [
+      "M20.957 3.043a1 1 0 0 1 0 1.414L16.414 9H20a1 1 0 1 1 0 2h-6a1 1 0 0 1-1-1V4a1 1 0 1 1 2 0v3.586l4.5"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ArrowsDiagonalIn_Stroke2_Corner2_Rounded.svg",
+    "sha256": "9ccfe1338e3a70c2d87adbf06191b7aa87c441b994b8ab00c57362bc27b42a59",
+    "fragments": [
+      "M20.957 3.043a1 1 0 0 1 0 1.414L16.414 9H20a1 1 0 1 1 0 2h-5a2 2 0 0 1-2-2V4a1 1 0 1 1 2 0v3.586l4.5"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ArrowsDiagonalOut_Stroke2_Corner0_Rounded.svg",
+    "sha256": "6a52ffb238ec5bf2a728f9b78614cc1bb50d58ee029953d2d40647ea2ae2487f",
+    "fragments": [
+      "M14 5a1 1 0 1 1 0-2h6a1 1 0 0 1 1 1v6a1 1 0 1 1-2 0V6.414l-4.293 4.293a1 1 0 0 1-1.414-1.414L17.586 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ArrowsDiagonalOut_Stroke2_Corner2_Rounded.svg",
+    "sha256": "0ba36b408df6d4ab6fe6f3bbc714b6015d8af00fbd09d9246f9e0b628d67b5f2",
+    "fragments": [
+      "M13 4a1 1 0 0 1 1-1h5a2 2 0 0 1 2 2v5a1 1 0 1 1-2 0V6.414l-4.293 4.293a1 1 0 0 1-1.414-1.414L17.586 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ArrowShareRight_Stroke2_Corner2_Rounded.svg",
+    "sha256": "940d62a7efe953a43568694db7656302cd4e7ca850c0b23eee089ac8c31d9994",
+    "fragments": [
+      "M11.839 4.744c0-1.488 1.724-2.277 2.846-1.364l.107.094 7.66 7.256.128.134c.558.652.558 1.62 0 2.272l"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ArrowTopCircle_Stroke2_Corner0_Rounded.svg",
+    "sha256": "5ce96838eb03f98cc6681240b477e071282fbd01a57d22a8c83dd5cee3bef5fa",
+    "fragments": [
+      "M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2Zm0 2a8 8 0 1 0 0 16 8 8 0 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ArrowTopRight_Stroke2_Corner0_Rounded.svg",
+    "sha256": "2b4565e0c8bf97a7bba2553a01b0bfbc6ee818760acbf613f49b8298854ecb35",
+    "fragments": [
+      "M8 6a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v9a1 1 0 1 1-2 0V8.414l-9.793 9.793a1 1 0 0 1-1.414-1.414L15.586 7"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ArrowTop_Stroke2_Corner0_Rounded.svg",
+    "sha256": "27b1a45d1499bcb73f5fec01be6f11e82d2c8841349fb47d4dde77bd4a0b7335",
+    "fragments": [
+      "M11 20V6.164l-4.293 4.293a1 1 0 1 1-1.414-1.414l5.293-5.293.151-.138a2 2 0 0 1 2.677.138l5.293 5.293"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ArrowTriangleBottom_Stroke2_Corner1_Rounded.svg",
+    "sha256": "bacc3f1009fa4c08ea498f643b021012ed08d1909f8fc51ecf63377787617015",
+    "fragments": [
+      "M4.213 6.886c-.673-1.35.334-2.889 1.806-2.889H17.98c1.472 0 2.479 1.539 1.806 2.89l-5.982 11.997c-.7"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\AspectRatio11_Stroke2_Corner0_Rounded.svg",
+    "sha256": "e7e393c384189501bddf14c63b4da06e047c3920006ff7632188380aa2cf6af2",
+    "fragments": [
+      "M3 4a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4Zm2 1v14h14V5H5Z"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\AspectRatio34_Stroke2_Corner0_Rounded.svg",
+    "sha256": "d7217702f137af0e99ce4dfe4592dfb29a25d9ed04c7080ccc5602b38f96d03a",
+    "fragments": [
+      "M4 2c0-.552.41-1 .917-1h14.666c.507 0 .917.448.917 1v20c0 .552-.41 1-.917 1H4.917C4.41 23 4 22.552 4"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\AspectRatio43_Stroke2_Corner0_Rounded.svg",
+    "sha256": "72295328bd514e2d16537de0c1a5b7861afb273b55599d6b4634a4c2ec99ea22",
+    "fragments": [
+      "M2 20.5c-.552 0-1-.41-1-.917V4.917C1 4.41 1.448 4 2 4h20c.552 0 1 .41 1 .917v14.666c0 .507-.448.917-"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Atom_Stroke2_Corner0_Rounded.svg",
+    "sha256": "d1da0332f2ead7662649d42bf0d5e0dc39e640641f1ba1aeb725867fbdb60620",
+    "fragments": [
+      "M6.17 5.004c-.553-.029-.814.107-.937.23-.122.122-.258.383-.23.936.03.552.222 1.28.611 2.15.282.628.6"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\At_Stroke2_Corner0_Rounded.svg",
+    "sha256": "e9f5fa6d561d42cdfaf10e01690feacfc2bbca0862b6f9d11b30db5cbd767275",
+    "fragments": [
+      "M12 4a8 8 0 1 0 4.21 14.804 1 1 0 0 1 1.054 1.7A9.96 9.96 0 0 1 12 22C6.477 22 2 17.523 2 12S6.477 2"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\At_Stroke2_Corner2_Rounded.svg",
+    "sha256": "a16b509aa633a5df8ccec1c0c5c6c3582943da0bb6eea6ad2e9872390d8b4aae",
+    "fragments": [
+      "M12 4a8 8 0 1 0 4.21 14.804 1 1 0 0 1 1.054 1.7A9.96 9.96 0 0 1 12 22C6.477 22 2 17.523 2 12S6.477 2"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Bars3_Stroke2_Corner0_Rounded.svg",
+    "sha256": "a2f31764924c5630df90ed510ae11279cce37cce8fe985efd8c6d7a8a48a3904",
+    "fragments": [
+      "M3 5a1 1 0 0 0 0 2h18a1 1 0 1 0 0-2H3Zm-1 7a1 1 0 0 1 1-1h18a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1Zm0 6a1 1 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Beaker_Stroke2_Corner2_Rounded.svg",
+    "sha256": "0ede79172ad6a6f932a23204a30be995327bf69a1261cc7c162f7979d2c1949a",
+    "fragments": [
+      "M13.5 4a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM10 5a1 1 0 1 0 0-2 1 1 0 0 0 0 2ZM8 6a1 1 0 0 0 0 2v2.6"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Bell2Off_Filled_Corner0_Rounded.svg",
+    "sha256": "d4a74ef59a70d09f8a655aaf96b3e45e66f59ba790119752f831535076f1b186",
+    "fragments": [
+      "m19.785 8.815 1.034 7.761L7.595 3.352a7.853 7.853 0 0 1 12.19 5.463ZM4 19h3.354c.904 1.748 2.607 3 4"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Bell2Off_Stroke2_Corner0_Rounded.svg",
+    "sha256": "6db0538e0114e182a6e367ae2a28a9536e36a1a24cb753f133f48ac57a49132c",
+    "fragments": [
+      "M2.293 2.293a1 1 0 0 1 1.414 0l18 18a1 1 0 0 1-1.414 1.414L17.586 19h-.94c-.904 1.748-2.607 3-4.646 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Bell2_Filled_Corner0_Rounded.svg",
+    "sha256": "ff1bddd7f8f1d37b4b284c86f781b27050a86a8459561e42400fd0626642cf47",
+    "fragments": [
+      "M12 2a7.307 7.307 0 0 0-7.298 6.943l-.19 3.798-1.321 2.641A1.81 1.81 0 0 0 4.809 18H7.1a5.002 5.002 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Bell2_Stroke2_Corner0_Rounded.svg",
+    "sha256": "9ab1291c0ef84f453579c889c0b6fc2d9cc4a89b82529921a0f29e57efc11600",
+    "fragments": [
+      "M4.702 8.943a7.307 7.307 0 0 1 14.596 0l.19 3.798 1.321 2.641A1.81 1.81 0 0 1 19.191 18H16.9a5.002 5"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\BellPlus_Stroke2_Corner0_Rounded.svg",
+    "sha256": "50f618e647a2acac003c4e1a85fe41ed5ecdd2bcf566ad0a44a82b187dc6a664",
+    "fragments": [
+      "M12 2a1 1 0 0 1 0 2 5.85 5.85 0 0 0-5.802 5.08L5.143 17h13.715l-.382-2.868-.01-.102a1 1 0 0 1 1.973-"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\BellRinging_Filled_Corner0_Rounded.svg",
+    "sha256": "2a1ed1c4daaf07091d2880c908602fb5b333d4e320f63d1af1586b4816fca2a7",
+    "fragments": [
+      "M12 2a7.854 7.854 0 0 1 7.784 6.815l1.207 9.053a1 1 0 0 1-.99 1.132h-3.354c-.904 1.748-2.608 3-4.647"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\BellRinging_Stroke2_Corner0_Rounded.svg",
+    "sha256": "106fda728649ea181093915468db6253fafee297f0ce3d9c954b07203a084db2",
+    "fragments": [
+      "M12 2a7.854 7.854 0 0 1 7.785 6.815l1.055 7.92.018.224a2 2 0 0 1-2 2.041h-2.215c-.904 1.747-2.605 3-"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Bell_Filled_Corner0_Rounded.svg",
+    "sha256": "60e7b8dd8ab99b20b7e90d5aa25e513ca8ef32cd03a4cb545907d5a4313aa9a2",
+    "fragments": [
+      "M12 2a7.85 7.85 0 0 0-7.784 6.815l-1.207 9.053A1 1 0 0 0 4 19h3.354c.904 1.748 2.607 3 4.646 3s3.742"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Bell_Stroke2_Corner0_Rounded.svg",
+    "sha256": "71296aecf7ccddf65b21e34639d70f120d31b3eaa54c02fd8912ea4c57c5a7bc",
+    "fragments": [
+      "M4.216 8.815a7.853 7.853 0 0 1 15.568 0l1.207 9.053A1 1 0 0 1 20 19h-3.354c-.904 1.748-2.607 3-4.646"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\BirthdayCake_Stroke2_Corner2_Rounded.svg",
+    "sha256": "6ae17ab4a53a569e7e071d944700923326ffe5cabd07afc669a882d01ba3708d",
+    "fragments": [
+      "m12 .757 2.122 2.122A3 3 0 0 1 13 7.829V9h4.5a3 3 0 0 1 3 3v1.646a3 3 0 0 1-.5 1.658V19a3 3 0 0 1-3 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\BookmarkDelete_Stroke2_Corner0_Rounded_Large.svg",
+    "sha256": "2c14e7885c80c63845616c3494a5e5bddfbde5b552bdaec2503c2da284e19289",
+    "fragments": [
+      "M37.866 7c2.224 0 3.952 0 5.336.112 1.396.114 2.53.349 3.55.868a9 9 0 0 1 3.933 3.934c.52 1.02.755 2"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Bookmark_Filled_Corner0_Rounded.svg",
+    "sha256": "81993243fcfb7ae14c79a5489dffde53e2bdea6dea1aa7c57b54f8767ca46851",
+    "fragments": [
+      "M16 2.5a4 4 0 0 1 4 4v12.995c0 1.62-1.825 2.567-3.15 1.636l-3.7-2.6a2 2 0 0 0-2.3 0l-3.7 2.6C5.825 2"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Bookmark_Stroke2_Corner0_Rounded.svg",
+    "sha256": "90a92d075d4c90e0fbfd8ac7664564a904958a067127e72937c377b6539ebc19",
+    "fragments": [
+      "M9.7 16.895a4 4 0 0 1 4.6 0l3.7 2.6V6.5a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v12.995l3.7-2.6Zm10.3 2.6c0 1.6"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Bot_Filled_Corner0_Rounded.svg",
+    "sha256": "cf6e0f6971a328a3040cbafdd2237fbc237a1f83934f0cef7573b94f46d1275e",
+    "fragments": [
+      "M12 0a2 2 0 0 1 1 3.73V5h4.2c1.68 0 2.52 0 3.162.327a3 3 0 0 1 1.31 1.31C22 7.28 22 8.12 22 9.8v.25a"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Bot_Stroke2_Corner0_Rounded.svg",
+    "sha256": "025854a15667fd392e948d45c9c39781fa2144e84af4994fc1d713a2158a3827",
+    "fragments": [
+      "M12 2a1 1 0 0 1 1 1v2h3.2l1.113.005c.975.015 1.568.077 2.05.322a3 3 0 0 1 1.31 1.31C21 7.28 21 8.12 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\BroomSparkle_Stroke2_Corner2_Rounded.svg",
+    "sha256": "1f37e4dc19c2aab4fa7784646639f3c1ef2fb48d81e22f353ef191fb40daab28",
+    "fragments": [
+      "M20.494 2.13a1 1 0 0 1 .375 1.364l-4.658 8.2.263.095c1.52.554 2.737 2.062 2.484 3.864-.336 2.393-1.3"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\BubbleInfo_Stroke2_Corner2_Rounded.svg",
+    "sha256": "0478661c862a2729e2a728abaf698f55e1d6d46abfcf01de834d7a2995f1e67a",
+    "fragments": [
+      "M6.002 5h12a1 1 0 0 1 1 1v10.036a1 1 0 0 1-1 1h-2.626a2 2 0 0 0-1.276.46l-2.098 1.738-2.065-1.731a2 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\BubbleQuestion_Stroke2_Corner0_Rounded.svg",
+    "sha256": "badbeccdd61cb664bd3aa0d84c4923d95e804e675e654dff4bcbb63abd735e46",
+    "fragments": [
+      "M5.002 17.036V5h14v12.036h-3.986a1 1 0 0 0-.639.23l-2.375 1.968-2.344-1.965a1 1 0 0 0-.643-.233H5.00"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\BubbleSmile_Stroke2_Corner2_Rounded_Large.svg",
+    "sha256": "148f795c0fdcf225824fae222738db189616e79412c54f9fbeae70a6644af5a6",
+    "fragments": [
+      "M32 7c13.807 0 25 11.193 25 25S45.807 57 32 57c-3.638 0-7.098-.778-10.219-2.177a1.84 1.84 0 0 0-1.15"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Bubbles_Stroke2_Corner2_Rounded.svg",
+    "sha256": "5a588caddab0b83bb4ee5b7198f5196c09c7f9b3645fcc7df8d0e359b2a0feb1",
+    "fragments": [
+      "M6.002 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3h-1v1a3 3 0 0 1-3 3h-4.24l-4.274 2.374a1 1 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Bubble_Filled_Stroke2_Corner2_Rounded.svg",
+    "sha256": "bacd5fc106e658949456be1dbf22dfce31427e3a341b8549a7f3869fbb2aa23c",
+    "fragments": [
+      "M19.002 3a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H12.28l-4.762 2.858A1 1 0 0 1 6.002 21v-2h-1a3 3 0 0 1-3-3V6"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Bubble_Stroke2_Corner2_Rounded.svg",
+    "sha256": "db20ede6bb0432d9f036d558d4674d89c6c2a349875cc7499b75c605a12d4fac",
+    "fragments": [
+      "M2.002 6a3 3 0 0 1 3-3h14a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H12.28l-4.762 2.858A1 1 0 0 1 6.002 21v-2h-1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Bubble_Stroke2_Corner3_Rounded.svg",
+    "sha256": "4075b2b4657a29eefb94e9268e7cf2654f438d8de5f4267e50ec3667a300577f",
+    "fragments": [
+      "M2.002 7a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4H12.28l-4.762 2.858A1 1 0 0 1 6.002 21v-2a4 4"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\BulletList_Filled_Corner0_Rounded.svg",
+    "sha256": "5da1edad9b3521a26f5ba98b856c5b4dc6eba32c8857b6ed518aec35a02ced35",
+    "fragments": [
+      "M3 7a3 3 0 1 1 6 0 3 3 0 0 1-6 0Zm0 10a3 3 0 1 1 6 0 3 3 0 0 1-6 0Zm10-1a1 1 0 1 0 0 2h7a1 1 0 1 0 0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\BulletList_Stroke1_Corner0_Rounded.svg",
+    "sha256": "68a38e2910b0f97ce682de30bd693c8876e37716d73501a0fdd8857d23698a58",
+    "fragments": [
+      "M22.333 31.667H45M22.333 6.333H45m-33.333 0A5.333 5.333 0 1 1 1 6.333a5.333 5.333 0 0 1 10.667 0Zm0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\BulletList_Stroke2_Corner0_Rounded.svg",
+    "sha256": "02cc0beb4635cbcd22c9fafca1a33f4079e1ce011f9498e55b6abe7731ba7c2c",
+    "fragments": [
+      "M6 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2ZM3 7a3 3 0 1 1 6 0 3 3 0 0 1-6 0Zm9 0a1 1 0 0 1 1-1h7a1 1 0 1 1 0 2"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\CalendarClock_Stroke2_Corner0_Rounded.svg",
+    "sha256": "4f6b173c8638698499a8d9cced95da3545f41a4c07ac5dbee14616695ae0ae8e",
+    "fragments": [
+      "M15.439 3.148a1 1 0 0 1 .41.645l.568 3.22a7 7 0 1 1-6.174 10.97L4.32 19.027a1 1 0 0 1-1.159-.811L1.0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\CalendarDays_Stroke2_Corner0_Rounded.svg",
+    "sha256": "cb921551a2e9bcd96beb87b060a29aaa9129277d4487fdf0352b399c9c68b0f8",
+    "fragments": [
+      "M4 3a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H4Zm1 16V9h14v10H5ZM5 7h14V5H5v2"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Calendar_Stroke2_Corner0_Rounded.svg",
+    "sha256": "d02561be6afd58eee0c4f15f776ede981d1168d81904c2611688631bb7b75fec",
+    "fragments": [
+      "M8 2a1 1 0 0 1 1 1v1h6V3a1 1 0 1 1 2 0v1h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Camera_Filled_Stroke2_Corner0_Rounded.svg",
+    "sha256": "adc66380386fd361ecc7cd94ac156e0e8413457dd699ece0f01cef37c59d1f1e",
+    "fragments": [
+      "M8.371 3.89A2 2 0 0 1 10.035 3h3.93a2 2 0 0 1 1.664.89L17.035 6H20a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H4a"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Camera_Stroke2_Corner0_Rounded.svg",
+    "sha256": "ebaea258bc017a321d3784b70a2ad00334ea616eb76112c6977a51f01258a183",
+    "fragments": [
+      "M8.371 3.89A2 2 0 0 1 10.035 3h3.93a2 2 0 0 1 1.664.89L17.035 6H20a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H4a"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Car_Stroke2_Corner2_Rounded.svg",
+    "sha256": "9f3cefd6aabe6af41971e608df79acfaf3f1533ca6682592d1321e7ca3cf895d",
+    "fragments": [
+      "M7.018 6a1 1 0 0 0-.808.412l-.81-.588.809.588L3 10.825V17a1 1 0 1 0 2 0 1 1 0 0 1 1-1h12a1 1 0 0 1 1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\CC_Filled_Corner0_Rounded.svg",
+    "sha256": "1419a2b390e2ca56de2fac803a50a6f32f1281b35bd54a5de0333b3916782cf7",
+    "fragments": [
+      "M3 4a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4Zm11.543 7.293a1 1 0 0 1 1.414"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\CC_Stroke2_Corner0_Rounded.svg",
+    "sha256": "f4cb058237fe1aa8c7fe2fdd96d1f87d2ac499fd23e7a59748ee237bbf123f45",
+    "fragments": [
+      "M3 4a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4Zm2 1v14h14V5H5Zm10.957 6.293a"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Celebrate_Stroke2_Corner0_Rounded.svg",
+    "sha256": "b7ebcf5b7cdca3626d6bffcfb851d995dd60b6a53dab571218c67f884db3078a",
+    "fragments": [
+      "M13.832 1.014a1 1 0 0 1 1.154.818L14 2l.986-.168v.003l.001.005.002.014.007.045.021.156c.017.13.035.3"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ChainLinkBroken_Stroke2_Corner0_Rounded.svg",
+    "sha256": "2398c664146acfa3e2e643fc9aa7d78505635e06c9fc0fb5d566c18a5e71ecce",
+    "fragments": [
+      "M14.3 23v-1.1a1 1 0 0 1 2 0V23a1 1 0 1 1-2 0Zm5.243-3.457a1 1 0 0 1 1.414 0l1.1 1.1a1 1 0 1 1-1.414 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ChainLink_Stroke2_Corner0_Rounded.svg",
+    "sha256": "897e7094059e5f42553f16d0430b62a908ad3f14e7536f735c087d029eace9c2",
+    "fragments": [
+      "M18.535 5.465a5.003 5.003 0 0 0-7.076 0l-.005.005-.752.742a1 1 0 1 1-1.404-1.424l.749-.74a7.003 7.00"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\CheckThick_Stroke2_Corner0_Rounded.svg",
+    "sha256": "89dd30799e6ad15187999bcba9f7db70ead0001825240df1df1ae0b6612bcfeb",
+    "fragments": [
+      "M21.474 2.98a2.5 2.5 0 0 1 .545 3.494l-10.222 14a2.5 2.5 0 0 1-3.528.52L2.49 16.617a2.5 2.5 0 0 1 3."
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Check_Stroke2_Corner0_Rounded.svg",
+    "sha256": "419e20fb4a324ae998720b61ac11642b148223d7751a5b91dbb13dd66666fd40",
+    "fragments": [
+      "M21.59 3.193a1 1 0 0 1 .217 1.397l-11.706 16a1 1 0 0 1-1.429.193l-6.294-5a1 1 0 1 1 1.244-1.566l5.48"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ChevronBottom_Stroke2_Corner0_Rounded.svg",
+    "sha256": "57a8194e6d3b69c394d730ef96b303aaf7e2ba1223dff02ff687f48f1b152ef7",
+    "fragments": [
+      "M3.293 8.293a1 1 0 0 1 1.414 0L12 15.586l7.293-7.293a1 1 0 1 1 1.414 1.414l-8 8a1 1 0 0 1-1.414 0l-8"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ChevronLeft_Stroke2_Corner0_Rounded.svg",
+    "sha256": "67069b02bb743531cffe1e9cce12bf51d0e72f1a268a2be9d4fc6d2a57a2c326",
+    "fragments": [
+      "M15.707 3.293a1 1 0 0 1 0 1.414L8.414 12l7.293 7.293a1 1 0 0 1-1.414 1.414l-8-8a1 1 0 0 1 0-1.414l8-"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ChevronRight_Stroke2_Corner0_Rounded.svg",
+    "sha256": "2e4021c6dff44b20feabf95014d4a3c7b998423b8c49df027530b65d5ab7bc3e",
+    "fragments": [
+      "M8.293 3.293a1 1 0 0 1 1.414 0l8 8a1 1 0 0 1 0 1.414l-8 8a1 1 0 0 1-1.414-1.414L15.586 12 8.293 4.70"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ChevronTopBottom_Stroke2_Corner0_Rounded.svg",
+    "sha256": "4811b055bc99f4cdf9b4f2d882a69f0ac5f870b3abea971166d16a428a4a3a6a",
+    "fragments": [
+      "M11.293 4.293a1 1 0 0 1 1.414 0l4 4a1 1 0 0 1-1.414 1.414L12 6.414 8.707 9.707a1 1 0 0 1-1.414-1.414"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ChevronTop_Stroke2_Corner0_Rounded.svg",
+    "sha256": "cadab20a094f0aaacb48c12a2f3d788de4089d1bd5f056e783db15d562b19ff7",
+    "fragments": [
+      "M12 6a1 1 0 0 1 .707.293l8 8a1 1 0 0 1-1.414 1.414L12 8.414l-7.293 7.293a1 1 0 0 1-1.414-1.414l8-8A1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\CircleAndSquare_Stroke1_Corner0_Rounded_Filled.svg",
+    "sha256": "06ae39211780848badbab0c4519eea4093c2b0c56f4cc10f26e05b0a3508b9a7",
+    "fragments": [
+      "M28.173.231a5.653 5.653 0 0 1 7.018 3.83l2.66 9.046a20 20 0 0 1 3.986-.397c11.026 0 19.964 8.937 19."
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\CircleBanSign_Stroke2_Corner0_Rounded.svg",
+    "sha256": "086372fc0d7c8e568e674dd503c43cdc34a6a91ff54829d21c32ccbe172f6824",
+    "fragments": [
+      "M12 4a8 8 0 0 0-6.32 12.906L16.906 5.68A7.96 7.96 0 0 0 12 4Zm6.32 3.094L7.094 18.32A8 8 0 0 0 18.32"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\CircleCheck_Stroke2_Corner0_Rounded.svg",
+    "sha256": "8b356950d215506912762f649b2c81b4b10380654966dd2cf8181847a3e09056",
+    "fragments": [
+      "M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16ZM2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.52"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\CircleInfo_Stroke2_Corner0_Rounded.svg",
+    "sha256": "fbd76d2626b0f9746caed2c0aa7a02d5cf5a77229ad69e4a5b813ce3626f0474",
+    "fragments": [
+      "M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16ZM2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.52"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\CirclePlus_Stroke2_Corner0_Rounded.svg",
+    "sha256": "334aee9e1b9e0acbcfc1f80b719e3ea04cb5cbb072f23d4e6c50abe7b8d4768c",
+    "fragments": [
+      "M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2Zm0 2a8 8 0 1 0 0 16 8 8 0 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\CircleQuestion_Stroke2_Corner2_Rounded.svg",
+    "sha256": "aa9e05f5cb0ee31c02dbdddc698febaac11362388500b41bf1c64ee78a7d729a",
+    "fragments": [
+      "M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16ZM2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.52"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\CircleX_Stroke2_Corner0_Rounded.svg",
+    "sha256": "a41b8e6f200cad2000364afcd28cb15dbca2e1efd8e5eba644ce30f5d7f1f6cc",
+    "fragments": [
+      "M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16ZM2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.52"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Circle_Stroke2_Corner0_Rounded.svg",
+    "sha256": "ee56110f8f697975a0a9ad8aca0e51c20bc5d033b40ff0493da1874fe72a7c9b",
+    "fragments": [
+      "M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16ZM2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.52"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Clipboard_Stroke2_Corner2_Rounded.svg",
+    "sha256": "203cd7e109f24e28e41faaafae1c7c6ead626867e60b9e7f259d0c3ff2391bd2",
+    "fragments": [
+      "M8.17 4A3 3 0 0 1 11 2h2c1.306 0 2.418.835 2.83 2H17a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Clock_Stroke2_Corner0_Rounded.svg",
+    "sha256": "e3148f946f1f6f54a479cfdb0b6483b4e4fc16df304f2d7552f3f56380c62b29",
+    "fragments": [
+      "M4 12a8 8 0 1 1 16 0 8 8 0 0 1-16 0Zm8-10C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\CloseQuote_Filled_Stroke2_Corner0_Rounded.svg",
+    "sha256": "ca8ea62c02dec0f15927e57da02b8a9c31c6cd258e41d8d774c255c60141ecb3",
+    "fragments": [
+      "M3.004 4a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h2v5a1 1 0 0 0 .43.822c.57.395 1.176.031 1.685-.255.428-.24.99"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\CloseQuote_Stroke2_Corner0_Rounded.svg",
+    "sha256": "a2e895e33c635d618fb837c309c7e0a189c8d8a1b96c562faa227123aff37322",
+    "fragments": [
+      "M2.004 5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v8c0 2.585-1.162 4.335-2.316 5.417-.571.536-1.14.91-1.569 1.15"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\CloseQuote_Stroke2_Corner1_Rounded.svg",
+    "sha256": "a5e99e04c018a6b74451fecc1528606601e2213d76a4d540dded9589181befce",
+    "fragments": [
+      "M2.003 5.999a2 2 0 0 1 2-1.999h5c1.104 0 2 .893 2 1.999V13c0 2.585-1.16 4.335-2.315 5.417-.571.536-1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\CodeBrackets_Stroke2_Corner0_Rounded.svg",
+    "sha256": "d2963bea6dd58fe623c72bbfe2c0a2437ee3764e987b432f24e64978214024dc",
+    "fragments": [
+      "M14.242 3.03a1 1 0 0 1 .728 1.213l-4 16a1 1 0 1 1-1.94-.485l4-16a1 1 0 0 1 1.213-.728ZM6.707 7.293a1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\CodeBrackets_Stroke2_Corner2_Rounded.svg",
+    "sha256": "70aa47f5ffaca2eacae2ebfc6c7265a42cdef3a557bd99e514ec166f860dd122",
+    "fragments": [
+      "M14.243 3.03a1 1 0 0 1 .727 1.213l-4 16a1 1 0 1 1-1.94-.485l4-16a1 1 0 0 1 1.213-.728ZM6.707 7.293a1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\CodeLines_Stroke2_Corner2_Rounded.svg",
+    "sha256": "6d28157a1a072275868f9cde16da422d49df87b4ff5b4d5bdbfe790be2e51f17",
+    "fragments": [
+      "M2 5a1 1 0 0 1 1-1h10a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1Zm15 0a1 1 0 0 1 1-1h3a1 1 0 1 1 0 2h-3a1 1 0 0 1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ColorPalette_Stroke2_Corner0_Rounded.svg",
+    "sha256": "2f58ab7c1ca30428347f7ce13fcef632e201ba7681243d210373b0c0428cf5c5",
+    "fragments": [
+      "M4 12c0-4.09 3.527-7.5 8-7.5s8 3.41 8 7.5c0 1.579-.419 2.056-.708 2.236-.388.241-1.031.286-2.058.153"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Contacts_Filled_Corner2_Rounded.svg",
+    "sha256": "3441f4748a97bdf742c260747897f8561ad849277e9b7c012cbdaeeb57804df6",
+    "fragments": [
+      "M7 2a3 3 0 0 0-3 3v14.5A2.5 2.5 0 0 0 6.5 22H19a1 1 0 1 0 0-2H6.5a.5.5 0 0 1 0-1H19a1 1 0 0 0 1-1V4a"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Contacts_Stroke2_Corner2_Rounded.svg",
+    "sha256": "2150d4c2b16675545f5b8bcd52b73d144a971ac778e883d3dcbb4407ffac1ab9",
+    "fragments": [
+      "M7 4a1 1 0 0 0-1 1v12.05q.243-.05.5-.05H18V4H7Zm5 7c.894 0 1.57.188 2.068.513a2.1 2.1 0 0 1 .806.937"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Crop_Stroke2_Corner0_Rounded.svg",
+    "sha256": "d74bd71ad711ba96d4334808c7832976aecdbb829dea647fc668effd1999caa7",
+    "fragments": [
+      "M6 2a1 1 0 0 1 1 1v2h11a1 1 0 0 1 1 1v11h2a1 1 0 1 1 0 2h-2v2a1 1 0 1 1-2 0v-2H6a1 1 0 0 1-1-1V7H3a1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\DotGrid2x3_Stroke2_Corner0_Rounded.svg",
+    "sha256": "175ab25cad78ab4563a7388cddab1639788eb1193c5923c508cb6055daf9d72f",
+    "fragments": [
+      "M9 17a2 2 0 1 1 0 4 2 2 0 0 1 0-4Zm6 0a2 2 0 1 1 0 4 2 2 0 0 1 0-4Zm-6-7a2 2 0 1 1 0 4 2 2 0 0 1 0-4"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\DotGrid3x1_Stroke2_Corner0_Rounded.svg",
+    "sha256": "86210f458db4df6b2c6e5898766dde12e99cd00b288415ff7d7551d8a51c63f2",
+    "fragments": [
+      "M2 12a2 2 0 1 1 4 0 2 2 0 0 1-4 0Zm16 0a2 2 0 1 1 4 0 2 2 0 0 1-4 0Zm-6-2a2 2 0 1 0 0 4 2 2 0 0 0 0-"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Download_Stroke2_Corner0_Rounded.svg",
+    "sha256": "0619b2b5a0f7fa6f3fffb919f89a216b753808d52ec0fba13304f5a5026673e5",
+    "fragments": [
+      "M12 3a1 1 0 0 1 1 1v8.086l1.793-1.793a1 1 0 1 1 1.414 1.414l-3.5 3.5a1 1 0 0 1-1.414 0l-3.5-3.5a1 1 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Earth_Stroke2_Corner0_Rounded.svg",
+    "sha256": "5562a11fc6d86cd9151c4e7f26eb3270b8d07abd33f19ef8d7fe6b5e6b99b542",
+    "fragments": [
+      "M4.4 9.493C4.14 10.28 4 11.124 4 12a8 8 0 1 0 10.899-7.459l-.953 3.81a1 1 0 0 1-.726.727l-3.444.866-"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Earth_Stroke2_Corner2_Rounded.svg",
+    "sha256": "d719a19f0fce7ab25491b5fd124a42502182c98b333f2155533bfd1355bfa22a",
+    "fragments": [
+      "M4.4 9.493C4.14 10.28 4 11.124 4 12a8 8 0 1 0 10.899-7.459l-.67 2.679a2.95 2.95 0 0 1-2.14 2.142l-2."
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\EditBig_Stroke1_Corner0_Rounded.svg",
+    "sha256": "9389ab8fbc605171cf31a80a7d7b89f453bae3c150daedc4e9a0347d3b7118de",
+    "fragments": [
+      "M19.667 4.458a1 1 0 1 0 0-2v2Zm25 23a1 1 0 0 0-2 0h2ZM3.912 45.543l.454-.891-.454.89Zm-2.33-2.33.89-"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\EditBig_Stroke2_Corner0_Rounded.svg",
+    "sha256": "435cd76a354000c45297418c77f1aeeed375db43df8d8b505358aa7de745d2a4",
+    "fragments": [
+      "M17.293 2.293a1 1 0 0 1 1.414 0l3 3a1 1 0 0 1 0 1.414l-9 9A1 1 0 0 1 12 16H9a1 1 0 0 1-1-1v-3a1 1 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\EditBig_Stroke2_Corner2_Rounded.svg",
+    "sha256": "b09a74432dc2abb0531469d364d3d7ecb7bc44c0db5ef4aafbaefebc64ccf08c",
+    "fragments": [
+      "M3 16.8V7.2c0-.544-.001-1.011.03-1.395.033-.395.104-.789.297-1.167a3 3 0 0 1 1.31-1.31c.379-.193.772"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\EmojiArc_Stroke2_Corner0_Rounded.svg",
+    "sha256": "c93021f47dd8725c1c395c4bde272f1eb2a51ef838761475048b637dbc0b625c",
+    "fragments": [
+      "M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16ZM2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.52"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\EmojiHeartEyes_Stroke2_Corner0_Rounded.svg",
+    "sha256": "f4cb879f815fb60d7fce9d814dbf406ad86dbeb5543153bc240173581faef3b2",
+    "fragments": [
+      "M4 12a8 8 0 1 1 16 0 8 8 0 0 1-16 0Zm8-10C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\EmojiSad_Stroke2_Corner0_Rounded.svg",
+    "sha256": "d82f547b7c1113333b8d5603ae93ffabc0f88b7aa59344cd50e9e2b9a7eb6652",
+    "fragments": [
+      "M6.343 6.343a8 8 0 1 1 11.314 11.314A8 8 0 0 1 6.343 6.343ZM19.071 4.93c-3.905-3.905-10.237-3.905-14"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\EmojiSmile_Stroke2_Corner0_Rounded.svg",
+    "sha256": "b42534ac6c3be041ba1ae5cb7c284b9ed150b1b2849020966968695629efe8c2",
+    "fragments": [
+      "M17.657 6.343A8 8 0 1 0 6.343 17.657 8 8 0 0 0 17.657 6.343ZM4.929 4.93c3.905-3.905 10.237-3.905 14."
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\EnvelopeOpen_Stroke2_Corner0_Rounded.svg",
+    "sha256": "19189d73fc71f89f806f926ed3da30221efe50c693aff49763d0a06c8c9defb7",
+    "fragments": [
+      "M4 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6.386c1.064-.002 2 .86 2 2.001V19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Envelope_Filled_Stroke2_Corner0_Rounded.svg",
+    "sha256": "80a1c5f2977c427068bbda7c1e58f2d5dde47017280bcd8c750f9fb2bd4bf555",
+    "fragments": [
+      "M12 11.708 2.654 4.06A1 1 0 0 1 3 4h18q.183.001.346.061L12 11.708ZM2 19V6.11l9.367 7.664a1 1 0 0 0 1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Envelope_Stroke2_Corner0_Rounded.svg",
+    "sha256": "35ea0a96ee1383fd55607cad2a64c73264009828ee87d911cacc3a9c9afbd539",
+    "fragments": [
+      "M4.568 4h14.864c.252 0 .498 0 .706.017.229.019.499.063.77.201a2 2 0 0 1 .874.874c.138.271.182.541.20"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Envelope_Stroke2_Corner2_Rounded.svg",
+    "sha256": "bd98a12c1b9fcb38136b7052a3128a3f52174954ceb3f27036b62f347b5639d6",
+    "fragments": [
+      "M6.161 4H17.84c.527 0 .982 0 1.356.03.395.033.789.104 1.167.297a3 3 0 0 1 1.311 1.311c.193.378.264.7"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ExclamationCircle_Stroke2_Corner0_Rounded.svg",
+    "sha256": "ac6fb086814dd9191dd399581431fd8269a9a9fd5e8c2bdf589a588216ea4136",
+    "fragments": [
+      "M20 12a8 8 0 1 0-16 0 8 8 0 0 0 16 0m2 0c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Explosion_Stroke2_Corner0_Rounded.svg",
+    "sha256": "44295e8be2be831b06ddc62da3f53880b9cd58a4752a1dd8c8865a2167fdb42e",
+    "fragments": [
+      "M12 2a1 1 0 0 1 .889.542l1.679 3.259 3.491-1.117a1 1 0 0 1 1.257 1.257L18.2 9.432l3.259 1.679a1 1 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\EyeSlash_Stroke2_Corner0_Rounded.svg",
+    "sha256": "22eaaf0aaf286e6aafb8792825959cf5f5665b4d7294a77edd1a8d71fd921351",
+    "fragments": [
+      "M2.293 2.293a1 1 0 0 1 1.414 0L7.335 5.92l.03.03 3.22 3.222 4.243 4.242 3.22 3.22.03.03 3.63 3.629a1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Eye_Stroke2_Corner0_Rounded.svg",
+    "sha256": "d0004abce0d517c185ff2c9d6d2d3ea51ecc1706a30be367d67a802c4fcd22b7",
+    "fragments": [
+      "M3.135 12C5.413 16.088 8.77 18 12 18s6.587-1.912 8.865-6C18.587 7.912 15.23 6 12 6c-3.228 0-6.587 1."
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Eye_Stroke2_Corner2_Rounded.svg",
+    "sha256": "efd580114bda117716638582753096b584c034965a1653408b9cb56d30aba33e",
+    "fragments": [
+      "M12 6c-3.127 0-6.367 1.79-8.638 5.606a.77.77 0 0 0 0 .788C5.633 16.209 8.873 18 12 18s6.367-1.79 8.6"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\FilterTimeline_Stroke2_Corner0_Rounded.svg",
+    "sha256": "cc32eb2e3b68e727280e25b5b16021775da6372b576a0a0fd98b0e02e90e4635",
+    "fragments": [
+      "M7.002 5a1 1 0 0 0-2 0v11.587l-1.295-1.294a1 1 0 0 0-1.414 1.414l3.002 3a1 1 0 0 0 1.414 0l2.998-3a1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Filter_Stroke2_Corner0_Rounded.svg",
+    "sha256": "aba7f580c86b0c144e3d8631fb7d2b53716f6266e31b0e03721fa07f73c73754",
+    "fragments": [
+      "M3 4a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v4a1 1 0 0 1-.293.707L15 14.414V20a1 1 0 0 1-.758.97l-4 1A1 1 0 0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Flag_Stroke2_Corner0_Rounded.svg",
+    "sha256": "cddc7a2cee47b4ec23b62326cfff80b19ba061c0e8bb0184600d55af702e5b6d",
+    "fragments": [
+      "M4 4a2 2 0 0 1 2-2h13.131c1.598 0 2.55 1.78 1.665 3.11L18.202 9l2.594 3.89c.886 1.33-.067 3.11-1.665"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Flame_Stroke2_Corner1_Rounded.svg",
+    "sha256": "7477da8fd8a1935f006e0316ea494cb428dc8e1ec01b6c18a2ce282bb035769b",
+    "fragments": [
+      "M11.158 2.879c.584-.835 1.757-1.137 2.673-.507.951.654 2.597 1.92 4.013 3.694S20.5 10.194 20.5 13c0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\FlipHorizontal_Stroke2_Corner0_Rounded.svg",
+    "sha256": "d6eb35b233dadb5a190d327975449466420b70480f505ac9721d8175c0da0142",
+    "fragments": [
+      "M4 21a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5v2H5v14h4v2H4Zm9-20v22h-2V1h2Zm7.707 2.293A1 1 0 0 1 21 4v1h-2V"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\FlipVertical_Stroke2_Corner0_Rounded.svg",
+    "sha256": "d05bfebf8f83ed54b4c16ba323db9d4218bcfc1c27f79556ebb21fee2280adcb",
+    "fragments": [
+      "M3 4a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v5h-2V5H5v4H3V4Zm20 9H1v-2h22v2Zm-2.293 7.707A1 1 0 0 1 20 21h-1v"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\FloppyDisk_Stroke2_Corner0_Rounded.svg",
+    "sha256": "2d0ea59ca6ef80f4728b4c1a9aec6e424182d0f1a0bb7603307d11763b73cb84",
+    "fragments": [
+      "M3 4a1 1 0 0 1 1-1h13a1 1 0 0 1 .707.293l3 3A1 1 0 0 1 21 7v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4Zm6 15"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Freeze_Stroke2_Corner2_Rounded.svg",
+    "sha256": "f0a44e79de6654d0aa5faab9b57cf6e7e13ba392dee7eb71de502603b5cc5397",
+    "fragments": [
+      "M8.789 2.293a1 1 0 0 1 1.414 0l1.793 1.793 1.793-1.793a1 1 0 1 1 1.414 1.414l-2.207 2.207v4.355l3.77"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\GameController_Stroke2_Corner0_Rounded.svg",
+    "sha256": "9e98fe77ac32ba81db1017cdf8126174c8a0e8e68ab94d85d9c3b3c666044cdf",
+    "fragments": [
+      "M1 8a3 3 0 0 1 3-3h16a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H4a3 3 0 0 1-3-3V8Zm3-1a1 1 0 0 0-1 1v8a1 1 0 0 0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\GifSquare_Stroke2_Corner2_Rounded.svg",
+    "sha256": "731a1ea13166cea633337e1694c3cce6e618b3c22df03cf0d6b2f6ff9b852b79",
+    "fragments": [
+      "M6 12.287c0 1.54.92 2.463 2.48 2.463 1.434 0 2.353-.807 2.353-2.06v-.166c0-.578-.267-.834-.884-.834h"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Gift1_Filled_Corner0_Rounded.svg",
+    "sha256": "7790390697fbc6914a514e931aa3325b0b31b3e2944b81d18791ee9ab5f4640a",
+    "fragments": [
+      "M6 4.667A2.667 2.667 0 0 1 8.667 2c1.34 0 2.538.608 3.333 1.564A4.32 4.32 0 0 1 15.333 2 2.667 2.667"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Gift1_Stroke2_Corner0_Rounded.svg",
+    "sha256": "9d89f0138d3655ab4c7bcff76cc5654f292f167cb1737013b3c32e0da8dc9e5d",
+    "fragments": [
+      "M6 4.667A2.667 2.667 0 0 1 8.667 2c1.34 0 2.538.608 3.333 1.564A4.32 4.32 0 0 1 15.333 2 2.667 2.667"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Gif_Stroke2_Corner0_Rounded.svg",
+    "sha256": "cdc373440ac3141a67eda9349afbdd6db69e6ce126824b6b13f0b7c64c19c66e",
+    "fragments": [
+      "M3 4a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1H3Zm1 14V6h16v12H4Zm2-5.713c0 1."
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Globe_Stroke2_Corner0_Rounded.svg",
+    "sha256": "d1d8fcfc0a1fa9e166de331cf9a7941dcd8f29c73095fd00c3c6e0cd942a1d2b",
+    "fragments": [
+      "M4.062 11h2.961c.103-2.204.545-4.218 1.235-5.77a9 9 0 0 1 .188-.399A8 8 0 0 0 4.062 11ZM12 2C6.477 2"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Group3_Stroke2_Corner0_Rounded.svg",
+    "sha256": "364dc1d40006974b347bfceba43b4ae1ac74d8e663ed6ebd7031454b15231321",
+    "fragments": [
+      "M8 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM4 7a4 4 0 1 1 8 0 4 4 0 0 1-8 0Zm13-1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Growth_Stroke2_Corner0_Rounded.svg",
+    "sha256": "5d051588fa312ab348f061e8f1d6189a6107262571e955f3496be2b0b44218dd",
+    "fragments": [
+      "M3 4a1 1 0 0 1 1-1h1a8 8 0 0 1 7.75 6.006A7.99 7.99 0 0 1 19 6h1a1 1 0 0 1 1 1v1a8 8 0 0 1-8 8v4a1 1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Haptic_Stroke2_Corner2_Rounded.svg",
+    "sha256": "7cf1c34da486e3c9dbe1848272d0062c46b8d3c6f328936135a013eca0167266",
+    "fragments": [
+      "M9 5a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1H9ZM6 6a3 3 0 0 1 3-3h6a3 3 0 0 1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\HashtagWide_Stroke1_Corner0_Rounded.svg",
+    "sha256": "73ace99cba6c9293bfe595219d59ba6a65b4b3c610630d5f62e6f1690909a174",
+    "fragments": []
+  },
+  {
+    "file": "assets\\icons\\ui\\Hashtag_Filled_Corner0_Rounded.svg",
+    "sha256": "97bfa39ed9f2c24b1c0f23654e7b615fb87214288961979517ef4ae8561c2756",
+    "fragments": [
+      "M9.186 2.512a1.5 1.5 0 0 0-1.674 1.302L7.176 6.5H4a1.5 1.5 0 1 0 0 3h2.8l-.624 5H4a1.5 1.5 0 0 0 0 3"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Hashtag_Stroke2_Corner0_Rounded.svg",
+    "sha256": "a84b0287f65fa8bd8f1725a889c619e8fb815b7da791b6c6338e4df991016e54",
+    "fragments": [
+      "M9.124 3.008a1 1 0 0 1 .868 1.116L9.632 7h5.985l.39-3.124a1 1 0 0 1 1.985.248L17.632 7H20a1 1 0 1 1 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Heart2_Filled_Stroke2_Corner0_Rounded.svg",
+    "sha256": "d549706969982f52d20696328728380c143f89847abbc5b40bcf61d68e496883",
+    "fragments": [
+      "M12.489 21.372c8.528-4.78 10.626-10.47 9.022-14.47-.779-1.941-2.414-3.333-4.342-3.763-1.697-.378-3.5"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Heart2_Stroke1_Corner0_Rounded.svg",
+    "sha256": "59ec236d9c010d81921ea2f3fdcf3612e0b65c595c0952ead1cbfbf20d3d6ad9",
+    "fragments": [
+      "M49 17c0 15.333-22 26.667-24 26.667S1 32.333 1 17C1 6.333 7.667 1 14.333 1S25 5 25 5s4-4 10.667-4S49"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Heart2_Stroke2_Corner0_Rounded.svg",
+    "sha256": "0434ef764b5d0b1a0df8daa2d3a704329363815c62bd389207c82613818bacd6",
+    "fragments": [
+      "M16.734 5.091c-1.238-.276-2.708.047-4.022 1.38a1 1 0 0 1-1.424 0C9.974 5.137 8.504 4.814 7.266 5.09c"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\HomeOpen_Filled_Corner0_Rounded.svg",
+    "sha256": "e20a0b2b7d8479021e9f835bdb4ea7edfe84d5e2c2908fccd959d7c74e4eba69",
+    "fragments": [
+      "M12.63 1.724a1 1 0 0 0-1.26 0l-8 6.5A1 1 0 0 0 3 9v11a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-6h4v6a1 1 0 0 0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\HomeOpen_Stroke2_Corner0_Rounded.svg",
+    "sha256": "367406b083f13c43ebdb1f00550c844b5e00eddb8f1262611ab30cc785e91cca",
+    "fragments": [
+      "M11.37 1.724a1 1 0 0 1 1.26 0l8 6.5A1 1 0 0 1 21 9v11a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1v-5h-2v5a1 1 0 0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Home_Filled_Corner0_Rounded.svg",
+    "sha256": "e38b293935ce5e48c665a3925372de56df976c717b557fe4c10348c5f86931e7",
+    "fragments": [
+      "M13.261 1.736a2 2 0 0 0-2.522 0l-7 5.687A2 2 0 0 0 3 8.976V19a2 2 0 0 0 2 2h3v-8a1 1 0 0 1 1-1h6a1 1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Home_Stroke2_Corner0_Rounded.svg",
+    "sha256": "9b61870e32ca06062afc96d49d6e9965dfe847ce6b5e03eb26a3d383f3b17e72",
+    "fragments": [
+      "M11.37 1.724a1 1 0 0 1 1.26 0l8 6.5A1 1 0 0 1 21 9v11a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1v-5h-2v5a1 1 0 0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Home_Stroke2_Corner2_Rounded.svg",
+    "sha256": "ecdf4a591244e83bfe4016e6f8d1f5a9cb7f9f93a474921454cd81c01b0ca4a7",
+    "fragments": [
+      "M12.659 3.905a1 1 0 0 0-1.318 0l-6 5.25A1 1 0 0 0 5 9.907V18a1 1 0 0 0 1 1h3v-3a3 3 0 0 1 6 0v3h3a1 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Image_Stroke1_Corner0_Rounded.svg",
+    "sha256": "7c4b87cb3420e5248941c54ad966fe78a9d607834f742241e289fcd806b5b803",
+    "fragments": [
+      "m1.417 28.645 7.586-5.676a5.33 5.33 0 0 1 6.867.809c3.98 4.286 8.594 8.182 14.88 8.182 5.794 0 9.633"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Image_Stroke2_Corner2_Rounded.svg",
+    "sha256": "78dfd8af1f7529868b093e1d77637db639bd64cfd5fee87a4b38358b545dd297",
+    "fragments": [
+      "M19 15.355c-1.112.696-2.385 1.1-4 1.1-2.81 0-4.796-1.756-6.312-3.39a1 1 0 0 0-1.273-.16L5 14.71V17a2"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Inbox_Stroke2_Corner2_Rounded.svg",
+    "sha256": "c818bd8adf2f08255f058024177f074823fba33b5a0df946b89367ad2a7c4efd",
+    "fragments": [
+      "M19 14h-2.417a5 5 0 0 1-9.166 0H5v4a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4Zm0-8a1 1 0 0 0-.898-.995L18 5H"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Inbox_Stroke2_Corner2_Rounded_Large.svg",
+    "sha256": "b372e572f8252c79a091ecc1846fcd7eca83ace06793a248a793209a4f270700",
+    "fragments": [
+      "M57.666 33.416q-.001-.21-.022-.419L57.6 33H44a4.33 4.33 0 0 0-3.466 1.734l-.8 1.066a6.34 6.34 0 0 1-"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Key_Stroke2_Corner2_Rounded.svg",
+    "sha256": "ce6409527d8e7d220c321dc3de5eb8be6a078b9d191e847e7f1254d1f201b174",
+    "fragments": [
+      "M3 12a4 4 0 0 1 7.212-2.385c.363.488.963.885 1.696.885h8.111l1.2 1.5-1.2 1.5h-1.783l-1.789-.894a1 1 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Lab_Stroke2_Corner0_Rounded.svg",
+    "sha256": "9fd80edfa6e9b61ca53f7a5f2dd362bb8a0070ac3bd6a78b2ce4adc07b301e62",
+    "fragments": [
+      "M13.5 4a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM10 5a1 1 0 1 0 0-2 1 1 0 0 0 0 2ZM8 6a1 1 0 0 0 0 2v2.6"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Language_Stroke2_Corner2_Rounded.svg",
+    "sha256": "69d6f26490e2badb3ae9b103ecf6557f1842302390a57ee3289e4a56eadc201b",
+    "fragments": [
+      "M14.5 8a1 1 0 0 1 .912.59l4.5 10a1 1 0 0 1-1.824.82L16.554 16h-4.108l-1.534 3.41a1 1 0 0 1-1.824-.82"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Leaf_Stroke2_Corner0_Rounded.svg",
+    "sha256": "5d051588fa312ab348f061e8f1d6189a6107262571e955f3496be2b0b44218dd",
+    "fragments": [
+      "M3 4a1 1 0 0 1 1-1h1a8 8 0 0 1 7.75 6.006A7.99 7.99 0 0 1 19 6h1a1 1 0 0 1 1 1v1a8 8 0 0 1-8 8v4a1 1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\LikeRepost_Stroke2_Corner2_Rounded.svg",
+    "sha256": "5e432a656dc68d1755796b9ae68c6cb31e814e36e0dd08dc08b332961942fbcc",
+    "fragments": [
+      "M3.92 19v-4.153a1 1 0 0 1 1-1H9l.103.005a1 1 0 0 1 0 1.99L9 15.847H7.285c.854.737 1.784 1.38 2.631 1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ListMagnifyingGlass_Stroke2_Corner0_Rounded.svg",
+    "sha256": "0d2cac61fc398cdda1128c10b4bfd0d5455ac92ad7f6ed6a44525a22c326dc1c",
+    "fragments": [
+      "M3 4a1 1 0 0 1 1-1h13a1 1 0 1 1 0 2H4a1 1 0 0 1-1-1Zm1 4a1 1 0 0 0 0 2h5a1 1 0 0 0 0-2H4Zm-1 7a1 1 0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ListPlus_Stroke2_Corner0_Rounded.svg",
+    "sha256": "3231f8025a4665808832615d93cafa6871ced7a2e6f2803c320ac669537fc3b7",
+    "fragments": [
+      "M4 5a1 1 0 0 0 0 2h16a1 1 0 1 0 0-2H4Zm0 12a1 1 0 1 0 0 2h3a1 1 0 1 0 0-2H4Zm-1-5a1 1 0 0 1 1-1h5a1 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ListSparkle_Stroke2_Corner0_Rounded.svg",
+    "sha256": "70dd1955c742ff790e36f36f75f2e65c64c6e6f18740c09affe7a3a6c6a06eb1",
+    "fragments": [
+      "M4 5a1 1 0 0 0 0 2h16a1 1 0 1 0 0-2H4Zm0 12a1 1 0 1 0 0 2h3a1 1 0 1 0 0-2H4Zm-1-5a1 1 0 0 1 1-1h5a1 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Live_Stroke2_Corner0_Rounded.svg",
+    "sha256": "958871c6660c3b0bb5e32332001dfbb46c243f8ed3bae9390944cb095c90e7ac",
+    "fragments": [
+      "M2 12a9.97 9.97 0 0 1 2.929-7.07l.076-.068a1 1 0 0 1 1.407 1.406l-.07.076A7.97 7.97 0 0 0 4 12a7.97 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Loader_Stroke2_Corner0_Rounded.svg",
+    "sha256": "59226347ec396a4d9f2a465fe10f2f477d617087f04f8c65f370b4028479d0d9",
+    "fragments": [
+      "M12 5a7 7 0 0 0-5.218 11.666A1 1 0 0 1 5.292 18a9 9 0 1 1 13.416 0 1 1 0 1 1-1.49-1.334A7 7 0 0 0 12"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Lock_Stroke2_Corner0_Rounded.svg",
+    "sha256": "b98744b4f89ab990004c2a6860a3fe7dbf0e97c19064ee3183e02d22a22c0c21",
+    "fragments": [
+      "M7 7a5 5 0 0 1 10 0v2h1a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h1V7Zm-1 4v9h1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Lock_Stroke2_Corner2_Rounded.svg",
+    "sha256": "fde50ff31cad9de007bf392aa145e7fc9bc3b4e638045ede026cb5e993d6ae16",
+    "fragments": [
+      "M7 7a5 5 0 0 1 10 0v2a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-7a3 3 0 0 1 3-3V7Zm0 4a1 1 0 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Macintosh_Stroke2_Corner2_Rounded.svg",
+    "sha256": "6894cd77f7a131a218cb9028cac0687e0eaf9a4b89d0647f2367f0563f63c9e3",
+    "fragments": [
+      "M4 5a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v11a3 3 0 0 1-1 2.236V20a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-1.764c-.6"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\MagnifyingGlassX_Stroke2_Corner0_Rounded.svg",
+    "sha256": "937537880ee0ac5592eac0e7724d3b63d5f94bafa435413216f88f1e76075de2",
+    "fragments": [
+      "M20 12a8 8 0 1 0-8 8c2.204 0 4.2-.89 5.648-2.333A7.97 7.97 0 0 0 20 12Zm-5.707-3.707a1 1 0 1 1 1.414"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\MagnifyingGlassX_Stroke2_Corner0_Rounded_Large.svg",
+    "sha256": "f4cd57799ddc42f2cf6b9a1ca35d7a451edf918a8724b0581e730cfc9622238e",
+    "fragments": [
+      "M55 32C55 19.298 44.703 9 32 9S9 19.298 9 32s10.298 23 23 23a22.93 22.93 0 0 0 16.235-6.708A22.93 22"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\MagnifyingGlass_Filled_Stroke2_Corner0_Rounded.svg",
+    "sha256": "28c7239c630c3d9e3d8fc4b0e89b1e1310b54eb08f52ca1a00c78ec519915672",
+    "fragments": [
+      "M5 11a6 6 0 1 1 12 0 6 6 0 0 1-12 0Zm6-8a8 8 0 1 0 4.906 14.32l3.387 3.387a1 1 0 0 0 1.414-1.414l-3."
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\MagnifyingGlass_Stroke2_Corner0_Rounded.svg",
+    "sha256": "80f855caf16b91ce37fd18edaf8219f0d1cad96ae160284e71681cc1998d96ef",
+    "fragments": [
+      "M11 5a6 6 0 1 0 0 12 6 6 0 0 0 0-12Zm-8 6a8 8 0 1 1 14.32 4.906l3.387 3.387a1 1 0 0 1-1.414 1.414l-3"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Megaphone_Filled_Corner0_Rounded.svg",
+    "sha256": "9db44c0eae1392888e592e01b3cacdaa5e8dd793875a81959db169e06cbeee7c",
+    "fragments": [
+      "M12.5 18.019V19.5a2.5 2.5 0 0 1-5 0v-3h2.57l2.43 1.518Zm3.705-14.584A1.5 1.5 0 0 1 18.5 4.706v12.588"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Menu_Stroke2_Corner0_Rounded.svg",
+    "sha256": "48e1ba166701c2c91df0d197c4086c391124722f3d058dd5db508621222bf1f4",
+    "fragments": [
+      "M2 6a1 1 0 0 1 1-1h18a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1Zm0 6a1 1 0 0 1 1-1h18a1 1 0 1 1 0 2H3a1 1 0 0 1-"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\MessagePlus_Stroke2_Corner0_Rounded.svg",
+    "sha256": "9e06daa4d9cac3bd200bf262e37a58a1bfea7d6bbb666dac28c941e1352c6b82",
+    "fragments": [
+      "M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10a10 10 0 0 1-4.136-.893l-4.68.876A1 1 0 0 1 2.02 20.8l.9"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Message_Stroke1_Corner0_Rounded_Filled.svg",
+    "sha256": "723c50f15f0be94583f34a5a0af2fbebb15015be4994c3ad5d119112b81b0880",
+    "fragments": [
+      "M9 1h32a8 8 0 0 1 8 8v21.333a8 8 0 0 1-8 8H27.667L14.333 49V38.333H9a8 8 0 0 1-8-8V9a8 8 0 0 1 8-8Z"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Message_Stroke2_Corner0_Rounded.svg",
+    "sha256": "41c76d8d143e656b60a23a26f23e4ff79f9b3d7f3d7eb84f91c4cfab2f27e331",
+    "fragments": [
+      "M4 12a8 8 0 1 1 4.445 7.169 1 1 0 0 0-.629-.088l-3.537.662.7-3.415a1 1 0 0 0-.09-.66A7.96 7.96 0 0 1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Message_Stroke2_Corner0_Rounded_Filled.svg",
+    "sha256": "8a7353d7d654da71e1af3cd323b4285b83035dc03e267c20c7c178fe35d3ecd2",
+    "fragments": [
+      "M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10a10 10 0 0 1-4.136-.893l-4.68.876a1 1 0 0 1-"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Moon_Stroke2_Corner0_Rounded.svg",
+    "sha256": "37ec1ad30bd4e79fc8491de7b967b0c1b50b70f7ef2d8c5ee5b8627e6439ca12",
+    "fragments": [
+      "M12.097 2.53a1 1 0 0 1-.041 1.07 6 6 0 0 0 8.345 8.344 1 1 0 0 1 1.563.908c-.434 5.122-4.728 9.144-9"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\MusicNote_Stroke2_Corner0_Rounded.svg",
+    "sha256": "36961d662db488a2ad6b4276a43b15540ae611c2aa5b4252cdf41fcd6a6a5d75",
+    "fragments": [
+      "M18.423 2.428a2 2 0 0 1 2.575 1.916V15.5c0 2.096-1.97 3.5-4 3.5s-4-1.404-4-3.5 1.97-3.5 4-3.5c.7 0 1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Mute_Stroke2_Corner0_Rounded.svg",
+    "sha256": "51bdc18f658f8c0e98d3b7072095eb040ef0630e69cbc6129c5775288d1c94c5",
+    "fragments": [
+      "M20.707 3.293a1 1 0 0 1 0 1.414l-16 16a1 1 0 0 1-1.414-1.414l2.616-2.616A2 2 0 0 1 5 15V9a2 2 0 0 1 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\News2_Stroke2_Corner0_Rounded.svg",
+    "sha256": "22892856a053de1a1759f10f4b65f19c9da0335844951e873d1c36eb24c60462",
+    "fragments": [
+      "M1 5a1 1 0 0 1 1-1h7a4 4 0 0 1 3 1.354A4 4 0 0 1 15 4h7a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-6.723c-.52 0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Newspaper_Stroke2_Corner2_Rounded.svg",
+    "sha256": "cf7042e0c63329a900427c149724614b3a1ab8cd9b22fd360efeae852e62c6d8",
+    "fragments": [
+      "M1 6.5A2.5 2.5 0 0 1 3.5 4H9a4 4 0 0 1 3 1.354A4 4 0 0 1 15 4h5.5A2.5 2.5 0 0 1 23 6.5v11a2.5 2.5 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\NotificationActivitySmall_Filled_Corner0_Rounded.svg",
+    "sha256": "e3622dd1bb6eaf3ddb46d84938bc630f2d712b10bba48aac09eb4336e76e8152",
+    "fragments": [
+      "M6 1a3.654 3.654 0 0 0-3.65 3.471l-.084 1.69a1 1 0 0 1-.104.397L1.595 7.69A.904.904 0 0 0 2.405 9H3."
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\NotificationFollowSmall_Filled_Corner0_Rounded.svg",
+    "sha256": "5646ee808ff7cbb6ad048701f6709b1770cf0ca57dc174c05753a03a055606b2",
+    "fragments": [
+      "M2.75 3.25a2.25 2.25 0 1 1 4.5 0 2.25 2.25 0 0 1-4.5 0ZM1.023 8.758C1.618 7.148 3.085 6 5.001 6s3.38"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\NotificationLikeSmall_Filled_Corner0_Rounded.svg",
+    "sha256": "de2271b2f0ae3ee328754c48c536deda1e9a74431fc77c6d405bba9fb5a4f349",
+    "fragments": [
+      "M6.244 10.686c4.264-2.39 5.313-5.235 4.511-7.235-.389-.97-1.206-1.666-2.17-1.881-.85-.19-1.777.001-2"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\NotificationMentionSmall_Filled_Corner0_Rounded.svg",
+    "sha256": "6ab250852695feed2bbe7c99748af093bf3ddbbc2a5d1f2a6d2a6dde860cc875",
+    "fragments": [
+      "M3.413 5.67c.188-1.337 1.326-2.435 2.691-2.244.412.058.772.224 1.069.464a.65.65 0 0 1 1.184.453l-.25"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\NotificationQuoteSmall_Filled_Corner0_Rounded.svg",
+    "sha256": "03e06ded979b37a1c9b8d13f5ebb1d6cc9f806d540ba204d5ded660677f4fbe5",
+    "fragments": [
+      "M3.25 2.5a2.25 2.25 0 1 0 .875 4.323q-.08.146-.174.279c-.393.555-.974.979-1.728 1.482a.5.5 0 0 0 .55"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\NotificationReplySmall_Filled_Corner0_Rounded.svg",
+    "sha256": "cbcd97377708a2b6071908c4db098462d8343cf8a86e06e691f1f2a9ee6f5236",
+    "fragments": [
+      "M11.001 7.5a2 2 0 0 1-2 2H6.677l-2.363 1.89A.5.5 0 0 1 3.5 11V9.5H3a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h6"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\NotificationRepostSmall_Filled_Corner0_Rounded.svg",
+    "sha256": "c877bfd2c44aa0009911ebe74e1798aa28866563966316ab9ba32aa362894003",
+    "fragments": [
+      "M1.25 5.5V5A2.75 2.75 0 0 1 4 2.25h3.94l-.22-.22A.75.75 0 1 1 8.78.97l1.5 1.5a.75.75 0 0 1 0 1.06l-1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\NotificationStarterPackSmall_Filled_Corner0_Rounded.svg",
+    "sha256": "b62745650307efe2dcf507eb8c47008b934ab51a39a3981b0e02fc04cc6f014d",
+    "fragments": [
+      "M6.155 2.689a.35.35 0 0 0-.43-.248L1.858 3.478a.35.35 0 0 0-.248.429l1.037 3.868a.35.35 0 0 0 .429.2"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\NotificationVerifiedSmall_Filled_Corner0_Rounded.svg",
+    "sha256": "61129f1b852836780f7b971364c3958bdfa78e04ab5db8dffc7c97547c3f11cb",
+    "fragments": [
+      "M9.822 2.264a.8.8 0 0 1 1.099-.085.73.73 0 0 1 .087 1.057l-5.973 6.75a.8.8 0 0 1-1.117.069l-2.857-2."
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\OpenQuote_Filled_Stroke2_Corner0_Rounded.svg",
+    "sha256": "5acf2f03d603ddca6ee9162700d72c5144e4ae34713bbb7958e7cf688e356a91",
+    "fragments": [
+      "M8.004 5a1 1 0 0 0-.43-.822c-.57-.395-1.176-.031-1.685.255-.428.24-.998.614-1.569 1.15C3.166 6.665 2"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\OpenQuote_Stroke2_Corner0_Rounded.svg",
+    "sha256": "2f1c92ae08db8bb03fb69be46711bf198668501d7f828452f22d3ff0edfa9885",
+    "fragments": [
+      "M7.574 4.178a1 1 0 0 1 .43.822v5h2a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-8c0-2.585 1.162-4"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\PageText_Stroke2_Corner0_Rounded.svg",
+    "sha256": "cc5282ec6bc252cb5114866b4d5b37a3c92cbfb0a7daa9ad77d28b2b2797a646",
+    "fragments": [
+      "M5 2a1 1 0 0 0-1 1v18a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1H5Zm1 18V4h12v16H6Zm3-6a1 1 0 1 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\PageX_Stroke2_Corner0_Rounded_Large.svg",
+    "sha256": "fcfa80d80fc89716884c25d015d65b777e2dc01637f20c0b9551bf58988143ce",
+    "fragments": [
+      "M32.457 7c1.68 0 3.29.668 4.478 1.855L49.813 21.73a6.33 6.33 0 0 1 1.854 4.479v24.458A6.333 6.333 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\PaintRoller_Stroke2_Corner2_Rounded.svg",
+    "sha256": "b023b05f74a71c3643a863be4962a356cd1f1a39c203c3d68011f23c157d1f3c",
+    "fragments": [
+      "M6 6a3 3 0 0 1 3-3h9a3 3 0 0 1 3 3v2a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3H5v3a1 1 0 0 0 1 1h7a1 1 0 0 1 1 1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\PaperPlaneVertical_Filled_Stroke2_Corner1_Rounded.svg",
+    "sha256": "2fbbf026ea8a826640afc1533e605b2d3b2a382b4878fc6d7be3e9a5608b578c",
+    "fragments": [
+      "M10.655 3.718c.55-1.116 2.14-1.116 2.69 0l7.548 15.317c.578 1.172-.515 2.471-1.768 2.103L13 19.336V1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\PaperPlane_Stroke2_Corner0_Rounded.svg",
+    "sha256": "f1f6fff42bd2f1746683d97e271c0350d0e15bd3a98619f2e21fef870d8aa389",
+    "fragments": [
+      "M3.374 3.22a1 1 0 0 1 1.073-.114l16 8a1 1 0 0 1 0 1.788l-16 8a1 1 0 0 1-1.417-1.136L4.97 12 3.03 4.2"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Pause_Filled_Corner0_Rounded.svg",
+    "sha256": "5b6081e50c45fa1a318d6178010ef3a2e78576897728fd9df06eb3cc4babd464",
+    "fragments": [
+      "M4 4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4Zm10 0a1 1 0 0 1 1-1h4a1 1 0 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Pause_Filled_Corner2_Rounded.svg",
+    "sha256": "92b030585e523b236d5e1cae9f10380d2ee2ba439533d04d4b560c52b71dd89e",
+    "fragments": []
+  },
+  {
+    "file": "assets\\icons\\ui\\Pause_Stroke2_Corner0_Rounded.svg",
+    "sha256": "329a11cd9e403a79df60b534b7043253434524179f6d72bcb5e050224d6ce2f6",
+    "fragments": [
+      "M4 4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4Zm2 1v14h2V5H6Zm8-1a1 1 0 0 1 1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Pause_Stroke2_Corner2_Rounded.svg",
+    "sha256": "4f31127085160ad43c02b3cd552bd0489c8b5acaae4d9af0f90571fd71afd3e1",
+    "fragments": [
+      "M4 6a3 3 0 0 1 6 0v12a3 3 0 1 1-6 0V6Zm3-1a1 1 0 0 0-1 1v12a1 1 0 1 0 2 0V6a1 1 0 0 0-1-1Zm7 1a3 3 0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\PencilLine_Stroke2_Corner0_Rounded.svg",
+    "sha256": "0a27a8bb885cf9f9400cf9a6b8f6118633f55b1274fd56bb5e701a6ebcfa8d95",
+    "fragments": [
+      "M15.586 2.5a2 2 0 0 1 2.828 0L21.5 5.586a2 2 0 0 1 0 2.828l-13 13A2 2 0 0 1 7.086 22H3a1 1 0 0 1-1-1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\PencilLine_Stroke2_Corner2_Rounded.svg",
+    "sha256": "7f6f3342fdc1787d25ba73098e3cd13a82108a0663b368ee7ce8da2eb6d29cdc",
+    "fragments": [
+      "M15.379 2.707a3 3 0 0 1 4.242 0l1.672 1.672a3 3 0 0 1 0 4.242l-12.5 12.5A3 3 0 0 1 6.672 22H3a1 1 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Pencil_Stroke2_Corner0_Rounded.svg",
+    "sha256": "8eb42ab326811719393c66011586b881f83253732e2067cc1e8c89a4053471ea",
+    "fragments": [
+      "M13.586 1.5a2 2 0 0 1 2.828 0L19.5 4.586a2 2 0 0 1 0 2.828l-13 13A2 2 0 0 1 5.086 21H1a1 1 0 0 1-1-1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\PeopleRemove2_Stroke1_Corner0_Rounded.svg",
+    "sha256": "5874a9e34fcc25969acf9a16635b247087393c7e1f58188e0f126d9135c814bb",
+    "fragments": [
+      "M20.603 46.333H3.532c-1.572 0-2.816-1.358-2.472-2.891 2.033-9.046 9.421-15.775 19.543-15.775q1.367 0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\PeopleRemove2_Stroke2_Corner0_Rounded.svg",
+    "sha256": "7c5bc19e8cade3bb8314e626c5d66b4a2fe0324e8f567c00e9ca6ee829258add",
+    "fragments": [
+      "M10 4a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5ZM5.5 6.5a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM16 11a1 1 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\PersonCheck_Stroke2_Corner0_Rounded.svg",
+    "sha256": "569bff24c9517ffe84640f39b1e024d45529c824878e65ee1c1b51dcaa137697",
+    "fragments": [
+      "M12 4a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5ZM7.5 6.5a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM5.679 19c.70"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\PersonGroup_Stroke2_Corner2_Rounded.svg",
+    "sha256": "6b42a4f4c08a4743ed33ef0c9d0e026fdd265cf7909ab42c0d0f2a9cb9726d69",
+    "fragments": [
+      "M8 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4ZM4 7a4 4 0 1 1 8 0 4 4 0 0 1-8 0Zm13-1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\PersonPlus_Filled_Stroke2_Corner0_Rounded.svg",
+    "sha256": "fd3bb64842db1fbbb8d5eba01a788a31e89dd158fa739a26c800f7fec32b37c5",
+    "fragments": [
+      "M7.5 6.5a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM12 12c-4.758 0-8.083 3.521-8.496 7.906A1 1 0 0 0 4.5 2"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\PersonPlus_Stroke2_Corner0_Rounded.svg",
+    "sha256": "74c397564c144275510890931578cc63df3c7f2b94f33480f89bb36b4a73f522",
+    "fragments": [
+      "M12 4a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5ZM7.5 6.5a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM5.678 19c.71"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\PersonPlus_Stroke2_Corner2_Rounded.svg",
+    "sha256": "f3b820381c2e19722b096412a17df1a9dc543bfea7a78f48590bd3f9501afebf",
+    "fragments": [
+      "M12 4a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5ZM7.5 6.5a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM12 14c-2.95 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\PersonX_Stroke2_Corner0_Rounded.svg",
+    "sha256": "e7a5533ae8c5a625dc35b38b254dd43fc124f4bd93d82df060306f4612d08b05",
+    "fragments": [
+      "M12 4a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5ZM7.5 6.5a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM5.679 19c.70"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\PersonX_Stroke2_Corner0_Rounded_Large.svg",
+    "sha256": "787892d09cedd2c2824b4fe30b250179044391ec5b2989a91ad6595cfff6f8b7",
+    "fragments": [
+      "M24.952 33.435c10.897 0 19.195 6.496 22.58 15.65.784 2.117.258 4.183-1 5.683-1.242 1.48-3.194 2.414-"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Person_Filled_Corner2_Rounded.svg",
+    "sha256": "3a4560a0f23cf5f282e25bed3ce48767d7f4bbd3fd7d27c2cd19254a91465b26",
+    "fragments": [
+      "M12.233 2a4.433 4.433 0 1 0 0 8.867 4.433 4.433 0 0 0 0-8.867Zm0 10.133c-3.888 0-6.863 2.263-8.071 5"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Person_Stroke2_Corner0_Rounded.svg",
+    "sha256": "db28dfd45050dd690a430a0af4cbe00258360fbf260e4a7d9f09617fc15db5a4",
+    "fragments": [
+      "M12 4a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5ZM7.5 6.5a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM5.678 19h12."
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Person_Stroke2_Corner2_Rounded.svg",
+    "sha256": "a20f5d3dfcf027f2dd450333689a2229351647005a666b6772af42e96fc2c890",
+    "fragments": [
+      "M12 4a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5ZM7.5 6.5a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM12 14c-2.95 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\PhoneHaptic_Stroke2_Corner2_Rounded.svg",
+    "sha256": "72bb0bf3350a624c7e121f558e7a07bb059932f07f768e60afaa3d276f93b5ba",
+    "fragments": [
+      "M16 6a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V6ZM2.87 7.225a1 1 0 0 1 1.337 1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Phone_Stroke2_Corner0_Rounded.svg",
+    "sha256": "3918e2017be5c2ef48cb0232f23171fcb37b216dc0693b12c636e569653a2a08",
+    "fragments": [
+      "M5 4a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v16a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V4Zm3-1a1 1 0 0 0-1 1v16a1 1 0 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\PinLocationFilled_Stroke2_Corner0_Rounded.svg",
+    "sha256": "365f39a3293070fc2a45cbf574e4ed3d43afd8d325e8012e8fd43284f59b69c5",
+    "fragments": [
+      "M12.591 21.806h.002l.001-.002.006-.004.018-.014a10 10 0 0 0 .304-.235 26 26 0 0 0 3.333-3.196C18.048"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\PinLocation_Stroke2_Corner0_Rounded.svg",
+    "sha256": "9438df7fad6d314db0312e77215990cde1eb0c0ee7c61df1da0b256e26a5d69a",
+    "fragments": [
+      "M12 2a8 8 0 0 1 8 8c0 3.305-1.953 6.29-3.745 8.355a26 26 0 0 1-3.333 3.197q-.152.12-.237.184l-.067.0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Pin_Filled_Corner0_Rounded.svg",
+    "sha256": "7fd18cee5be84fac9cc4aebd97b53e9b3e74034a79526e6004db4c20de4dbb69",
+    "fragments": [
+      "M7.5 2a1 1 0 0 0-1 1v3.997a6.25 6.25 0 0 1-1.83 4.42l-.377.376A1 1 0 0 0 4 12.5V15a1 1 0 0 0 1 1h6v5"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Pin_Stroke2_Corner0_Rounded.svg",
+    "sha256": "44bcdde257aa891c78b4890644c29cb9d23bd9980f8405ba6da5878d8210e071",
+    "fragments": [
+      "M6.5 3a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v3.997a6.25 6.25 0 0 0 1.83 4.42l.377.376A1 1 0 0 1 20 12.5V15a1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Pizza_Stroke2_Corner0_Rounded.svg",
+    "sha256": "b0b32e4495805c1ab31cce12957fef0dfa0dbe620dc200b4af8262093445329d",
+    "fragments": [
+      "M18.438 3.253a2 2 0 0 1 2.309 2.31L18.243 20.17c-.186 1.083-1.244 1.868-2.387 1.588a18.5 18.5 0 0 1-"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Play_Filled_Corner0_Rounded.svg",
+    "sha256": "41fcae40c860e755e692db7ec07c6d5f2f5d475de3b342578600dbb643cb4e15",
+    "fragments": []
+  },
+  {
+    "file": "assets\\icons\\ui\\Play_Filled_Corner2_Rounded.svg",
+    "sha256": "3662834971e606ca09a52710f673440056643bb889fba2929f1b49a75a7e894a",
+    "fragments": [
+      "M9.576 2.534C7.578 1.299 5 2.737 5 5.086v13.828c0 2.35 2.578 3.787 4.576 2.552l11.194-6.914c1.899-1."
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Play_Stroke2_Corner0_Rounded.svg",
+    "sha256": "c0083ad3c247185707e7e4107d5bb4380ddd86d3f663ab1bcfd3317c0e50e74c",
+    "fragments": [
+      "M5.507 2.13a1 1 0 0 1 1.008.013l15 9a1 1 0 0 1 0 1.714l-15 9A1 1 0 0 1 5 21V3a1 1 0 0 1 .507-.87ZM7 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Play_Stroke2_Corner2_Rounded.svg",
+    "sha256": "d550ac2a145b07edf024e47f2d149724423692ff285145ff05abd717c89a92bd",
+    "fragments": [
+      "M5 5.086C5 2.736 7.578 1.3 9.576 2.534L20.77 9.448c1.899 1.172 1.899 3.932 0 5.104L9.576 21.466C7.57"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\PlusLarge_Stroke2_Corner0_Rounded.svg",
+    "sha256": "3150bb226353fc49a9036616750ca0c8759f077d652147b580ddd6442a36a81a",
+    "fragments": [
+      "M12 3a1 1 0 0 1 1 1v7h7a1 1 0 1 1 0 2h-7v7a1 1 0 1 1-2 0v-7H4a1 1 0 1 1 0-2h7V4a1 1 0 0 1 1-1Z"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\PlusSmall_Stroke2_Corner0_Rounded.svg",
+    "sha256": "ddcd2207465e74c45931e9f26d31f66e3f9d10737163991faac0d0c415c8b472",
+    "fragments": [
+      "M12 6a1 1 0 0 1 1 1v4h4a1 1 0 1 1 0 2h-4v4a1 1 0 1 1-2 0v-4H7a1 1 0 1 1 0-2h4V7a1 1 0 0 1 1-1Z"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\QrCode_Stroke2_Corner0_Rounded.svg",
+    "sha256": "0f3e4f245ce4bf95d020e93dc17e7c50de6aacfe31189a7135cc3f3d2676897f",
+    "fragments": [
+      "M3 5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5Zm6 0H5v4h4V5ZM3 15a2 2 0 0 1 2-"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\RaisingHand4Finger_Stroke2_Corner0_Rounded.svg",
+    "sha256": "e0e72c1bfba7d091b67ce188d4e13c2e0d21b35344a87afecb33a87b78f711fc",
+    "fragments": [
+      "M10.25 4a.75.75 0 0 0-.75.75V11a1 1 0 1 1-2 0V6.75a.75.75 0 0 0-1.5 0V14a6 6 0 0 0 12 0V9a2 2 0 0 0-"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\RaisingHand4Finger_Stroke2_Corner2_Rounded.svg",
+    "sha256": "07cef9bf0542563e9f79d5a62a69055d068407b97a989180901f6519baf7a205",
+    "fragments": [
+      "M12.5 4a.5.5 0 0 0-.5.5V10a1 1 0 1 1-2 0V5.5a.5.5 0 0 0-1 0V11a1 1 0 1 1-2 0V7.5a.5.5 0 0 0-1 0v6a6."
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Reply_Stroke2_Corner0_Rounded.svg",
+    "sha256": "78883245d3de22f572a581d9c135580c842ee7218626307a5b8f78dd54032851",
+    "fragments": [
+      "M20.002 7a2 2 0 0 0-2-2h-12a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2a1 1 0 0 1 1 1v1.918l3.375-2.7a1 1 0 0 1 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\RepostRepost_Stroke2_Corner2_Rounded.svg",
+    "sha256": "ec045e1bfae14ffcc208ae1a55cd0906999e7fb17e2efd3efe660ee6eda756d2",
+    "fragments": [
+      "M6.043 14.293a1 1 0 1 1 1.414 1.414L5.164 18l2.293 2.293.068.076a1 1 0 0 1-1.406 1.406l-.076-.068-2."
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\RepostStrike_Stroke2_Corner0_Rounded.svg",
+    "sha256": "90b0702d898f963a97d720ad0830f069be9ed1b4faeb0b11424af8b8aaf1bd08",
+    "fragments": [
+      "M2.293 2.293a1 1 0 0 1 1.414 0l18 18a1 1 0 0 1-1.414 1.414L17.586 19H6.414l1.293 1.293a1 1 0 0 1-1.4"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Repost_Stroke2_Corner0_Rounded.svg",
+    "sha256": "f7b0d2107f610376fbc0812be040a4030850cad7b551b8069d664964fe3ec8ee",
+    "fragments": [
+      "M16.293 2.293a1 1 0 0 1 1.414 0l3 3a1 1 0 0 1 0 1.414l-3 3a1 1 0 0 1-1.414-1.414L17.586 7H5v4a1 1 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Repost_Stroke2_Corner2_Rounded.svg",
+    "sha256": "fe98206c64220f32ad929390f8fed83add56db19bab662103ae0caba618b07b0",
+    "fragments": [
+      "M17.957 2.293a1 1 0 1 0-1.414 1.414L17.836 5H6a3 3 0 0 0-3 3v3a1 1 0 1 0 2 0V8a1 1 0 0 1 1-1h11.836l"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Repost_Stroke2_Corner3_Rounded.svg",
+    "sha256": "c9735ab94e7502e94ddcb0df1d5c76c954e4268665a6d47a56c38eba49301be3",
+    "fragments": [
+      "M16.793 2.293a1 1 0 0 1 1.414 0L20.5 4.586a2 2 0 0 1 0 2.828l-2.293 2.293a1 1 0 0 1-1.414-1.414L18.0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Rose_Stroke2_Corner0_Rounded.svg",
+    "sha256": "2bb3066d503e04bfd2b894da01d50ad2b1ba8933262b6bfc895b4a7637faa9fc",
+    "fragments": [
+      "M10.75 2.469a2 2 0 0 1 2.5 0l1.42 1.136 1.44-.576A1.378 1.378 0 0 1 18 4.309V8a6 6 0 0 1-5 5.917v1.6"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\SettingsGear2_Filled_Corner0_Rounded.svg",
+    "sha256": "683b027cffbd3c05a91510edb00f6968b7027df3ee50bd7b0f2cfaa2fa96c1d8",
+    "fragments": [
+      "M9.996 2.869A1.95 1.95 0 0 1 11.62 2h.76c.653 0 1.262.326 1.624.869l1.141 1.712 1.749-.404a1.95 1.95"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\SettingsGear2_Stroke2_Corner0_Rounded.svg",
+    "sha256": "48ce9961763480908d7b9a42bdd32f91654952c2562bb71204edaf6b35747217",
+    "fragments": [
+      "M11.1 2a1 1 0 0 0-.832.445L8.851 4.57 6.6 4.05a1 1 0 0 0-.932.268l-1.35 1.35a1 1 0 0 0-.267.932l.52 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\SettingsSliderVertical_Stroke2_Corner0_Rounded.svg",
+    "sha256": "23e60e83cd655016e20f43c8d457f75e1e1b39901a3b8ef388ef4219ae2feba3",
+    "fragments": [
+      "M7 3a1 1 0 0 1 1 1v1.126a4 4 0 0 1 0 7.748V20a1 1 0 1 1-2 0v-7.126a4 4 0 0 1 0-7.748V4a1 1 0 0 1 1-1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Shaka_Stroke2_Corner0_Rounded.svg",
+    "sha256": "f508576e98eb566eb1c06f8df914c5576da14e0f2ebc617c280cea017c96fb6a",
+    "fragments": [
+      "M2.275 4.312A1 1 0 0 1 3 4h.55a4 4 0 0 1 3.656 2.375l.616 1.388.47-.47 1.001-1a2.414 2.414 0 0 1 3.9"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Shapes_Stroke2_Corner0_Rounded.svg",
+    "sha256": "01141919f7126a8764281a9c578599545f88053347ee3d28399a19f4b3c202b8",
+    "fragments": [
+      "M7 3a1 1 0 0 1 1 1v2h2a1 1 0 1 1 0 2H8v2a1 1 0 1 1-2 0V8H4a1 1 0 0 1 0-2h2V4a1 1 0 0 1 1-1Zm6 4a4 4 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\ShieldCheck_Stroke2_Corner0_Rounded.svg",
+    "sha256": "a08e665075dd818744817ec9b93cc36d8812d795e5065bcfa9940937f4f064ed",
+    "fragments": [
+      "M12.325 2.054a1 1 0 0 0-.65 0l-8 2.75A1 1 0 0 0 3 5.75v6.162c0 2.807 1.149 4.83 2.813 6.405 1.572 1."
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Shield_Stroke2_Corner0_Rounded.svg",
+    "sha256": "27417973ebbe6ed5e89c63991b2943a0ce8f8e6c60f7214d1820f5195cee5434",
+    "fragments": [
+      "M11.675 2.054a1 1 0 0 1 .65 0l8 2.75A1 1 0 0 1 21 5.75v6.162c0 2.807-1.149 4.83-2.813 6.405-1.572 1."
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Sparkle_Stroke2_Corner0_Rounded.svg",
+    "sha256": "71abf72df2ed07fc3afaf5ade4f978d27da57b4762846c7193a55b246b0192e6",
+    "fragments": [
+      "M12 2a1 1 0 0 1 1 1c0 3.188.669 5.256 1.882 6.536C16.084 10.805 18.01 11.5 21 11.5a1 1 0 1 1 0 2c-2."
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\SpeakerVolumeFull_Stroke2_Corner0_Rounded.svg",
+    "sha256": "2126a32259f85dfb092bc0a8172a5aedecdac54d4a9982a485f0d8aa67b4f09c",
+    "fragments": [
+      "M12.472 3.118A1 1 0 0 1 13 4v16a1 1 0 0 1-1.555.832L5.697 17H2a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h3.697l5"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\SquareArrowTopRight_Stroke2_Corner0_Rounded.svg",
+    "sha256": "b59487655b2b907d4473d3f979df45aebbcca6b85411960d0cc1f274a275d6e4",
+    "fragments": [
+      "M14 5a1 1 0 1 1 0-2h6a1 1 0 0 1 1 1v6a1 1 0 1 1-2 0V6.414l-7.293 7.293a1 1 0 0 1-1.414-1.414L17.586 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\SquareBehindSquare4_Stroke2_Corner0_Rounded.svg",
+    "sha256": "23e68f37da5750e01ad17978b29e224633190913caf97b298838669e5083d708",
+    "fragments": [
+      "M8 8V3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-5v5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V9a1 1 0 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\SquareBehindSquare_Stroke2_Corner2_Rounded.svg",
+    "sha256": "a6701ea29446f6b827071cdf0405bb42701f168ae62a7524ca5fd4a1933529f5",
+    "fragments": [
+      "M20 4.25a.25.25 0 0 0-.25-.25h-9.5a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h9.5a.25.25 0 0 0 .25-"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Star_Filled_Corner0_Rounded.svg",
+    "sha256": "58fdd026217f4917f4989190e90b163ffb2b135522539c88930afed7a9230119",
+    "fragments": [
+      "M12.902 1.568a1 1 0 0 0-1.804 0L8.455 7.085l-6.085.799a1 1 0 0 0-.557 1.718l4.45 4.207-1.117 6.008a1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Star_Stroke2_Corner0_Rounded.svg",
+    "sha256": "ebd7d251cbcfcfd3271cd04490cd845869123a0b03768cf76f0d1c891388789c",
+    "fragments": [
+      "M12 1a1 1 0 0 1 .902.568l2.643 5.517 6.085.799a1 1 0 0 1 .557 1.718l-4.45 4.207 1.118 6.008a1 1 0 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\StreamingLive_Stroke2_Corner0_Rounded.svg",
+    "sha256": "60193b620d1a99a6c03836b9fa828a5c63b0c4713dbe0a494077e34637b336ce",
+    "fragments": [
+      "M4 4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H4Zm8 12.5c1.253 0 2.197.609 2.6"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\TextSize_Stroke2_Corner0_Rounded.svg",
+    "sha256": "7ed31526040bc8b041487a6e7b24f1326417bc75368f7ab47ebf100cbe12cc22",
+    "fragments": [
+      "M9 5a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2h-5v14a1 1 0 1 1-2 0V6h-5a1 1 0 0 1-1-1Zm-3.073 7v8a1 1 0 1 0 2 0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Ticket_Stroke2_Corner0_Rounded.svg",
+    "sha256": "2d5515858c1cb97decb1ca49a169a1cef1c43ab20b20f3697ce8e0896592e463",
+    "fragments": [
+      "M3 4a1 1 0 0 0-1 1v4.17a1 1 0 0 0 .667.944 2.001 2.001 0 0 1 0 3.772A1 1 0 0 0 2 14.83V19a1 1 0 0 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\TimesLarge_Stroke2_Corner0_Rounded.svg",
+    "sha256": "be8d983912502da5e960956a2841e1977307c742638c2d52bfff24f0c852b041",
+    "fragments": [
+      "M4.293 4.293a1 1 0 0 1 1.414 0L12 10.586l6.293-6.293a1 1 0 1 1 1.414 1.414L13.414 12l6.293 6.293a1 1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\TinyChevronBottom_Stroke2_Corner0_Rounded.svg",
+    "sha256": "4767f85ef6c83f572213003ff1bc771ce29122485910c071e9fdc5651e32d1a1",
+    "fragments": [
+      "M10.928 18.882a1.95 1.95 0 0 0 2.452-.25l9-9a1.953 1.953 0 0 0-2.76-2.76L12 14.493l-7.62-7.62a1.952 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\TitleCase_Stroke2_Corner0_Rounded.svg",
+    "sha256": "c53ee7df6847582a30e102c65a173123f9d0e54ee8513b4b028b2757559a190b",
+    "fragments": [
+      "M3.65 17.247c-.242.832-.632 1.178-1.325 1.178-.814 0-1.325-.476-1.325-1.23 0-.216.06-.51.173-.831L4."
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Trash_Stroke2_Corner0_Rounded.svg",
+    "sha256": "08c3f67d54ce9458e1f3003be511ab940f9bb8827af4d0ea816e1def161b9566",
+    "fragments": [
+      "M7.416 5H3a1 1 0 0 0 0 2h1.064l.938 14.067A1 1 0 0 0 6 22h12a1 1 0 0 0 .998-.933L19.936 7H21a1 1 0 1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Trash_Stroke2_Corner2_Rounded.svg",
+    "sha256": "6e01777f4d8d2fe753229b1d9547401d79b0056ab99b216c2fa5a9332b09320c",
+    "fragments": [
+      "M7.416 5H3a1 1 0 0 0 0 2h1.064l.814 12.2A3 3 0 0 0 7.87 22h8.258a3 3 0 0 0 2.993-2.8L19.936 7H21a1 1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Tree_Stroke2_Corner0_Rounded.svg",
+    "sha256": "11c69ef536efb6ff74711893ece4bf0b8797179293d84c74e29af5240e75f587",
+    "fragments": [
+      "M6 2a2.998 2.998 0 0 1 1 5.825V8a2 2 0 0 0 2 2h1.174c.412-1.165 1.52-2 2.826-2h5a3 3 0 1 1 0 6h-5a3 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Trending2_Stroke2_Corner2_Rounded.svg",
+    "sha256": "90dff3673d58acb75994ffe463cf920fd4434fabef78d0079cccf72ee3aa9ab7",
+    "fragments": [
+      "m18.192 5.004 1.864 5.31a1 1 0 0 0 1.887-.662L20.08 4.34c-.665-1.893-3.378-1.741-3.834.207l-3.381 14"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Trending3_Stroke2_Corner1_Rounded.svg",
+    "sha256": "7d8be9ca52c1996213dedc9b39c608e10be823e219436380a9a7145815280ede",
+    "fragments": [
+      "M15 7a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 1 1-2 0V9.414L14.414 15a2 2 0 0 1-2.828 0L9 12.414l-5.29"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\TriangleExclamation_Stroke2_Corner2_Rounded.svg",
+    "sha256": "f3da5534ba0cd8b22a2d58a04aa6fe4f42096b4f462c84c97ba00e8cd46baa67",
+    "fragments": [
+      "M12.86 4.494a.995.995 0 0 0-1.72 0l-7 12.008A.996.996 0 0 0 4.999 18h14.003a.996.996 0 0 0 .86-1.498"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\UFO_Stroke2_Corner0_Rounded.svg",
+    "sha256": "5bfca53f5cdee8c018abcd9dbf1ee1957be849987e450820f3bd9d5eee2f156f",
+    "fragments": [
+      "M7.03 6.443a17 17 0 0 0-2.431.638c-.966.338-1.82.764-2.45 1.286C1.523 8.884 1 9.6 1 10.5c0 1.321 1.0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Unlock_Stroke2_Corner2_Rounded.svg",
+    "sha256": "da9ef5e494f3c3f5e5db3d5f9b28372c0f06a88f85576f5933b7ac4a4814b8f5",
+    "fragments": [
+      "M12 2a5 5 0 0 1 4.843 3.751 1 1 0 0 1-1.938.498A3.002 3.002 0 0 0 9 7v2h8a3 3 0 0 1 3 3v7a3 3 0 0 1-"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\UserCircle_Filled_Corner0_Rounded.svg",
+    "sha256": "bfe914950da73f0f51be2dc00058134a47c77d18bb22395d0e3df77fc8489ab3",
+    "fragments": [
+      "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10Zm3-12a3 3 0 1 1-6 0 3 3 0 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\UserCircle_Stroke2_Corner0_Rounded.svg",
+    "sha256": "ade8a8db4ccec7a3948f21b729b149939b42a976ece6e6de3e1e2b0c765e192c",
+    "fragments": [
+      "M12 4a8 8 0 0 0-5.935 13.365C7.56 15.895 9.612 15 12 15s4.44.894 5.935 2.365A8 8 0 0 0 12 4Zm4.412 1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Verified_Stroke2_Corner2_Rounded.svg",
+    "sha256": "3874d2c3ae9a46f8bd4a0848244b05912a86ab001fae3498a9b45648a9f18293",
+    "fragments": [
+      "M10.467 2.698a2.03 2.03 0 0 1 3.066 0l1.358 1.564a.03.03 0 0 0 .027.01l2.046-.325a2.03 2.03 0 0 1 2."
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\VideoClip_Stroke1_Corner0_Rounded.svg",
+    "sha256": "a102bb832094a795da3355084da133f50ebb7668581b50f41bb5f8c3ca259d52",
+    "fragments": [
+      "M1 23h10.667M1 23V12m0 11v11m10.667-11h22.666m-22.666 0v11m0-11V12m22.666 11H45m-10.667 0v12.222m0-1"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\VideoClip_Stroke2_Corner0_Rounded.svg",
+    "sha256": "be654912a5c15850f1198f85a0761a61bce3a006626fd227fd03876c2678955c",
+    "fragments": [
+      "M3 4a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4Zm2 1v2h2V5H5Zm4 0v6h6V5H9Zm8 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Warning_Stroke2_Corner0_Rounded.svg",
+    "sha256": "7904d637f187e3fb2c841d80d1a67c836118f4955ae67e2afa6c244219965e25",
+    "fragments": [
+      "M11.14 4.494a.995.995 0 0 1 1.72 0l7.001 12.008a.996.996 0 0 1-.86 1.498H4.999a.996.996 0 0 1-.86-1."
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Window_Stroke2_Corner2_Rounded.svg",
+    "sha256": "9955af32e7c4094bcc6aaee0fc9964df62fb02942a9a1280d964a7ff80118463",
+    "fragments": [
+      "M6 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3V6a3 3 0 0 0-3-3H6ZM5 18v-6h14v6a1 1 0 0 1-1 1H6"
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Wrench_Stroke2_Corner2_Rounded.svg",
+    "sha256": "2495346fe444b66aeb233a6f410862637582518673b61f55611cafe4ca7500d7",
+    "fragments": [
+      "M14.5 4a5.5 5.5 0 0 0-5.078 7.616 1 1 0 0 1-.216 1.092L4.37 17.543a1 1 0 0 0 0 1.414l.672.672a1 1 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\ui\\Zap_Stroke2_Corner0_Rounded.svg",
+    "sha256": "d29c0008d1e38e4ded9a36554407fe5e3333bba1d87095691c6ddff079caa316",
+    "fragments": [
+      "m9.368 4-4 8h2.944a1.5 1.5 0 0 1 1.427 1.963l-1.65 5.087L19.374 9h-3.49a1.5 1.5 0 0 1-1.287-2.272L16"
+    ]
+  },
+  {
+    "file": "assets\\icons\\brands\\AndroidLogo.svg",
+    "sha256": "3edb814c5788e1684c23f5dab7c5708f28230428ce423cb1c018f10cc9dbbf19",
+    "fragments": [
+      "m15.604 2.47-.642 1.112a5 5 0 0 1 2.05 4.034H7.005c0-1.658.809-3.123 2.05-4.034L8.41 2.47a.313.313 0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\brands\\AppleLogo.svg",
+    "sha256": "11643e2a43453755e3336dae90de83faa87f2492ff0269150c0820e90bb1d590",
+    "fragments": [
+      "M14.57 4.348c.65-.775 1.11-1.85 1.11-2.926 0-.149-.013-.3-.04-.422-1.057.04-2.314.708-3.072 1.592-.5"
+    ]
+  },
+  {
+    "file": "assets\\icons\\brands\\Attie_Filled_Corner0_Rounded.svg",
+    "sha256": "d19ecde5c7aad6938e266461d2cd6e837ece2d020b1c8624972824d743c39ccb",
+    "fragments": [
+      "M14.398 2c4.502 0 8.151 3.634 8.151 8.117q0 .678-.108 1.325a5.67 5.67 0 0 1 1.507 3.855c0 8.837-23.9"
+    ]
+  },
+  {
+    "file": "assets\\icons\\brands\\EnvelopeNotification_Filled_Corner2_Rounded.svg",
+    "sha256": "b5a05f14cba2208e3d90eef94fd201bd972af3a764163e1470c6c6deb0fd237f",
+    "fragments": [
+      "M1 10.419A15.7 15.7 0 0 0 11 14c2.451 0 4.771-.56 6.84-1.559a5.6 5.6 0 0 0 3.16-.249v6.058A2.75 2.75"
+    ]
+  },
+  {
+    "file": "assets\\icons\\brands\\Mark.svg",
+    "sha256": "d9a58f9f2425a8428153766fc25154e7f8522cfa287e356b54eacc3688c9b240",
+    "fragments": [
+      "M6.335 4.212c2.293 1.76 4.76 5.327 5.665 7.241.906-1.914 3.372-5.482 5.665-7.241C19.319 2.942 22 1.9"
+    ]
+  },
+  {
+    "file": "assets\\icons\\brands\\Newskie.svg",
+    "sha256": "dc41ccb4483e85e8f1439270c4af1762962a3ae90eb3e633127fa45dbde5b4f8",
+    "fragments": [
+      "M11.183 8.561c0 .544.348.984.892.984.545 0 .893-.44.893-.985V6.985c0-.544-.348-.985-.893-.985-.543 0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\brands\\StarterPackMultiPathLarge.svg",
+    "sha256": "22e4a0d6660d341842ef0f5b35dcc884ca621167448b2205049e2de9f112464b",
+    "fragments": [
+      "M11.26 5.227 5.02 6.899c-.734.197-1.17.95-.973 1.685l1.672 6.24c.197.734.951 1.17 1.685.973l6.24-1.6",
+      "M15.138 18.411a4.606 4.606 0 1 0 0-9.211 4.606 4.606 0 0 0 0 9.211Zm0 1.257a5.862 5.862 0 1 0 0-11.7"
+    ]
+  },
+  {
+    "file": "assets\\icons\\brands\\StarterPack_Stroke2_Corner0_Rounded.svg",
+    "sha256": "bc1905d60704ed0938d282d3516bd41de9ab52f15fc87378d88175ba14238db7",
+    "fragments": [
+      "M10.775 2.74a3 3 0 0 1 3.524 2.158l.57 2.13a7.5 7.5 0 1 1-6.12 10.744l-2.228.598-.15.036a3 3 0 0 1-3"
+    ]
+  },
+  {
+    "file": "assets\\icons\\brands\\VerifiedCheck.svg",
+    "sha256": "977e90d071f9b05650f142ac295c47d48d7e5455c429fc9049ce2b75442feae6",
+    "fragments": [
+      "M17.659 8.175a1.36 1.36 0 0 1 0 1.925l-6.224 6.223a1.36 1.36 0 0 1-1.925 0L6.4 13.212a1.361 1.361 0 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\brands\\VerifierCheck.svg",
+    "sha256": "29cb735b992611a3513f3b49eb84f4db7257348323dbbe183c4191f0cf95e2ba",
+    "fragments": [
+      "M8.792 1.615a4.154 4.154 0 0 1 6.416 0 4.15 4.15 0 0 0 3.146 1.515 4.154 4.154 0 0 1 4 5.017 4.15 4.",
+      "M17.861 8.26a1.44 1.44 0 0 1 0 2.033l-6.571 6.571a1.437 1.437 0 0 1-2.033 0L5.97 13.58a1.438 1.438 0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\BackerKit.svg",
+    "sha256": "9b03fc986407d668a4c827d33419c541fe56551e794165f8ea1a590405d2af6c",
+    "fragments": [
+      "M15.051 2.626c0 2.304-.008 2.583-.067 2.634-.068.055-.293.517-.653 1.33-.05.114-.139.317-.199.444-.0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\BigCartel.svg",
+    "sha256": "b6d011ba4ce51ceb70b37f062dc490fb52e1f756e6a18c4590f80642385e9989",
+    "fragments": [
+      "M12 13.068v-1.006c0-.63.252-1.256.88-1.508l7.79-4.9c.503-.252.755-.88.755-1.51V0L12 6.03 2.575 0v12."
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Boosty.svg",
+    "sha256": "4707fdae8794ffc4c0a5b3b84de448381a08eb68e862de1e228758129eac2178",
+    "fragments": [
+      "M2.661 14.337 6.801 0h6.362L11.88 4.444l-.038.077-3.378 11.733h3.15q-1.982 4.934-3.086 7.733c-5.816-"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Booth.svg",
+    "sha256": "70f1b5f2b035dd44278ebdb0ecb92960d2fc98e49a32f947bf94279a3ec1b138",
+    "fragments": [
+      "M15.618.011c.259-.01 1.428-.032 1.624.041.079.1.239.395.319.524q.404.64.8 1.284l2.866 4.589c.084.136"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\BuyMeACoffee.svg",
+    "sha256": "2bac255958f0d8bdf9f4fc2f65f3ef7ef999735f44ad71b0241fc0394aa0ec19",
+    "fragments": [
+      "m20.216 6.415-.132-.666c-.119-.598-.388-1.163-1.001-1.379-.197-.069-.42-.098-.57-.241-.152-.143-.196"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\CashApp.svg",
+    "sha256": "f4fe371c8eb68c4497fdbf26e6b0829e165a897945b60fc9d093607d669a6fc7",
+    "fragments": [
+      "M23.59 3.475a5.1 5.1 0 0 0-3.05-3.05c-1.31-.42-2.5-.42-4.92-.42H8.36c-2.4 0-3.61 0-4.9.4a5.1 5.1 0 0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Chuffed.svg",
+    "sha256": "9aba3b2ce76f0eae78bd17b9c61cd9713230d17dba4e302aef9e4662fb1dcf7b",
+    "fragments": [
+      "M.626 10.693c.916-.017 1.867-.005 2.785-.005l19.965.001c-.015.185 0 .435-.009.631-.017.357-.054.722-"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Crowdfundr.svg",
+    "sha256": "fa9a9c32722e9d55976f9a1c888c28568165b1254d50f3e18c04a8e71f85df6d",
+    "fragments": [
+      "M11.566 1.018a11.047 11.047 0 1 1 .95 22.074 11.047 11.047 0 0 1-.95-22.074Zm.759 4.201c-1.808-.038-"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Donorbox.svg",
+    "sha256": "9c4d2f117b0df34fbb70ad4191c7a8f8e8ecbd9c62a98294179d77788d20aa75",
+    "fragments": [
+      "M11.819 9.036c.119-.13.236-.295.355-.413.516-.511 1.058-.769 1.793-.765.841.006 1.33.24 1.909.834.28"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Etsy.svg",
+    "sha256": "6f7ea5149b003a1ec7e0721e2e5790c9419975e5b03290e014e8744975eb8ed4",
+    "fragments": [
+      "M8.559 2.445c0-.325.033-.52.59-.52h7.465c1.3 0 2.02 1.11 2.54 3.193l.42 1.666h1.27c.23-4.728.43-6.78"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Fantia.svg",
+    "sha256": "aaafb3b0b974874530a9b1294f387128469b72d9c1a623f2afbc95000ace037e",
+    "fragments": [
+      "M12.838.001c.004.564-.035 1.449.006 1.981.486-.061 1.014.021 1.506-.035.1-.011.349-.019.432.035.101."
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Fourthwall.svg",
+    "sha256": "bd2fac16d30715b10c62aea6613c1173aee93f77ff6a492fbee31ca289ce3bae",
+    "fragments": [
+      "M7.626 4.563c.434-.017.923-.009 1.358-.007a54 54 0 0 1-.488 2.418c-.464.007-1.865-.087-2.202.121-.37"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\germ_logo.webp",
+    "sha256": "6e0f56c2676b2cd341b7da74006db57858c601f13fb63d702f224f9405a0dc72",
+    "fragments": []
+  },
+  {
+    "file": "assets\\icons\\community\\Github.svg",
+    "sha256": "be7cc59c4db000492b18d6a0277ee6579770790ceac2904e56a8c4fae05581ac",
+    "fragments": [
+      "M41.44 69.385C28.807 67.853 19.906 58.762 19.906 46.99c0-4.785 1.723-9.953 4.594-13.398-1.244-3.158-"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Givebutter.svg",
+    "sha256": "d9dac2ffecfc8ed47bf98fc89070450a4948240d4ff4bce76f99b0101f93d683",
+    "fragments": [
+      "M18.263.016c.191.016.43.031.616.062a6.17 6.17 0 0 1 3.713 2.14 6.06 6.06 0 0 1 1.353 3.126c.01.098.0"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\GiveSendGo.svg",
+    "sha256": "98a1870a6ef6291cdf595d9e0a6f315ceec2f33198347a5a1ed96eeab287e760",
+    "fragments": [
+      "m18.58 9.894.047-.001c.851-.018 1.745-.004 2.599-.004l.753-.001c.308-.001.594-.053.826.183.212.218.2"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\GoFundMe.svg",
+    "sha256": "0ac8fd97e9b9b0664e90137bfd25de47ec9e8e2f7b3cf2e24bf0839c8b36b17e",
+    "fragments": [
+      "M21.624 4.08 17.4 7.15a1.5 1.5 0 0 0-.33 2.092 1.5 1.5 0 0 0 2.091.331l4.222-3.07c.67-.49.813-1.423."
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Gumroad.svg",
+    "sha256": "488009265d441e0e883abbecab16b24a64f75f1ed61fed625cd149b440fa728a",
+    "fragments": [
+      "M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0Zm-.007 5.12c4.48 0 5.995"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Indiegogo.svg",
+    "sha256": "d3e71b737150152cca5f674e6625fe03e868942111e29673a4e57a1f8cad3b30",
+    "fragments": [
+      "M18.095 15.664c-1.986 0-2.26-1.344-2.26-3.53 0-2.168.274-3.512 2.26-3.512 1.969 0 2.242 1.344 2.242 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Inprint.svg",
+    "sha256": "8961ba94f0460a5e90bade2f48fbf553777c6f8e958fcc18b2c989c2257b91e3",
+    "fragments": [
+      "M18.521.018c.845 0 2.346-.05 3.123.016.296.027.578.139.812.322.744.569.625 1.387.625 2.21l-.001 18.6"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\ItchIo.svg",
+    "sha256": "1a086c2968c38cb149a837e1330483d1a3ee0962e33496e64ecd530d676f3acb",
+    "fragments": [
+      "M3.13 1.338C2.08 1.96.02 4.328 0 4.95v1.03c0 1.303 1.22 2.45 2.325 2.45 1.33 0 2.436-1.102 2.436-2.4"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\JustGiving.svg",
+    "sha256": "a4a61691f09c5a7c58c1e2d08be0295c014f6b644c263c1356d2bb03c0c9f1cb",
+    "fragments": [
+      "M23.716 9.925H15.33l-4.898 4.919h6.727c-.885 1.975-2.865 3.061-5.16 3.061-3.104 0-5.639-2.67-5.639-5"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Kickstarter.svg",
+    "sha256": "6c3183e6808f802bddac49061de483a33a24b503ba7e6f0efc3e94021867a14a",
+    "fragments": [
+      "M7.168 0c-3.2 0-5.797 2.579-5.797 5.758v12.484C1.371 21.42 3.968 24 7.168 24a5.8 5.8 0 0 0 4.768-2.4"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\KoFi.svg",
+    "sha256": "a15f33e026d776d27a08a0d923e6cbaeaaa5516cc7ff835b73d2e9b1460c7cc2",
+    "fragments": [
+      "M11.351 2.715c-2.7 0-4.986.025-6.83.26C2.078 3.285 0 5.154 0 8.61c0 3.506.182 6.13 1.585 8.493 1.584"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Leaflet.svg",
+    "sha256": "f01c80bbe753218cf8e219e33bc2829c1ea2ae453b8afe426affa57a71b93436",
+    "fragments": [
+      "M17.058 1.001c.466-.012 1.294.05 1.828.782.099.136.172.274.224.405.385-.036.92-.08 1.416-.039.48.04 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Liberapay.svg",
+    "sha256": "e7c1ae175c3c9dfca3607eaf5cd600f0aac311038c199aef0974dc0451b5f660",
+    "fragments": [
+      "M2.32 0A2.32 2.32 0 0 0 0 2.32v19.36A2.32 2.32 0 0 0 2.32 24h19.36A2.32 2.32 0 0 0 24 21.68V2.32A2.3"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Offprint.svg",
+    "sha256": "04314e8a4d4c7ab4d8881b32c5055eb1358829af011e852460dda877e99cc3c5",
+    "fragments": [
+      "M6.547 11.842c.121.994.564 3.023 1.57 4.733.12.239.442.199.523 0l5.795-10.501a.49.49 0 0 0-.121-.637"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\OpenCollective.svg",
+    "sha256": "a2cf211aa5aef8b18ce6de0958c52a906cb410e996964b5ccf278b7d430410fd",
+    "fragments": [
+      "M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12c2.54 0 4.894-.79 6.834-2.135l-3.107-3.109a7.715 7.715 0 1 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Patreon.svg",
+    "sha256": "5b0ea6857a23c8b0ef8aa153eb804f0bacd79a021c32561b0b109d6bec9d2b3d",
+    "fragments": [
+      "M22.957 7.21c-.004-3.064-2.391-5.576-5.191-6.482-3.478-1.125-8.064-.962-11.384.604C2.357 3.231 1.093"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\PayPal.svg",
+    "sha256": "8a31245293f12ee13a7c15a433e403da93607f6970e1a3d00ab06f95e04bfdf7",
+    "fragments": [
+      "M15.607 4.653H8.941L6.645 19.251H1.82L4.862 0h7.995c3.754 0 6.375 2.294 6.473 5.513-.648-.478-2.105-"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Pckt.svg",
+    "sha256": "e73f657e3f62ad79e81ae67491c79ea2acf69b942ffad77e12b20be7e66dd0d5",
+    "fragments": [
+      "M13.004 1.646c1.983 0 3.668.678 4.824 2.135q.17.215.32.446.694.46 1.24 1.146C20.512 6.787 21 8.767 2"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\PcktFull.svg",
+    "sha256": "3a55da6d65970d800036663e1e351f40f0640369de3b3d4a2c951c05905073a1",
+    "fragments": [
+      "M4.686 8.752c1.117 0 1.88.517 2.246 1.52q.247.678.249 1.643l-.001.097q-.014.94-.267 1.6l-.074.176c-."
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\PixivFanbox.svg",
+    "sha256": "bd7fae6eb7a22b91f0e4d944a6c4fc64ee4a340e09b641228064da107a5997cf",
+    "fragments": [
+      "M8.337 13.249c.634-.057 1.057.558 1.221 1.103.252.836.273 2.056-.113 2.856-.238.494-.61.891-1.084 1."
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Redbubble.svg",
+    "sha256": "ea5b495d2f20abc6e5d2858ecbdf124f6f063e7efb3ced55b0a719b15b185b1f",
+    "fragments": [
+      "M16.633 16.324h-3.199a.32.32 0 0 1-.32-.322V7.974a.32.32 0 0 1 .32-.32H16.4c2.226 0 2.693 1.31 2.693"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Skeb.svg",
+    "sha256": "812925ce90f09fd6f4f34518a6a4ca90864a684fa8bb5d070aa0164388f7f53d",
+    "fragments": [
+      "M13.579 5.676c.283.113.587.205.875.302l1.185.406 2.739.934c.431.147.884.313 1.317.451.174.056.953.35"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\StandardSite.svg",
+    "sha256": "cee20fcd04bad93dfa8ba11153c2d2bed6ea43a8f3ac577b7d5a63124126f2e6",
+    "fragments": [
+      "M11.815.056a.33.33 0 0 1 .37 0c.13.088.2.95.34 2.673l.047.599h3.312a4.745 4.745 0 0 1 4.745 4.745v.8"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Stripe.svg",
+    "sha256": "0f0f07210187035a174137d44c42f1333eef1373583637b2c7af227a6029a2a5",
+    "fragments": [
+      "M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\SubscribeStar.svg",
+    "sha256": "05ae49485ee96d7e2cf0e65abe54e39b4fc993f10f527013b7075faabd48e5f3",
+    "fragments": [
+      "M11.335 0h1.324c.212.053.526.051.753.08q.778.094 1.538.285a12.01 12.01 0 0 1 8.883 9.631q.064.379.10"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Substack.svg",
+    "sha256": "396b5b14e6194935afb2614ca1a75d4cb23bc8ad111c1379fcfd304350ee4616",
+    "fragments": [
+      "M22.539 8.242H1.46V5.406h21.08v2.836zM1.46 10.812V24L12 18.11 22.54 24V10.812H1.46zM22.54 0H1.46v2.8"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Throne.svg",
+    "sha256": "1bc10c4d7e3f320b6e6a38ac953dec2bc0879a881c7fe5d35bc2dfe3f027a88a",
+    "fragments": [
+      "M.359 8.68c.087-.006.261.016.324.071.437.389.875.871 1.28 1.283l2.021 2.03 5.204 5.254 1.808 1.819q."
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Venmo.svg",
+    "sha256": "da31d1e9935ba937668e429d5b7fa595f473269089b854462d15dd6a4bb284e7",
+    "fragments": [
+      "M14.447 1.529c.48 1.004.789 2.225.789 4.013 0 3.274-2.318 8.07-4.198 11.128L9.024.524.71 1.313 4.52 "
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Vgen.svg",
+    "sha256": "232194edee39317652305a4332cdc41adb7ede94b54bdfd8dfa05dd4c9ad354c",
+    "fragments": [
+      "M21.551 5.391a6.428 6.428 0 1 0-9.554 8.603l1.434 1.592q.185.206.389.381c-.616.356-1.08.483-1.392.48"
+    ]
+  },
+  {
+    "file": "assets\\icons\\community\\Zeffy.svg",
+    "sha256": "f0c71b8e6a310a59fad356e0047cc477e5d0d28e82ddd1fe76df450f51d02cbb",
+    "fragments": [
+      "M-.096 12.892c.019-.066.03-.149.049-.22.123-.46.503-.809.975-.885.153-.024.318-.018.474-.018l15.19.0"
+    ]
+  },
+  {
+    "file": "assets\\images\\activity_notifications_announcement.webp",
+    "sha256": "1f6bdc8d61c0f02210cd65eb0865040208d24dcc7057a2746858b1630accc85f",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\bookmarks_announcement_nux.webp",
+    "sha256": "93814ce374f2d2f5fa7b12fab4bb9ee34148467bcf1f5c17096a0550ace47b52",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\chat-desktop-bg-dark.webp",
+    "sha256": "2e225a99e5d680b4740469dc7a06d986520c3a64e71f514218866688eac04aa8",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\chat-desktop-bg-dim.webp",
+    "sha256": "f6676274ac49d4a00c8ab2663ed85576be9d6bb80e07508f7fb8367d01c41733",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\chat-desktop-bg-light.webp",
+    "sha256": "52503714001f49761e66d1312af84b0aafafd0bb1ec943eab3208067fb07fcf6",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\chat-invite-friends.webp",
+    "sha256": "49e8051b7d936b9d605ca2b072697612a5cab78a4e030d20e3e10c7ae0a33b1b",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\chat-mobile-bg-dark.webp",
+    "sha256": "fd13beb3a0c4f8a52a24f3ee0a9adae788daf15a79c6364ebe11845aae71fe32",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\chat-mobile-bg-dim.webp",
+    "sha256": "74d0428cf5518e69b9f9d9c39acf6182449aff8fbeda54249ffdac91e0e4189c",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\chat-mobile-bg-light.webp",
+    "sha256": "e17df7762a54f35d820b7a0032dbfa2942f3107394594c34f794352439278802",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\drafts_announcement_nux.webp",
+    "sha256": "c1ed675812cdfeea7fab3843cf18c1922834d91592f44f08229025f4679200ea",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\find_friends_illustration.webp",
+    "sha256": "389f5e3e27790830b48c6cdf88ad54edd9525f04b39d56fdc046f449002825da",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\find_friends_illustration_small.webp",
+    "sha256": "b60642edb083f6a859be1300e90f135f30b4bded7d569403a2b0124652119ede",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\groupchats_announcement_dark.webp",
+    "sha256": "f8eeb200a27b66f5059bcd8e4574a0da2971e89291cb6596762f628ff3bee069",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\groupchats_announcement_dim.webp",
+    "sha256": "3b40b57349eeeff27d0a2eae4f00058f2352502a375c02e01a69fefcdd893f6b",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\groupchats_announcement_light.webp",
+    "sha256": "fe59195c529ef82853a0902e206d22f7c54ac21b9968ea009d995839a3b789d9",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\initial_verification_announcement_1.png",
+    "sha256": "4075afb4226b26b6c46cd2ff57befc2b777fa804958948ea383de2f24ade5100",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\initial_verification_announcement_2.png",
+    "sha256": "0180c329cbf8c18bd628a1d3902fb54540aeab54916549725eb1c39e019bd68b",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\invite_friends_announcement_nux.webp",
+    "sha256": "2b206d3f8941c08d5510a6297e0b4cdb6e1a79350e3659b04520eed76ebe28d5",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\invite_friends_promo_banner.webp",
+    "sha256": "f145b511596026784b643ac13f01f8396727bbfbc89eac8401421979b8716e92",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\ipad_beta_nux_poster.webp",
+    "sha256": "e062f8729616f8fa934d763f7ec3c7cf382dddc43ac9dd8c11aecf6c3fb7a08c",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\live_now_beta.webp",
+    "sha256": "564462ded504789f2518b695177dfeb394051fe70eeae1d737094d148986ec1d",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\onboarding\\value_prop_1_dark.webp",
+    "sha256": "42aef2e4f785722d8f587a40276cfd5e458eca65c5b44613c23be5181c7be768",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\onboarding\\value_prop_1_dark_borderless.webp",
+    "sha256": "7f94eb62e0176bd158bf6507520119b7d2b19c5800e1bd87151e4eecaa4d6381",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\onboarding\\value_prop_1_dim.webp",
+    "sha256": "d8d49c2ae0a71f69c696fc11bd73190547742f6d7d957c59deafef88b8f24919",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\onboarding\\value_prop_1_dim_borderless.webp",
+    "sha256": "53fe8e996df039ea95f9dab547258190a4bc7f3d7f6774108c982a216a9ee49a",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\onboarding\\value_prop_1_light.webp",
+    "sha256": "65aaa630ba2df3f02f4a6bc384ebfcc46c175e370836dcc90f68741a3981ce95",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\onboarding\\value_prop_1_light_borderless.webp",
+    "sha256": "972bdb502dbeb7480fd4e2bc180bbe130c27c141f350d13cc982be18eb8a1a80",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\onboarding\\value_prop_2_dark.webp",
+    "sha256": "6ed84b14d2f4e4d7826e822e6232f0937ecf81d287629e32e0baa96fec0ed225",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\onboarding\\value_prop_2_dim.webp",
+    "sha256": "f1fb7c76ed6bcbc914bd0813c0f0eb2a8443dc1df4ceb1c0657f5697568b0c48",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\onboarding\\value_prop_2_light.webp",
+    "sha256": "05437b9f904c9dd55000416f54062e1565a10432c9b5bb119432f396ad697819",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\onboarding\\value_prop_3_dark.webp",
+    "sha256": "01f5b591b0b3b9f9951bbe4168e0afe9e5f90345eca3bdce6c0129f69daf96e8",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\onboarding\\value_prop_3_dim.webp",
+    "sha256": "92852af61b2862a5a0f0b97f56f68725171333593144cccd5407d0b13e72158c",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\onboarding\\value_prop_3_light.webp",
+    "sha256": "83f24a3c4f71699d539d39fdb0fbf28ce6afd45034860c9efebac94c9aa2c431",
+    "fragments": []
+  },
+  {
+    "file": "assets\\images\\welcome-modal-bg.jpg",
+    "sha256": "9011dc88f54fe66f0e026360923b72f5dd93a67df6c1b28972a4f288527769ee",
+    "fragments": []
+  },
+  {
+    "file": "assets\\illustrations\\illustration-mobile-dark-safe.webp",
+    "sha256": "1368870434fb1765b3d6fd5cf1dff131c7caa42bccda606223a9f2641d5e3847",
+    "fragments": []
+  },
+  {
+    "file": "assets\\illustrations\\illustration-mobile-dark.webp",
+    "sha256": "2bb47692f1b4cbaef11f1d0e2c0967cd996464d8fb705bdfbc9639ebd51f87a9",
+    "fragments": []
+  },
+  {
+    "file": "assets\\illustrations\\illustration-mobile-safe.webp",
+    "sha256": "fbe346963e0a3071ed607d998764605c6bb62ea2824ba28928f63a61932a579e",
+    "fragments": []
+  },
+  {
+    "file": "assets\\illustrations\\illustration-mobile.webp",
+    "sha256": "755d60ce1a7d26e4292149b921dc0aaaafa2602714bdaf39a9f51108424f9f59",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\android_icon_core_aurora.png",
+    "sha256": "d23681e9cc2b661ae21cd8400017466654795173b3727c6dab05ce4f8e92efff",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\android_icon_core_bonfire.png",
+    "sha256": "661a669f6b03e9c9521885174dc16d52265fb7402ef55592b187d1a7fcd0136f",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\android_icon_core_classic.png",
+    "sha256": "e8648e73d18c8826d8f59f1c02bed3cce3fb4c31cfe40c14f462bfbfd8597de0",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\android_icon_core_flat_black.png",
+    "sha256": "94980e1113f6a547b074ff64c9540b6aced006c93458203aae1c37982329ca72",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\android_icon_core_flat_blue.png",
+    "sha256": "d07daaaf40baf5fb85740efacf3917678a4c7f230c541d2a9742a6082bb22cb5",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\android_icon_core_flat_white.png",
+    "sha256": "75346e76718ca2b549c1ec4f6e06a3e81d5486be829cae32be0d27bf05ab484d",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\android_icon_core_midnight.png",
+    "sha256": "5f1ee2b22d02d9a78dc29bc724a45b0d3799c695f1d4784cf5e973029516e062",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\android_icon_core_sunrise.png",
+    "sha256": "02632e35ee7c19a4b2245a884a5986aa62864592f70369bcaba72bb4d37ebee0",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\android_icon_core_sunset.png",
+    "sha256": "7fee7d247011ddde86ae2268cb64d0e66fed5dff583daf802f176d7acd62b43c",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\android_icon_default_next.png",
+    "sha256": "81bc9a1eaf9f78bf5e55c9e688419bdc9d568b8d26065cb5f6b5e9d63b1ecd56",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\android_icon_legacy_dark.png",
+    "sha256": "79ef4863f5045239fce4c1c75344d5283fa5fc2f31dfadb9cc1a464f761f2f2f",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\android_icon_legacy_light.png",
+    "sha256": "e08dd136cb085d4119a9c02e1579b83330d0d388b0961221c197079a540424ab",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\ios_icon_core_aurora.png",
+    "sha256": "97dff7cc365feb1c3dd6c462d09fd9355f17c239f065aa3269346d570c6a6c2e",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\ios_icon_core_bonfire.png",
+    "sha256": "e218c4a0a7b8d845b8f2441b5e1fc216dd20fd414811b671c658ceec19e0157e",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\ios_icon_core_classic.png",
+    "sha256": "e8648e73d18c8826d8f59f1c02bed3cce3fb4c31cfe40c14f462bfbfd8597de0",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\ios_icon_core_flat_black.png",
+    "sha256": "26f5358880e981a9fc56a7610b47d4a3fcf5078616481b32d5d8dfcc12546f21",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\ios_icon_core_flat_blue.png",
+    "sha256": "aeab28a0ace4109c990a750dd2618280b8c03bec09ad56689f7bf2a568260901",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\ios_icon_core_flat_white.png",
+    "sha256": "61a4df5ab9a9412b224e2c828939acd05e77e43da7209ff763b2d2323caadbaf",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\ios_icon_core_midnight.png",
+    "sha256": "bc0a49c96a7f73384b5e84e6c621c40230f30ca5b836716d2e8ccb5ed5b45daf",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\ios_icon_core_sunrise.png",
+    "sha256": "1ddb503998ececfa87affbc2527672276b58034cc419bd3c8485c70f8843ca63",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\ios_icon_core_sunset.png",
+    "sha256": "4420460ce933b4eab3b3d1147fbb95ebd57e63454eb2f2613ff8110911651fd7",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\ios_icon_default.icon\\Assets\\iOS transparent.png",
+    "sha256": "4980c39e3fc769cd717d6eb1afb0a621992968f2580a15d66387dd6de36e677c",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\ios_icon_default_next.png",
+    "sha256": "58c8583a6120b188da4f92b3d8442be3989a632eb75b0f27af5e5d8ad7ca91e7",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\ios_icon_legacy_dark.png",
+    "sha256": "2ac85e3238a0ae4dfef5e2ae2fc1e4d3b865792421f47e663c51c7205670fe73",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\ios_icon_legacy_light.png",
+    "sha256": "74e60a3ab2175622088350a678962ba2028993b4845a62b23a9081ef46a75c14",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\ios_icon_testflight.icon\\Assets\\iOS transparent.png",
+    "sha256": "4980c39e3fc769cd717d6eb1afb0a621992968f2580a15d66387dd6de36e677c",
+    "fragments": []
+  },
+  {
+    "file": "assets\\app-icons\\ios_icon_testflight.icon\\Assets\\TestFlight notice.png",
+    "sha256": "0c74cdc536606bc822ca72ed5ef9262b8ae837634539dff51571d60b776426ea",
+    "fragments": []
+  },
+  {
+    "file": "assets\\splash\\android-splash-logo-white.png",
+    "sha256": "3b29c1f3365563c85b06a316ea2e194e8ebc322eab7a9e030763fe78e54f85d1",
+    "fragments": []
+  },
+  {
+    "file": "assets\\splash\\splash-dark.png",
+    "sha256": "196fe71d99c40333a4c1dfbb37c3621de61ea6aa107d3f8b1dd4c15b89c00364",
+    "fragments": []
+  },
+  {
+    "file": "assets\\splash\\splash.png",
+    "sha256": "365a4f0e5ba25920d39afe8df4e3c1d7851c0401d64013b2d213b7c3f51d1948",
+    "fragments": []
+  },
+  {
+    "file": "assets\\favicon.png",
+    "sha256": "0e25b3533dec9e9da72ee2083ef17cab414ac9a4adc271f774e53324d20b2317",
+    "fragments": []
+  },
+  {
+    "file": "assets\\logo.png",
+    "sha256": "3d2dca13170fe0ca3cfe683c3c7a2504095da09544ad6f0a84c36ab4c9515f1d",
+    "fragments": []
+  },
+  {
+    "file": "assets\\default-avatar.png",
+    "sha256": "7075a1f2a9263f80e69c1e5e33bda883c85253bcbbb4e3b36f38c2ce42cf1356",
+    "fragments": []
+  },
+  {
+    "file": "assets\\icon-android-foreground.png",
+    "sha256": "df3ed57829d1489d3a5e3baaa6c0ef8eb1d6d79c66119b88cc07e26661b79da5",
+    "fragments": []
+  },
+  {
+    "file": "assets\\icon-android-monochrome.png",
+    "sha256": "31a28c1bd1052cf3b73eea4d945db8a27a3a980b40e78483d176d01801e04af0",
+    "fragments": []
+  },
+  {
+    "file": "assets\\icon-android-notification.png",
+    "sha256": "a060f3b4e7d5167e4ff9d6c12a8bc38556b9174a178a5d0db646fbf92779e3ed",
+    "fragments": []
+  },
+  {
+    "file": "assets\\kawaii.png",
+    "sha256": "5cbc9440ba4a114c9e2c4531289d36af346b4108be5ed3929d082ae28018e3c4",
+    "fragments": []
+  },
+  {
+    "file": "assets\\kawaii_smol.png",
+    "sha256": "586bda28e759bdf73d9a8bf15fa9b201a015f82a9a83f88c99afd6f1e54a011a",
+    "fragments": []
+  },
+  {
+    "file": "src\\view\\icons\\Logo.tsx",
+    "sha256": "a0d3d749400534238846fc7ca6ca2ebf6b1b06e3769e517b6a123bc657a7aedc",
+    "fragments": [
+      "M13.873 3.805C21.21 9.332 29.103 20.537 32 26.55v15.882c0-.338-.13.044-.41.867-1.512 4.456-7.418 21."
+    ]
+  },
+  {
+    "file": "src\\view\\icons\\Logomark.tsx",
+    "sha256": "e27f4df1ec73b21aff5338ed9bd9d170c500f09da54b554e3c4fc71330212252",
+    "fragments": [
+      "M13.223 3.602C20.215 8.832 27.738 19.439 30.5 25.13c2.762-5.691 10.284-16.297 17.278-21.528C52.824-."
+    ]
+  },
+  {
+    "file": "src\\view\\icons\\LogomarkWithType.tsx",
+    "sha256": "fd7385946e906eec5650d1325e21f538f0d2535e0d0eaa9f888dc04a0a44edf0",
+    "fragments": [
+      "M7.06102 1.95468C10.7957 4.79341 14.8125 10.5493 16.2874 13.6379C17.7624 10.5493 21.7792 4.79341 25.",
+      "M52.8842 14.3087C55.1269 15.1125 56.3176 16.9695 56.3176 19.0483C56.3176 22.5684 53.964 24.7027 49.4",
+      "M73.0679 18.4108V10.4005H76.5567V24.7027H73.1787V22.6239C72.0988 24.2315 70.6036 25.0353 68.6931 25.",
+      "M92.4368 17.801V18.6326H81.7489C81.9981 21.0994 83.3549 22.319 85.4592 22.319C87.0652 22.319 88.145 ",
+      "M100.169 25.0907C96.0159 25.0907 93.8285 23.4554 93.6347 20.157H97.0404C97.2342 21.9309 98.1203 22.5",
+      "M121.822 24.7027H117.835L113.682 18.0505L111.522 20.2125V24.7027H108.089V4.9679H111.522V16.332L117.3",
+      "M130.934 14.0038L132.097 10.4005H135.751L130.241 25.8668C129.66 27.4467 128.94 28.5831 128.026 29.22"
+    ]
+  },
+  {
+    "file": "src\\view\\icons\\Logotype.tsx",
+    "sha256": "a6c9f639fb6c1edf14e1f6524646a8916af30393156ea171dadd8130ef4e4c7e",
+    "fragments": [
+      "M8.478 6.252c1.503.538 2.3 1.78 2.3 3.172 0 2.356-1.576 3.785-4.6 3.785H0V0h5.974c2.875 0 4.267 1.46"
+    ]
+  },
+  {
+    "file": "src\\components\\icons\\TEMPLATE.tsx",
+    "sha256": "b37fa9bc8ac8c5a3a5dd7d433a287547c5659d4fcefe1149dc3e2f2f431f5a9f",
+    "fragments": [
+      "M4.062 11h2.961c.103-2.204.545-4.218 1.235-5.77.06-.136.123-.269.188-.399A8.007 8.007 0 0 0 4.062 11"
+    ]
+  }
+]

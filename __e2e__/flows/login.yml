@@ -1,0 +1,39 @@
+appId: xyz.blueskyweb.app
+---
+- runScript:
+    file: ../setupServer.js
+    env:
+        SERVER_PATH: "?users"
+- runFlow:
+    file: ../setupApp.yml
+- tapOn:
+    id: "e2eOpenLoggedOutView"
+- tapOn: "Sign in"
+# the username input autofocuses, and the keyboard rising over the hosting
+# provider button would swallow the tap
+- waitForAnimationToEnd
+- tapOn:
+    id: "selectServiceButton"
+- tapOn:
+    id: "manualSelectBtn"
+- tapOn:
+    id: "customServerTextInput"
+- inputText: "http://localhost:3000"
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - hideKeyboard
+- tapOn:
+    id: "doneBtn"
+- tapOn:
+    id: "loginUsernameInput"
+- inputText: "Alice"
+- tapOn:
+    id: "loginPasswordInput"
+- inputText: "hunter2"
+- pressKey: Enter
+- tapOn:
+    text: "Not Now"
+    optional: true
+- assertVisible: "Following"

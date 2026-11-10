@@ -1,0 +1,78 @@
+import {View} from 'react-native'
+
+import {type FeedPostSliceItem} from '#/state/queries/post-feed'
+import {type VideoFeedSourceContext} from '#/screens/VideoFeed/types'
+import {atoms as a, useBreakpoints, useGutters} from '#/alf'
+import * as Grid from '#/components/Grid'
+import {
+  VideoPostCard,
+  VideoPostCardPlaceholder,
+} from '#/components/VideoPostCard'
+import {useAnalytics} from '#/analytics'
+import {app} from '#/lexicons'
+import * as bsky from '#/types/bsky'
+
+/** Keep feed batching, card widths, and placeholders on the same breakpoint. */
+export function useVideoGridColumns() {
+  const {gtMobile} = useBreakpoints()
+  return gtMobile ? 3 : 2
+}
+
+export function PostFeedVideoGridRow({
+  items: slices,
+  sourceContext,
+}: {
+  items: FeedPostSliceItem[]
+  sourceContext: VideoFeedSourceContext
+}) {
+  const ax = useAnalytics()
+  const columns = useVideoGridColumns()
+  const gutters = useGutters(['base', 'base', 0, 'base'])
+  const posts = slices
+    .filter(slice => bsky.isType(app.bsky.embed.video.view, slice.post.embed))
+    .map(slice => ({
+      post: slice.post,
+      moderation: slice.moderation,
+    }))
+
+  /**
+   * This should not happen because we should be filtering out posts without
+   * videos within the `PostFeed` component.
+   */
+  if (posts.length !== slices.length) return null
+
+  return (
+    <View style={[gutters]}>
+      <View style={[a.flex_row, a.gap_sm]}>
+        <Grid.Row gap={a.gap_sm.gap}>
+          {posts.map(post => (
+            <Grid.Col key={post.post.uri} width={1 / columns}>
+              <VideoPostCard
+                post={post.post}
+                sourceContext={sourceContext}
+                moderation={post.moderation}
+                onInteract={() => {
+                  ax.metric('videoCard:click', {context: 'feed'})
+                }}
+              />
+            </Grid.Col>
+          ))}
+        </Grid.Row>
+      </View>
+    </View>
+  )
+}
+
+export function PostFeedVideoGridRowPlaceholder() {
+  const columns = useVideoGridColumns()
+  const gutters = useGutters(['base', 'base', 0, 'base'])
+  return (
+    <View style={[gutters]}>
+      <View style={[a.flex_row, a.gap_sm]}>
+        {Array.from({length: columns}, (_, index) => (
+          <VideoPostCardPlaceholder key={index} />
+        ))}
+      </View>
+    </View>
+  )
+}

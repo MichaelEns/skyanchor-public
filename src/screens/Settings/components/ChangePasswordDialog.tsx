@@ -1,0 +1,286 @@
+import {useState} from 'react'
+import {useWindowDimensions, View} from 'react-native'
+import {Trans, useLingui} from '@lingui/react/macro'
+import * as EmailValidator from 'email-validator'
+
+import {cleanError, isNetworkError} from '#/lib/strings/errors'
+import {checkAndFormatResetCode} from '#/lib/strings/password'
+import {matchXrpcError} from '#/lib/xrpc-error'
+import {logger} from '#/logger'
+import {usePdsClient, useSession, useSessionApi} from '#/state/session'
+import {ErrorMessage} from '#/view/com/util/error/ErrorMessage'
+import {android, atoms as a, web} from '#/alf'
+import {Button, ButtonIcon, ButtonText} from '#/components/Button'
+import * as Dialog from '#/components/Dialog'
+import {TokenField} from '#/components/dialogs/EmailDialog/components/TokenField'
+import {PasswordField} from '#/components/forms/PasswordField'
+import * as TextField from '#/components/forms/TextField'
+import {Loader} from '#/components/Loader'
+import * as Toast from '#/components/Toast'
+import {Text} from '#/components/Typography'
+import {IS_NATIVE} from '#/env'
+import {com} from '#/lexicons'
+
+enum Stages {
+  RequestCode = 'RequestCode',
+  ChangePassword = 'ChangePassword',
+}
+
+export function ChangePasswordDialog({
+  control,
+}: {
+  control: Dialog.DialogControlProps
+}) {
+  const {height} = useWindowDimensions()
+  const [isProcessing, setIsProcessing] = useState(false)
+
+  return (
+    <Dialog.Outer
+      control={control}
+      preventDismiss={isProcessing}
+      nativeOptions={android({minHeight: height / 2})}>
+      <Dialog.Handle />
+      <Inner isProcessing={isProcessing} setIsProcessing={setIsProcessing} />
+    </Dialog.Outer>
+  )
+}
+
+function Inner({
+  isProcessing,
+  setIsProcessing,
+}: {
+  isProcessing: boolean
+  setIsProcessing: (isProcessing: boolean) => void
+}) {
+  const {t: l} = useLingui()
+  const {currentAccount} = useSession()
+  const client = usePdsClient()
+  const {logoutCurrentAccount} = useSessionApi()
+  const control = Dialog.useDialogContext()
+
+  const [stage, setStage] = useState(Stages.RequestCode)
+  const [resetCode, setResetCode] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [error, setError] = useState('')
+
+  const uiStrings = {
+    RequestCode: {
+      title: l`Change your password`,
+      message: l`If you want to change your password, we will send you a code to verify that this is your account.`,
+    },
+    ChangePassword: {
+      title: l`Enter code`,
+      message: l`Please enter the code you received and the new password you would like to use.`,
+    },
+  }
+
+  const onRequestCode = async () => {
+    if (
+      !currentAccount?.email ||
+      !EmailValidator.validate(currentAccount.email)
+    ) {
+      return setError(l`Your email appears to be invalid.`)
+    }
+
+    setError('')
+    setIsProcessing(true)
+    try {
+      await client.call(com.atproto.server.requestPasswordReset, {
+        email: currentAccount.email,
+      })
+      setStage(Stages.ChangePassword)
+    } catch (error) {
+      const e = error as Error
+      if (isNetworkError(e)) {
+        setError(
+          l`Unable to contact your service. Please check your internet connection and try again.`,
+        )
+      } else {
+        logger.error('Failed to request password reset', {safeMessage: e})
+        setError(cleanError(e))
+      }
+    }
+    setIsProcessing(false)
+  }
+
+  const onChangePassword = async () => {
+    const formattedCode = checkAndFormatResetCode(resetCode)
+    if (!formattedCode) {
+      setError(
+        l`You have entered an invalid code. It should look like XXXXX-XXXXX.`,
+      )
+      return
+    }
+    if (!newPassword) {
+      setError(
+        l`Please enter a password. It must be at least 8 characters long.`,
+      )
+      return
+    }
+    if (newPassword.length < 8) {
+      setError(l`Password must be at least 8 characters long.`)
+      return
+    }
+
+    setError('')
+    setIsProcessing(true)
+    try {
+      await client.call(com.atproto.server.resetPassword, {
+        token: formattedCode,
+        password: newPassword,
+      })
+      setResetCode('')
+      setNewPassword('')
+      /*
+       * Resetting the password revokes every refresh token for this account,
+       * so the current session can no longer be refreshed. Sign out and ask
+       * the user to sign in again with the new password. Keep processing
+       * until the dialog has closed to prevent a second submission.
+       */
+      control.close(() => {
+        logoutCurrentAccount('Settings')
+        Toast.show(
+          l`Password successfully reset. Please sign in with your new password.`,
+          {type: 'success'},
+        )
+      })
+      return
+    } catch (error) {
+      const e = error as Error
+      if (isNetworkError(e)) {
+        setError(
+          l`Unable to contact your service. Please check your internet connection and try again.`,
+        )
+      } else if (
+        matchXrpcError(e, com.atproto.server.resetPassword) === 'InvalidToken'
+      ) {
+        setError(l`This confirmation code is not valid. Please try again.`)
+      } else {
+        logger.error('Failed to set new password', {safeMessage: e})
+        setError(cleanError(e))
+      }
+    }
+    setIsProcessing(false)
+  }
+
+  return (
+    <Dialog.ScrollableInner
+      label={l`Change password dialog`}
+      style={web({maxWidth: 400})}>
+      <View style={[a.gap_xl]}>
+        <View style={[a.gap_sm]}>
+          <Text style={[a.font_bold, a.text_2xl]}>
+            {uiStrings[stage].title}
+          </Text>
+          {error ? (
+            <View style={[a.rounded_sm, a.overflow_hidden]}>
+              <ErrorMessage message={error} />
+            </View>
+          ) : null}
+
+          <Text style={[a.text_md, a.leading_snug]}>
+            {uiStrings[stage].message}
+          </Text>
+          <Text style={[a.text_md, a.leading_snug, a.font_semi_bold]}>
+            <Trans>
+              Changing your password will sign you out. You’ll need to sign in
+              again with your new password.
+            </Trans>
+          </Text>
+        </View>
+
+        {stage === Stages.ChangePassword && (
+          <View style={[a.gap_md]}>
+            <View>
+              <TextField.LabelText>
+                <Trans>Confirmation code</Trans>
+              </TextField.LabelText>
+              <TokenField value={resetCode} onChangeText={setResetCode} />
+            </View>
+            <View>
+              <TextField.LabelText>
+                <Trans>New password</Trans>
+              </TextField.LabelText>
+              <PasswordField
+                label={l`New password`}
+                placeholder={l`At least 8 characters`}
+                value={newPassword}
+                onChangeText={setNewPassword}
+                autoComplete="new-password"
+                passwordRules="minlength: 8;"
+              />
+            </View>
+          </View>
+        )}
+
+        <View style={[a.gap_sm]}>
+          {stage === Stages.RequestCode ? (
+            <>
+              <Button
+                label={l`Request code`}
+                color="primary"
+                size="large"
+                disabled={isProcessing}
+                onPress={() => void onRequestCode()}>
+                <ButtonText>
+                  <Trans>Request code</Trans>
+                </ButtonText>
+                {isProcessing && <ButtonIcon icon={Loader} />}
+              </Button>
+              <Button
+                label={l`Already have a code?`}
+                onPress={() => setStage(Stages.ChangePassword)}
+                size="large"
+                color="primary_subtle"
+                disabled={isProcessing}>
+                <ButtonText>
+                  <Trans>Already have a code?</Trans>
+                </ButtonText>
+              </Button>
+              {IS_NATIVE && (
+                <Button
+                  label={l`Cancel`}
+                  color="secondary"
+                  size="large"
+                  disabled={isProcessing}
+                  onPress={() => control.close()}>
+                  <ButtonText>
+                    <Trans>Cancel</Trans>
+                  </ButtonText>
+                </Button>
+              )}
+            </>
+          ) : (
+            <>
+              <Button
+                label={l`Change password`}
+                color="primary"
+                size="large"
+                disabled={isProcessing}
+                onPress={() => void onChangePassword()}>
+                <ButtonText>
+                  <Trans>Change password</Trans>
+                </ButtonText>
+                {isProcessing && <ButtonIcon icon={Loader} />}
+              </Button>
+              <Button
+                label={l`Back`}
+                color="secondary"
+                size="large"
+                disabled={isProcessing}
+                onPress={() => {
+                  setResetCode('')
+                  setStage(Stages.RequestCode)
+                }}>
+                <ButtonText>
+                  <Trans>Back</Trans>
+                </ButtonText>
+              </Button>
+            </>
+          )}
+        </View>
+      </View>
+      <Dialog.Close />
+    </Dialog.ScrollableInner>
+  )
+}

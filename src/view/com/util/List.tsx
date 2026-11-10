@@ -1,0 +1,265 @@
+import {forwardRef, memo, useContext, useMemo} from 'react'
+import {
+  type ListViewToken as ViewToken,
+  RefreshControl,
+  StyleSheet,
+} from 'react-native'
+import {
+  type FlatListPropsWithLayout,
+  useAnimatedProps,
+  useAnimatedScrollHandler,
+  useSharedValue,
+} from 'react-native-reanimated'
+import {scheduleOnRN} from 'react-native-worklets'
+import {updateActiveVideoViewAsync} from '@bsky.app/video'
+
+import {useDedupe} from '#/lib/hooks/useDedupe'
+import {useNonReactiveCallback} from '#/lib/hooks/useNonReactiveCallback'
+import {useScrollHandlers} from '#/lib/ScrollContext'
+import {addStyle} from '#/lib/styles'
+import {useIsWithinSplitView} from '#/screens/Messages/components/splitView/context'
+import {useBreakpoints, useTheme} from '#/alf'
+import {shouldCenterNativeTabletContent} from '#/alf/breakpoints.shared'
+import {useDialogContext} from '#/components/Dialog/context'
+import {CENTER_COLUMN_WIDTH} from '#/components/Layout/const'
+import {ScrollbarOffsetContext} from '#/components/Layout/context'
+import {useLightboxIsOpenSharedValue} from '#/components/Lightbox/state'
+import {IS_IOS, IS_IPAD} from '#/env'
+import {FlatList_INTERNAL} from './Views'
+
+export type ListMethods = FlatList_INTERNAL
+// This is a generic type; we could update ~30 call sites but this approach is consistent with RN internals. -dsb
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ListProps<ItemT = any> = Omit<
+  FlatListPropsWithLayout<ItemT>,
+  | 'onMomentumScrollBegin' // Use ScrollContext instead.
+  | 'onMomentumScrollEnd' // Use ScrollContext instead.
+  | 'onScroll' // Use ScrollContext instead.
+  | 'onScrollBeginDrag' // Use ScrollContext instead.
+  | 'onScrollEndDrag' // Use ScrollContext instead.
+  | 'refreshControl' // Pass refreshing and/or onRefresh instead.
+  | 'contentOffset' // Pass headerOffset instead.
+  | 'progressViewOffset' // Can't be an animated value
+> & {
+  onScrolledDownChange?: (isScrolledDown: boolean) => void
+  headerOffset?: number
+  refreshing?: boolean
+  onRefresh?: () => void
+  onItemSeen?: (item: ItemT) => void
+  desktopFixedHeight?: number | boolean
+  // Web only prop to contain the scroll to the container rather than the window
+  disableFullWindowScroll?: boolean
+  /** Disable the centered native tablet column for full-bleed content. */
+  disableTabletLayout?: boolean
+  sideBorders?: boolean
+  progressViewOffset?: number
+}
+export type ListRef = React.RefObject<FlatList_INTERNAL | null>
+
+const SCROLLED_DOWN_LIMIT = 200
+
+let List = forwardRef<ListMethods, ListProps>(
+  (
+    {
+      onScrolledDownChange,
+      refreshing,
+      onRefresh,
+      onItemSeen,
+      headerOffset,
+      sideBorders,
+      disableTabletLayout = false,
+      style,
+      contentContainerStyle,
+      progressViewOffset,
+      automaticallyAdjustsScrollIndicatorInsets,
+      ...props
+    },
+    ref,
+  ): React.ReactElement => {
+    const isScrolledDown = useSharedValue(false)
+    const t = useTheme()
+    const {gtMobile} = useBreakpoints()
+    const {isWithinDialog} = useDialogContext()
+    const {isWithinSplitView} = useIsWithinSplitView()
+    const {isWithinOffsetView} = useContext(ScrollbarOffsetContext)
+    const centerOnTablet = shouldCenterNativeTabletContent({
+      gtMobile,
+      isWithinDialog,
+      isWithinSplitView,
+      isWithinOffsetView,
+      disabled: disableTabletLayout,
+    })
+    const isWithinContainedTabletSurface =
+      isWithinDialog || isWithinSplitView || isWithinOffsetView
+    const usesSystemScrollIndicatorInsets =
+      gtMobile && !isWithinContainedTabletSurface
+    const offsetContext = useMemo(() => ({isWithinOffsetView: true}), [])
+    const dedupe = useDedupe(400)
+    const scrollsToTopProps = useScrollsToTopProps()
+
+    const handleScrolledDownChange = useNonReactiveCallback(
+      (didScrollDown: boolean) => {
+        onScrolledDownChange?.(didScrollDown)
+      },
+    )
+
+    // Intentionally destructured outside the main thread closure.
+    // See https://github.com/bluesky-social/social-app/pull/4108.
+    const {
+      onBeginDrag: onBeginDragFromContext,
+      onEndDrag: onEndDragFromContext,
+      onScroll: onScrollFromContext,
+      onMomentumEnd: onMomentumEndFromContext,
+    } = useScrollHandlers()
+    const scrollHandler = useAnimatedScrollHandler({
+      onBeginDrag(e, ctx) {
+        onBeginDragFromContext?.(e, ctx)
+      },
+      onEndDrag(e, ctx) {
+        scheduleOnRN(updateActiveVideoViewAsync)
+        onEndDragFromContext?.(e, ctx)
+      },
+      onScroll(e, ctx) {
+        onScrollFromContext?.(e, ctx)
+
+        const didScrollDown = e.contentOffset.y > SCROLLED_DOWN_LIMIT
+        if (isScrolledDown.get() !== didScrollDown) {
+          isScrolledDown.set(didScrollDown)
+          if (onScrolledDownChange != null) {
+            scheduleOnRN(handleScrolledDownChange, didScrollDown)
+          }
+        }
+
+        if (IS_IOS) {
+          scheduleOnRN(dedupe, updateActiveVideoViewAsync)
+        }
+      },
+      // Note: adding onMomentumBegin here makes simulator scroll
+      // lag on Android. So either don't add it, or figure out why.
+      onMomentumEnd(e, ctx) {
+        scheduleOnRN(updateActiveVideoViewAsync)
+        onMomentumEndFromContext?.(e, ctx)
+      },
+    })
+
+    const [onViewableItemsChanged, viewabilityConfig] = useMemo(() => {
+      if (!onItemSeen) {
+        return [undefined, undefined]
+      }
+      return [
+        (info: {
+          viewableItems: Array<ViewToken>
+          changed: Array<ViewToken>
+        }) => {
+          for (const item of info.changed) {
+            if (item.isViewable) {
+              onItemSeen(item.item)
+            }
+          }
+        },
+        {
+          itemVisiblePercentThreshold: 40,
+          minimumViewTime: 0.5e3,
+        },
+      ]
+    }, [onItemSeen])
+
+    let refreshControl
+    if (refreshing !== undefined || onRefresh !== undefined) {
+      refreshControl = (
+        <RefreshControl
+          key={t.atoms.text.color}
+          refreshing={refreshing ?? false}
+          onRefresh={onRefresh}
+          tintColor={t.atoms.text.color}
+          titleColor={t.atoms.text.color}
+          progressViewOffset={progressViewOffset ?? headerOffset}
+        />
+      )
+    }
+
+    if (headerOffset != null) {
+      style = addStyle(style, {
+        paddingTop: headerOffset,
+      })
+    }
+
+    return (
+      <ScrollbarOffsetContext.Provider value={offsetContext}>
+        <FlatList_INTERNAL
+          showsVerticalScrollIndicator // overridable
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          {...props}
+          automaticallyAdjustsScrollIndicatorInsets={
+            automaticallyAdjustsScrollIndicatorInsets ??
+            (usesSystemScrollIndicatorInsets || isWithinContainedTabletSurface
+              ? undefined
+              : false)
+          }
+          scrollIndicatorInsets={
+            usesSystemScrollIndicatorInsets
+              ? props.scrollIndicatorInsets
+              : isWithinContainedTabletSurface
+                ? headerOffset != null || props.scrollIndicatorInsets
+                  ? {top: headerOffset, ...props.scrollIndicatorInsets}
+                  : undefined
+                : {
+                    top: headerOffset,
+                    right: 1,
+                    ...props.scrollIndicatorInsets,
+                  }
+          }
+          indicatorStyle={t.scheme === 'dark' ? 'white' : 'black'}
+          refreshControl={refreshControl}
+          onScroll={scrollHandler}
+          animatedProps={scrollsToTopProps}
+          scrollEventThrottle={1}
+          style={[style, centerOnTablet && {width: '100%'}]}
+          contentContainerStyle={[
+            // Keep the gutters inside the scrollable viewport.
+            centerOnTablet && {
+              width: '100%',
+              maxWidth: CENTER_COLUMN_WIDTH,
+              alignSelf: 'center',
+            },
+            centerOnTablet &&
+              sideBorders && [
+                {
+                  borderLeftWidth: StyleSheet.hairlineWidth,
+                  borderRightWidth: StyleSheet.hairlineWidth,
+                },
+                t.atoms.border_contrast_low,
+              ],
+            contentContainerStyle,
+          ]}
+          ref={ref}
+        />
+      </ScrollbarOffsetContext.Provider>
+    )
+  },
+)
+List.displayName = 'List'
+
+List = memo(List)
+export {List}
+
+/**
+ * Stops a status bar tap from scrolling the list while the lightbox is open.
+ * It's an animated prop so opening the lightbox doesn't re-render every list
+ * in the app just as the open animation starts. `scrollsToTop` is iOS-only.
+ *
+ * iPadOS 26 also scrolls to the top when a header button is tapped, and only
+ * after the button's onPress has run, so it lands on the screen underneath a
+ * closed lightbox or after a back navigation. Turn it off there entirely. See
+ * https://github.com/facebook/react-native/issues/56061
+ */
+const useScrollsToTopProps = IS_IPAD
+  ? () => ({scrollsToTop: false})
+  : IS_IOS
+    ? useScrollsToTopPropsIOS
+    : () => undefined
+function useScrollsToTopPropsIOS() {
+  const isLightboxOpen = useLightboxIsOpenSharedValue()
+  return useAnimatedProps(() => ({scrollsToTop: !isLightboxOpen?.get()}))
+}

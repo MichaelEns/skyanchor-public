@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "package": "zod",
+  "version": "3.25.76",
+  "license": "MIT",
+  "supplierIntegrity": "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==",
+  "advisory": "GHSA-mrhx-c7xc-m3w5",
+  "advisorySupplierId": 1243066,
+  "advisoryCwe": "CWE-770",
+  "advisoryUrl": "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5",
+  "advisorySeverity": "high",
+  "advisoryTitle": "Zod can exhaust memory while validating oversized constrained collections",
+  "supplierVulnerableRange": "<4.6.6",
+  "supplierPatchedRange": ">=4.6.6",
+  "patch": "patches/zod@3.25.76.patch",
+  "patchSha256": "003fc54fa0da70c9694d3228d2c3a6b18c46b6fa17b35d4775f3fcbd05adbacb",
+  "upstreamReference": "https://github.com/colinhacks/zod/commit/a0ebf970f2d752e5f58527cd2942ff48be4f46bd",
+  "provenance": "Small original v3 adaptation of upstream's early constrained-collection rejection, plus shared parse budgets for v3 issue allocation/traversal across unions/catch/async/native-promise resolution. Schema-field/union-option fanout is reserved before allocating pairs/contexts/promises; exhausted loops stop scheduling and drain already-started async work. Not a verbatim upstream v3 fix or a vendor-fixed package version. Runtime files are emitted from the maintained source with the existing TypeScript compiler.",
+  "compatibilityCorpus": {
+    "source": "Original npm zod@3.25.76 src/v3/tests",
+    "files": 61,
+    "sha256": "720bc9cd40026109d9c85af84a716fe713e224faab355c9fb218c3f885be0e60",
+    "tests": 545,
+    "runner": "Existing Jest with expect/test adapter; unmodified supplier test source and snapshot"
+  },
+  "bounds": {
+    "parseCalls": 16384,
+    "reservedCollectionSlots": 32768,
+    "ordinaryIssues": 128,
+    "terminalIssues": 1,
+    "synchronousDepthAndPathLength": 64,
+    "collectionSlots": 4096
+  },
+  "intentionalBehaviorChange": "Inputs and schema fanout beyond resource limits explicitly fail even if a union/catch could otherwise recover. Missing object fields and union options consume the shared allocation budget before child work; over-wide schemas/unions fail before child contexts. Native-promise results share the original parse budget and reject with ZodError on exhaustion. Async parents observe native-promise validation before accepting/discarding outputs and propagate resource failure, avoiding unhandled rejected child output. Ordinary v3 safeParseAsync rejected-data Promise semantics and original input rejection reasons are retained. Oversized constrained arrays/sets fail before parsing elements. Within-bound valid v3 semantics are retained.",
+  "limitations": "Not a sandbox for schema-supplied refinements/transforms, getters/proxies, input allocation or unrelated string/regex costs. Map entries reserve two slots. Oversized object-property enumeration can still incur engine enumeration overhead before the bounded loop breaks.",
+  "files": [
+    {
+      "file": "src/v3/types.ts",
+      "original": "70309a0877c35d036842e291fe7c8a4439d5db49411d233f8a22bf8a59c41419",
+      "patched": "9f4f94c405d39b1ff5aa131daab3afa9ac959159efc461206bbb53f654bec926"
+    },
+    {
+      "file": "src/v3/helpers/parseUtil.ts",
+      "original": "cb94690c02dce392b98ca364de0d4b24f42db715fbb1759a08bcfb7fa6674645",
+      "patched": "86cc6f0bd08ad60b0347c11b6cc94ef9cb0d4fb16359c8f5115617b6dc4bf170"
+    },
+    {
+      "file": "v3/types.js",
+      "original": "9763a2938f0e7f983363ef4bf6530e7583e3f2d54f8a4a6684efad58febc6e8e",
+      "patched": "30c9ba613fc3f26bbec4504653f2bcab637b2b116c5b420ad3bd67ca90a25550"
+    },
+    {
+      "file": "v3/types.cjs",
+      "original": "06487cc05ed45c5dd29789bf0aa75734d1ce06592a7f2665ba4ca90a68e8a3e1",
+      "patched": "cd19587ba267d8f120b33c75ee62a46b2dfd8116be4a186c7a5173f76a70428b"
+    },
+    {
+      "file": "v3/helpers/parseUtil.js",
+      "original": "b57484013bb360bac2e334d58fcd5f6cbfa63ffcc7d8ff3dbbb3380ca659b956",
+      "patched": "ae873da4e5c53dddb6a54ef272a8658db11c14018aa247b8580308cde17fd88e"
+    },
+    {
+      "file": "v3/helpers/parseUtil.cjs",
+      "original": "40aaa18765f13ae1a933c6f215ecceb6d3afee89eaa23bb080997e08c30a5b00",
+      "patched": "78aa78f7768769e6f325f9b9f26d1b2beb83ef4fa0f4a859fa2fcabb340adbd4"
+    }
+  ]
+}

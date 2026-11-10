@@ -1,0 +1,1508 @@
+diff --git a/src/v3/types.ts b/src/v3/types.ts
+index b10e84f1b..b791d15dc 100644
+--- a/src/v3/types.ts
++++ b/src/v3/types.ts
+@@ -23,6 +23,9 @@ import {
+   ParseStatus,
+   type SyncParseReturnType,
+   addIssueToContext,
++  enterParse,
++  reserveParseSlots,
++  SKYANCHOR_PARSE_LIMITS,
+   isAborted,
+   isAsync,
+   isDirty,
+@@ -88,9 +91,16 @@ const handleResult = <Input, Output>(
+   ctx: ParseContext,
+   result: SyncParseReturnType<Output>
+ ): { success: true; data: Output } | { success: false; error: ZodError<Input> } => {
+-  if (isValid(result)) {
++  if (isValid(result) && !ctx.common.budget?.exceeded) {
+     return { success: true, data: result.value };
+   } else {
++    if (ctx.common.budget?.exceeded && !ctx.common.issues.some(issue =>
++      issue.code === "custom" && issue.message === "Validation resource limit exceeded"
++    )) {
++      ctx.common.issues.push({
++        code: "custom", path: [], message: "Validation resource limit exceeded",
++      });
++    }
+     if (!ctx.common.issues.length) {
+       throw new Error("Validation failed but no issues detected.");
+     }
+@@ -260,7 +270,7 @@ export abstract class ZodType<Output = any, Def extends ZodTypeDef = ZodTypeDef,
+     if (!(this["~standard"] as any).async) {
+       try {
+         const result = this._parseSync({ data, path: [], parent: ctx });
+-        return isValid(result)
++        return isValid(result) && !ctx.common.budget?.exceeded
+           ? {
+               value: result.value,
+             }
+@@ -279,7 +289,7 @@ export abstract class ZodType<Output = any, Def extends ZodTypeDef = ZodTypeDef,
+     }
+ 
+     return this._parseAsync({ data, path: [], parent: ctx }).then((result) =>
+-      isValid(result)
++      isValid(result) && !ctx.common.budget?.exceeded
+         ? {
+             value: result.value,
+           }
+@@ -312,7 +322,7 @@ export abstract class ZodType<Output = any, Def extends ZodTypeDef = ZodTypeDef,
+       parsedType: getParsedType(data),
+     };
+ 
+-    const maybeAsyncResult = this._parse({ data, path: ctx.path, parent: ctx });
++    const maybeAsyncResult = this._parseAsync({ data, path: ctx.path, parent: ctx });
+     const result = await (isAsync(maybeAsyncResult) ? maybeAsyncResult : Promise.resolve(maybeAsyncResult));
+     return handleResult(ctx, result);
+   }
+@@ -410,6 +420,16 @@ export abstract class ZodType<Output = any, Def extends ZodTypeDef = ZodTypeDef,
+ 
+   constructor(def: Def) {
+     this._def = def;
++    const parse = this._parse.bind(this);
++    this._parse = (input) => {
++      const budget = enterParse(input);
++      if (!budget) return INVALID;
++      try {
++        return parse(input);
++      } finally {
++        budget.depth--;
++      }
++    };
+     this.parse = this.parse.bind(this);
+     this.safeParse = this.safeParse.bind(this);
+     this.parseAsync = this.parseAsync.bind(this);
+@@ -2263,6 +2283,7 @@ export class ZodArray<T extends ZodTypeAny, Cardinality extends ArrayCardinality
+           exact: true,
+           message: def.exactLength.message,
+         });
++        if (tooBig) return INVALID;
+         status.dirty();
+       }
+     }
+@@ -2291,25 +2312,28 @@ export class ZodArray<T extends ZodTypeAny, Cardinality extends ArrayCardinality
+           exact: false,
+           message: def.maxLength.message,
+         });
+-        status.dirty();
++        return INVALID;
+       }
+     }
+ 
+     if (ctx.common.async) {
+-      return Promise.all(
+-        ([...ctx.data] as any[]).map((item, i) => {
+-          return def.type._parseAsync(new ParseInputLazyPath(ctx, item, ctx.path, i));
+-        })
+-      ).then((result) => {
+-        return ParseStatus.mergeArray(status, result);
+-      });
++      const pending: Promise<SyncParseReturnType<T["_output"]>>[] = [];
++      for (let i = 0; i < ctx.data.length; i++) {
++        if (ctx.common.budget?.exceeded) break;
++        pending.push(def.type._parseAsync(new ParseInputLazyPath(ctx, ctx.data[i], ctx.path, i)));
++      }
++      return Promise.all(pending).then(result =>
++        ctx.common.budget?.exceeded ? INVALID : ParseStatus.mergeArray(status, result)
++      );
+     }
+ 
+-    const result = ([...ctx.data] as any[]).map((item, i) => {
+-      return def.type._parseSync(new ParseInputLazyPath(ctx, item, ctx.path, i));
+-    });
++    const result: SyncParseReturnType<T["_output"]>[] = [];
++    for (let i = 0; i < ctx.data.length; i++) {
++      if (ctx.common.budget?.exceeded) return INVALID;
++      result.push(def.type._parseSync(new ParseInputLazyPath(ctx, ctx.data[i], ctx.path, i)));
++    }
+ 
+-    return ParseStatus.mergeArray(status, result);
++    return ctx.common.budget?.exceeded ? INVALID : ParseStatus.mergeArray(status, result);
+   }
+ 
+   get element() {
+@@ -2478,7 +2502,14 @@ export class ZodObject<
+ 
+     const { status, ctx } = this._processInputParams(input);
+ 
+-    const { shape, keys: shapeKeys } = this._getCached();
++    const shape = this._cached?.shape ?? this._def.shape();
++    let shapeSize = 0;
++    for (const key in shape) {
++      if (Object.prototype.hasOwnProperty.call(shape, key) && ++shapeSize > SKYANCHOR_PARSE_LIMITS.collection) break;
++    }
++    if (!reserveParseSlots(ctx, shapeSize)) return INVALID;
++    const shapeKeys = this._cached?.keys ?? util.objectKeys(shape);
++    this._cached = { shape, keys: shapeKeys };
+     const extraKeys: string[] = [];
+ 
+     if (!(this._def.catchall instanceof ZodNever && this._def.unknownKeys === "strip")) {
+@@ -2495,6 +2526,7 @@ export class ZodObject<
+       alwaysSet?: boolean;
+     }[] = [];
+     for (const key of shapeKeys) {
++      if (ctx.common.budget?.exceeded) break;
+       const keyValidator = shape[key]!;
+       const value = ctx.data[key];
+       pairs.push({
+@@ -2509,6 +2541,7 @@ export class ZodObject<
+ 
+       if (unknownKeys === "passthrough") {
+         for (const key of extraKeys) {
++          if (ctx.common.budget?.exceeded) break;
+           pairs.push({
+             key: { status: "valid", value: key },
+             value: { status: "valid", value: ctx.data[key] },
+@@ -2531,6 +2564,7 @@ export class ZodObject<
+       const catchall = this._def.catchall;
+ 
+       for (const key of extraKeys) {
++        if (ctx.common.budget?.exceeded) break;
+         const value = ctx.data[key];
+         pairs.push({
+           key: { status: "valid", value: key },
+@@ -2549,6 +2583,7 @@ export class ZodObject<
+           for (const pair of pairs) {
+             const key = await pair.key;
+             const value = await pair.value;
++            if (ctx.common.budget?.exceeded) continue;
+             syncPairs.push({
+               key,
+               value,
+@@ -2558,10 +2593,10 @@ export class ZodObject<
+           return syncPairs;
+         })
+         .then((syncPairs) => {
+-          return ParseStatus.mergeObjectSync(status, syncPairs);
++          return ctx.common.budget?.exceeded ? INVALID : ParseStatus.mergeObjectSync(status, syncPairs);
+         });
+     } else {
+-      return ParseStatus.mergeObjectSync(status, pairs as any);
++      return ctx.common.budget?.exceeded ? INVALID : ParseStatus.mergeObjectSync(status, pairs as any);
+     }
+   }
+ 
+@@ -2945,8 +2980,10 @@ export class ZodUnion<T extends ZodUnionOptions> extends ZodType<
+   _parse(input: ParseInput): ParseReturnType<this["_output"]> {
+     const { ctx } = this._processInputParams(input);
+     const options = this._def.options;
++    if (!reserveParseSlots(ctx, options.length)) return INVALID;
+ 
+     function handleResults(results: { ctx: ParseContext; result: SyncParseReturnType<any> }[]) {
++      if (ctx.common.budget?.exceeded) return INVALID;
+       // return first issue-free validation if it exists
+       for (const result of results) {
+         if (result.result.status === "valid") {
+@@ -2974,8 +3011,10 @@ export class ZodUnion<T extends ZodUnionOptions> extends ZodType<
+     }
+ 
+     if (ctx.common.async) {
+-      return Promise.all(
+-        options.map(async (option) => {
++      const pending: Promise<{ctx: ParseContext; result: SyncParseReturnType<T[number]["_output"]>}>[] = [];
++      for (const option of options) {
++        if (ctx.common.budget?.exceeded) break;
++        pending.push((async () => {
+           const childCtx: ParseContext = {
+             ...ctx,
+             common: {
+@@ -2992,12 +3031,14 @@ export class ZodUnion<T extends ZodUnionOptions> extends ZodType<
+             }),
+             ctx: childCtx,
+           };
+-        })
+-      ).then(handleResults);
++        })());
++      }
++      return Promise.all(pending).then(handleResults);
+     } else {
+       let dirty: undefined | { result: DIRTY<any>; ctx: ParseContext } = undefined;
+       const issues: ZodIssue[][] = [];
+       for (const option of options) {
++        if (ctx.common.budget?.exceeded) return INVALID;
+         const childCtx: ParseContext = {
+           ...ctx,
+           common: {
+@@ -3023,6 +3064,7 @@ export class ZodUnion<T extends ZodUnionOptions> extends ZodType<
+         }
+       }
+ 
++      if (ctx.common.budget?.exceeded) return INVALID;
+       if (dirty) {
+         ctx.common.issues.push(...dirty.ctx.common.issues);
+         return dirty.result;
+@@ -3430,20 +3472,20 @@ export class ZodTuple<
+       status.dirty();
+     }
+ 
+-    const items = ([...ctx.data] as any[])
+-      .map((item, itemIndex) => {
+-        const schema = this._def.items[itemIndex] || this._def.rest;
+-        if (!schema) return null as any as SyncParseReturnType<any>;
+-        return schema._parse(new ParseInputLazyPath(ctx, item, ctx.path, itemIndex));
+-      })
+-      .filter((x) => !!x); // filter nulls
++    if (!reserveParseSlots(ctx, this._def.items.length)) return INVALID;
++    const items: ParseReturnType<unknown>[] = [];
++    for (let itemIndex = 0; itemIndex < ctx.data.length; itemIndex++) {
++      if (ctx.common.budget?.exceeded) break;
++      const schema = this._def.items[itemIndex] || this._def.rest;
++      if (schema) items.push(schema._parse(new ParseInputLazyPath(ctx, ctx.data[itemIndex], ctx.path, itemIndex)));
++    }
+ 
+     if (ctx.common.async) {
+       return Promise.all(items).then((results) => {
+-        return ParseStatus.mergeArray(status, results);
++        return ctx.common.budget?.exceeded ? INVALID : ParseStatus.mergeArray(status, results);
+       });
+     } else {
+-      return ParseStatus.mergeArray(status, items as SyncParseReturnType[]);
++      return ctx.common.budget?.exceeded ? INVALID : ParseStatus.mergeArray(status, items as SyncParseReturnType[]);
+     }
+   }
+ 
+@@ -3530,6 +3572,7 @@ export class ZodRecord<Key extends KeySchema = ZodString, Value extends ZodTypeA
+     const valueType = this._def.valueType;
+ 
+     for (const key in ctx.data) {
++      if (ctx.common.budget?.exceeded) break;
+       pairs.push({
+         key: keyType._parse(new ParseInputLazyPath(ctx, key, ctx.path, key)),
+         value: valueType._parse(new ParseInputLazyPath(ctx, ctx.data[key], ctx.path, key)),
+@@ -3612,12 +3655,16 @@ export class ZodMap<Key extends ZodTypeAny = ZodTypeAny, Value extends ZodTypeAn
+     const keyType = this._def.keyType;
+     const valueType = this._def.valueType;
+ 
+-    const pairs = [...(ctx.data as Map<unknown, unknown>).entries()].map(([key, value], index) => {
+-      return {
++    const pairs: {key: ParseReturnType<Key["_output"]>; value: ParseReturnType<Value["_output"]>}[] = [];
++    let index = 0;
++    for (const [key, value] of ctx.data.entries()) {
++      if (ctx.common.budget?.exceeded) break;
++      pairs.push({
+         key: keyType._parse(new ParseInputLazyPath(ctx, key, ctx.path, [index, "key"])),
+         value: valueType._parse(new ParseInputLazyPath(ctx, value, ctx.path, [index, "value"])),
+-      };
+-    });
++      });
++      index++;
++    }
+ 
+     if (ctx.common.async) {
+       const finalMap = new Map();
+@@ -3625,8 +3672,9 @@ export class ZodMap<Key extends ZodTypeAny = ZodTypeAny, Value extends ZodTypeAn
+         for (const pair of pairs) {
+           const key = await pair.key;
+           const value = await pair.value;
+-          if (key.status === "aborted" || value.status === "aborted") {
+-            return INVALID;
++          if (ctx.common.budget?.exceeded || key.status === "aborted" || value.status === "aborted") {
++            status.abort();
++            continue;
+           }
+           if (key.status === "dirty" || value.status === "dirty") {
+             status.dirty();
+@@ -3634,7 +3682,8 @@ export class ZodMap<Key extends ZodTypeAny = ZodTypeAny, Value extends ZodTypeAn
+ 
+           finalMap.set(key.value, value.value);
+         }
+-        return { status: status.value, value: finalMap };
++        return status.value === "aborted" || ctx.common.budget?.exceeded
++          ? INVALID : { status: status.value, value: finalMap };
+       });
+     } else {
+       const finalMap = new Map();
+@@ -3723,7 +3772,7 @@ export class ZodSet<Value extends ZodTypeAny = ZodTypeAny> extends ZodType<
+           exact: false,
+           message: def.maxSize.message,
+         });
+-        status.dirty();
++        return INVALID;
+       }
+     }
+ 
+@@ -3739,14 +3788,19 @@ export class ZodSet<Value extends ZodTypeAny = ZodTypeAny> extends ZodType<
+       return { status: status.value, value: parsedSet };
+     }
+ 
+-    const elements = [...(ctx.data as Set<unknown>).values()].map((item, i) =>
+-      valueType._parse(new ParseInputLazyPath(ctx, item, ctx.path, i))
+-    );
++    const elements: ParseReturnType<Value["_output"]>[] = [];
++    let index = 0;
++    for (const item of ctx.data.values()) {
++      if (ctx.common.budget?.exceeded) break;
++      elements.push(valueType._parse(new ParseInputLazyPath(ctx, item, ctx.path, index++)));
++    }
+ 
+     if (ctx.common.async) {
+-      return Promise.all(elements).then((elements) => finalizeSet(elements));
++      return Promise.all(elements).then(elements =>
++        ctx.common.budget?.exceeded ? INVALID : finalizeSet(elements)
++      );
+     } else {
+-      return finalizeSet(elements as SyncParseReturnType[]);
++      return ctx.common.budget?.exceeded ? INVALID : finalizeSet(elements as SyncParseReturnType[]);
+     }
+   }
+ 
+@@ -4252,14 +4306,32 @@ export class ZodPromise<T extends ZodTypeAny> extends ZodType<
+ 
+     const promisified = ctx.parsedType === ZodParsedType.promise ? ctx.data : Promise.resolve(ctx.data);
+ 
+-    return OK(
+-      promisified.then((data: any) => {
+-        return this._def.type.parseAsync(data, {
+-          path: ctx.path,
+-          errorMap: ctx.common.contextualErrorMap,
++    const parsedPromise = promisified.then((data: any) => {
++        const childCtx: ParseContext = {
++          ...ctx,
++          common: {...ctx.common, async: true, issues: []},
++          data,
++          parsedType: getParsedType(data),
++        };
++        return this._def.type._parseAsync({
++          data, path: ctx.path, parent: childCtx,
++        }).then(result => {
++          const parsed = handleResult(childCtx, result);
++          if (!parsed.success) throw parsed.error;
++          return parsed.data;
+         });
+-      })
+-    );
++      });
++    // Async parents must observe rejection before discarding resource-aborted output.
++    return ctx.common.async
++      ? parsedPromise.then(
++          () => OK(parsedPromise),
++          (error: unknown) => {
++            if (ctx.common.budget?.exceeded) throw error;
++            // v3 safeParseAsync returns ordinary validation failure in its data Promise.
++            return OK(parsedPromise);
++          }
++        )
++      : OK(parsedPromise);
+   }
+ 
+   static create = <Inner extends ZodTypeAny>(schema: Inner, params?: RawCreateParams): ZodPromise<Inner> => {
+diff --git a/src/v3/helpers/parseUtil.ts b/src/v3/helpers/parseUtil.ts
+index 1076ad9de..f367a74a3 100644
+--- a/src/v3/helpers/parseUtil.ts
++++ b/src/v3/helpers/parseUtil.ts
+@@ -52,6 +52,7 @@ export const EMPTY_PATH: ParsePath = [];
+ 
+ export interface ParseContext {
+   readonly common: {
++    budget?: ParseBudget;
+     readonly issues: ZodIssue[];
+     readonly contextualErrorMap?: ZodErrorMap | undefined;
+     readonly async: boolean;
+@@ -63,6 +64,81 @@ export interface ParseContext {
+   readonly parsedType: ZodParsedType;
+ }
+ 
++/** Shared by union/catch contexts, so speculative and async work cannot reset limits. */
++export interface ParseBudget {
++  nodes: number;
++  slots: number;
++  issues: number;
++  depth: number;
++  exceeded: boolean;
++  rootIssues: ZodIssue[];
++}
++
++export const SKYANCHOR_PARSE_LIMITS = Object.freeze({
++  nodes: 16384,
++  slots: 32768,
++  issues: 128,
++  depth: 64,
++  collection: 4096,
++});
++
++export function exhaustParseBudget(ctx: ParseContext): void {
++  const budget = ctx.common.budget;
++  if (!budget || budget.exceeded) return;
++  budget.exceeded = true;
++  budget.rootIssues.push({
++    code: "custom",
++    path: [],
++    message: "Validation resource limit exceeded",
++  });
++}
++
++/** Reserve schema-driven fanout before constructing child pairs, contexts or promises. */
++export function reserveParseSlots(ctx: ParseContext, slots: number): boolean {
++  const budget = ctx.common.budget;
++  if (!budget || budget.exceeded) return false;
++  if (
++    slots > SKYANCHOR_PARSE_LIMITS.collection ||
++    budget.slots + slots > SKYANCHOR_PARSE_LIMITS.slots
++  ) {
++    exhaustParseBudget(ctx);
++    return false;
++  }
++  budget.slots += slots;
++  return true;
++}
++
++export function enterParse(input: ParseInput): ParseBudget | undefined {
++  const ctx = input.parent;
++  const budget = ctx.common.budget ?? (ctx.common.budget = {
++    nodes: 0, slots: 0, issues: 0, depth: 0,
++    exceeded: false, rootIssues: ctx.common.issues,
++  });
++  if (budget.exceeded) return;
++  let slots = 0;
++  const data: unknown = input.data;
++  if (Array.isArray(data)) slots = data.length;
++  else if (typeof Map !== "undefined" && data instanceof Map) slots = data.size * 2;
++  else if (typeof Set !== "undefined" && data instanceof Set) slots = data.size;
++  else if (data !== null && typeof data === "object") {
++    for (const _key in data) {
++      if (++slots > SKYANCHOR_PARSE_LIMITS.collection) break;
++    }
++  }
++  if (
++    ++budget.nodes > SKYANCHOR_PARSE_LIMITS.nodes ||
++    budget.depth >= SKYANCHOR_PARSE_LIMITS.depth ||
++    input.path.length > SKYANCHOR_PARSE_LIMITS.depth ||
++    slots > SKYANCHOR_PARSE_LIMITS.collection ||
++    (budget.slots += slots) > SKYANCHOR_PARSE_LIMITS.slots
++  ) {
++    exhaustParseBudget(ctx);
++    return;
++  }
++  budget.depth++;
++  return budget;
++}
++
+ export type ParseInput = {
+   data: any;
+   path: (string | number)[];
+@@ -70,6 +146,14 @@ export type ParseInput = {
+ };
+ 
+ export function addIssueToContext(ctx: ParseContext, issueData: IssueData): void {
++  const budget = ctx.common.budget;
++  if (budget) {
++    if (budget.exceeded) return;
++    if (budget.issues++ >= SKYANCHOR_PARSE_LIMITS.issues) {
++      exhaustParseBudget(ctx);
++      return;
++    }
++  }
+   const overrideMap = getErrorMap();
+   const issue = makeIssue({
+     issueData: issueData,
+diff --git a/v3/types.js b/v3/types.js
+index 40b11c0f0..dfbc9c4cb 100644
+--- a/v3/types.js
++++ b/v3/types.js
+@@ -1,7 +1,7 @@
+ import { ZodError, ZodIssueCode, } from "./ZodError.js";
+ import { defaultErrorMap, getErrorMap } from "./errors.js";
+ import { errorUtil } from "./helpers/errorUtil.js";
+-import { DIRTY, INVALID, OK, ParseStatus, addIssueToContext, isAborted, isAsync, isDirty, isValid, makeIssue, } from "./helpers/parseUtil.js";
++import { DIRTY, INVALID, OK, ParseStatus, addIssueToContext, enterParse, reserveParseSlots, SKYANCHOR_PARSE_LIMITS, isAborted, isAsync, isDirty, isValid, makeIssue, } from "./helpers/parseUtil.js";
+ import { util, ZodParsedType, getParsedType } from "./helpers/util.js";
+ class ParseInputLazyPath {
+     constructor(parent, value, path, key) {
+@@ -24,10 +24,15 @@ class ParseInputLazyPath {
+     }
+ }
+ const handleResult = (ctx, result) => {
+-    if (isValid(result)) {
++    if (isValid(result) && !ctx.common.budget?.exceeded) {
+         return { success: true, data: result.value };
+     }
+     else {
++        if (ctx.common.budget?.exceeded && !ctx.common.issues.some(issue => issue.code === "custom" && issue.message === "Validation resource limit exceeded")) {
++            ctx.common.issues.push({
++                code: "custom", path: [], message: "Validation resource limit exceeded",
++            });
++        }
+         if (!ctx.common.issues.length) {
+             throw new Error("Validation failed but no issues detected.");
+         }
+@@ -144,7 +149,7 @@ export class ZodType {
+         if (!this["~standard"].async) {
+             try {
+                 const result = this._parseSync({ data, path: [], parent: ctx });
+-                return isValid(result)
++                return isValid(result) && !ctx.common.budget?.exceeded
+                     ? {
+                         value: result.value,
+                     }
+@@ -162,7 +167,7 @@ export class ZodType {
+                 };
+             }
+         }
+-        return this._parseAsync({ data, path: [], parent: ctx }).then((result) => isValid(result)
++        return this._parseAsync({ data, path: [], parent: ctx }).then((result) => isValid(result) && !ctx.common.budget?.exceeded
+             ? {
+                 value: result.value,
+             }
+@@ -189,7 +194,7 @@ export class ZodType {
+             data,
+             parsedType: getParsedType(data),
+         };
+-        const maybeAsyncResult = this._parse({ data, path: ctx.path, parent: ctx });
++        const maybeAsyncResult = this._parseAsync({ data, path: ctx.path, parent: ctx });
+         const result = await (isAsync(maybeAsyncResult) ? maybeAsyncResult : Promise.resolve(maybeAsyncResult));
+         return handleResult(ctx, result);
+     }
+@@ -256,6 +261,18 @@ export class ZodType {
+         /** Alias of safeParseAsync */
+         this.spa = this.safeParseAsync;
+         this._def = def;
++        const parse = this._parse.bind(this);
++        this._parse = (input) => {
++            const budget = enterParse(input);
++            if (!budget)
++                return INVALID;
++            try {
++                return parse(input);
++            }
++            finally {
++                budget.depth--;
++            }
++        };
+         this.parse = this.parse.bind(this);
+         this.safeParse = this.safeParse.bind(this);
+         this.parseAsync = this.parseAsync.bind(this);
+@@ -1769,6 +1786,8 @@ export class ZodArray extends ZodType {
+                     exact: true,
+                     message: def.exactLength.message,
+                 });
++                if (tooBig)
++                    return INVALID;
+                 status.dirty();
+             }
+         }
+@@ -1795,20 +1814,25 @@ export class ZodArray extends ZodType {
+                     exact: false,
+                     message: def.maxLength.message,
+                 });
+-                status.dirty();
++                return INVALID;
+             }
+         }
+         if (ctx.common.async) {
+-            return Promise.all([...ctx.data].map((item, i) => {
+-                return def.type._parseAsync(new ParseInputLazyPath(ctx, item, ctx.path, i));
+-            })).then((result) => {
+-                return ParseStatus.mergeArray(status, result);
+-            });
++            const pending = [];
++            for (let i = 0; i < ctx.data.length; i++) {
++                if (ctx.common.budget?.exceeded)
++                    break;
++                pending.push(def.type._parseAsync(new ParseInputLazyPath(ctx, ctx.data[i], ctx.path, i)));
++            }
++            return Promise.all(pending).then(result => ctx.common.budget?.exceeded ? INVALID : ParseStatus.mergeArray(status, result));
+         }
+-        const result = [...ctx.data].map((item, i) => {
+-            return def.type._parseSync(new ParseInputLazyPath(ctx, item, ctx.path, i));
+-        });
+-        return ParseStatus.mergeArray(status, result);
++        const result = [];
++        for (let i = 0; i < ctx.data.length; i++) {
++            if (ctx.common.budget?.exceeded)
++                return INVALID;
++            result.push(def.type._parseSync(new ParseInputLazyPath(ctx, ctx.data[i], ctx.path, i)));
++        }
++        return ctx.common.budget?.exceeded ? INVALID : ParseStatus.mergeArray(status, result);
+     }
+     get element() {
+         return this._def.type;
+@@ -1943,7 +1967,16 @@ export class ZodObject extends ZodType {
+             return INVALID;
+         }
+         const { status, ctx } = this._processInputParams(input);
+-        const { shape, keys: shapeKeys } = this._getCached();
++        const shape = this._cached?.shape ?? this._def.shape();
++        let shapeSize = 0;
++        for (const key in shape) {
++            if (Object.prototype.hasOwnProperty.call(shape, key) && ++shapeSize > SKYANCHOR_PARSE_LIMITS.collection)
++                break;
++        }
++        if (!reserveParseSlots(ctx, shapeSize))
++            return INVALID;
++        const shapeKeys = this._cached?.keys ?? util.objectKeys(shape);
++        this._cached = { shape, keys: shapeKeys };
+         const extraKeys = [];
+         if (!(this._def.catchall instanceof ZodNever && this._def.unknownKeys === "strip")) {
+             for (const key in ctx.data) {
+@@ -1954,6 +1987,8 @@ export class ZodObject extends ZodType {
+         }
+         const pairs = [];
+         for (const key of shapeKeys) {
++            if (ctx.common.budget?.exceeded)
++                break;
+             const keyValidator = shape[key];
+             const value = ctx.data[key];
+             pairs.push({
+@@ -1966,6 +2001,8 @@ export class ZodObject extends ZodType {
+             const unknownKeys = this._def.unknownKeys;
+             if (unknownKeys === "passthrough") {
+                 for (const key of extraKeys) {
++                    if (ctx.common.budget?.exceeded)
++                        break;
+                     pairs.push({
+                         key: { status: "valid", value: key },
+                         value: { status: "valid", value: ctx.data[key] },
+@@ -1991,6 +2028,8 @@ export class ZodObject extends ZodType {
+             // run catchall validation
+             const catchall = this._def.catchall;
+             for (const key of extraKeys) {
++                if (ctx.common.budget?.exceeded)
++                    break;
+                 const value = ctx.data[key];
+                 pairs.push({
+                     key: { status: "valid", value: key },
+@@ -2007,6 +2046,8 @@ export class ZodObject extends ZodType {
+                 for (const pair of pairs) {
+                     const key = await pair.key;
+                     const value = await pair.value;
++                    if (ctx.common.budget?.exceeded)
++                        continue;
+                     syncPairs.push({
+                         key,
+                         value,
+@@ -2016,11 +2057,11 @@ export class ZodObject extends ZodType {
+                 return syncPairs;
+             })
+                 .then((syncPairs) => {
+-                return ParseStatus.mergeObjectSync(status, syncPairs);
++                return ctx.common.budget?.exceeded ? INVALID : ParseStatus.mergeObjectSync(status, syncPairs);
+             });
+         }
+         else {
+-            return ParseStatus.mergeObjectSync(status, pairs);
++            return ctx.common.budget?.exceeded ? INVALID : ParseStatus.mergeObjectSync(status, pairs);
+         }
+     }
+     get shape() {
+@@ -2268,7 +2309,11 @@ export class ZodUnion extends ZodType {
+     _parse(input) {
+         const { ctx } = this._processInputParams(input);
+         const options = this._def.options;
++        if (!reserveParseSlots(ctx, options.length))
++            return INVALID;
+         function handleResults(results) {
++            if (ctx.common.budget?.exceeded)
++                return INVALID;
+             // return first issue-free validation if it exists
+             for (const result of results) {
+                 if (result.result.status === "valid") {
+@@ -2291,29 +2336,37 @@ export class ZodUnion extends ZodType {
+             return INVALID;
+         }
+         if (ctx.common.async) {
+-            return Promise.all(options.map(async (option) => {
+-                const childCtx = {
+-                    ...ctx,
+-                    common: {
+-                        ...ctx.common,
+-                        issues: [],
+-                    },
+-                    parent: null,
+-                };
+-                return {
+-                    result: await option._parseAsync({
+-                        data: ctx.data,
+-                        path: ctx.path,
+-                        parent: childCtx,
+-                    }),
+-                    ctx: childCtx,
+-                };
+-            })).then(handleResults);
++            const pending = [];
++            for (const option of options) {
++                if (ctx.common.budget?.exceeded)
++                    break;
++                pending.push((async () => {
++                    const childCtx = {
++                        ...ctx,
++                        common: {
++                            ...ctx.common,
++                            issues: [],
++                        },
++                        parent: null,
++                    };
++                    return {
++                        result: await option._parseAsync({
++                            data: ctx.data,
++                            path: ctx.path,
++                            parent: childCtx,
++                        }),
++                        ctx: childCtx,
++                    };
++                })());
++            }
++            return Promise.all(pending).then(handleResults);
+         }
+         else {
+             let dirty = undefined;
+             const issues = [];
+             for (const option of options) {
++                if (ctx.common.budget?.exceeded)
++                    return INVALID;
+                 const childCtx = {
+                     ...ctx,
+                     common: {
+@@ -2337,6 +2390,8 @@ export class ZodUnion extends ZodType {
+                     issues.push(childCtx.common.issues);
+                 }
+             }
++            if (ctx.common.budget?.exceeded)
++                return INVALID;
+             if (dirty) {
+                 ctx.common.issues.push(...dirty.ctx.common.issues);
+                 return dirty.result;
+@@ -2620,21 +2675,23 @@ export class ZodTuple extends ZodType {
+             });
+             status.dirty();
+         }
+-        const items = [...ctx.data]
+-            .map((item, itemIndex) => {
++        if (!reserveParseSlots(ctx, this._def.items.length))
++            return INVALID;
++        const items = [];
++        for (let itemIndex = 0; itemIndex < ctx.data.length; itemIndex++) {
++            if (ctx.common.budget?.exceeded)
++                break;
+             const schema = this._def.items[itemIndex] || this._def.rest;
+-            if (!schema)
+-                return null;
+-            return schema._parse(new ParseInputLazyPath(ctx, item, ctx.path, itemIndex));
+-        })
+-            .filter((x) => !!x); // filter nulls
++            if (schema)
++                items.push(schema._parse(new ParseInputLazyPath(ctx, ctx.data[itemIndex], ctx.path, itemIndex)));
++        }
+         if (ctx.common.async) {
+             return Promise.all(items).then((results) => {
+-                return ParseStatus.mergeArray(status, results);
++                return ctx.common.budget?.exceeded ? INVALID : ParseStatus.mergeArray(status, results);
+             });
+         }
+         else {
+-            return ParseStatus.mergeArray(status, items);
++            return ctx.common.budget?.exceeded ? INVALID : ParseStatus.mergeArray(status, items);
+         }
+     }
+     get items() {
+@@ -2679,6 +2736,8 @@ export class ZodRecord extends ZodType {
+         const keyType = this._def.keyType;
+         const valueType = this._def.valueType;
+         for (const key in ctx.data) {
++            if (ctx.common.budget?.exceeded)
++                break;
+             pairs.push({
+                 key: keyType._parse(new ParseInputLazyPath(ctx, key, ctx.path, key)),
+                 value: valueType._parse(new ParseInputLazyPath(ctx, ctx.data[key], ctx.path, key)),
+@@ -2731,27 +2790,34 @@ export class ZodMap extends ZodType {
+         }
+         const keyType = this._def.keyType;
+         const valueType = this._def.valueType;
+-        const pairs = [...ctx.data.entries()].map(([key, value], index) => {
+-            return {
++        const pairs = [];
++        let index = 0;
++        for (const [key, value] of ctx.data.entries()) {
++            if (ctx.common.budget?.exceeded)
++                break;
++            pairs.push({
+                 key: keyType._parse(new ParseInputLazyPath(ctx, key, ctx.path, [index, "key"])),
+                 value: valueType._parse(new ParseInputLazyPath(ctx, value, ctx.path, [index, "value"])),
+-            };
+-        });
++            });
++            index++;
++        }
+         if (ctx.common.async) {
+             const finalMap = new Map();
+             return Promise.resolve().then(async () => {
+                 for (const pair of pairs) {
+                     const key = await pair.key;
+                     const value = await pair.value;
+-                    if (key.status === "aborted" || value.status === "aborted") {
+-                        return INVALID;
++                    if (ctx.common.budget?.exceeded || key.status === "aborted" || value.status === "aborted") {
++                        status.abort();
++                        continue;
+                     }
+                     if (key.status === "dirty" || value.status === "dirty") {
+                         status.dirty();
+                     }
+                     finalMap.set(key.value, value.value);
+                 }
+-                return { status: status.value, value: finalMap };
++                return status.value === "aborted" || ctx.common.budget?.exceeded
++                    ? INVALID : { status: status.value, value: finalMap };
+             });
+         }
+         else {
+@@ -2814,7 +2880,7 @@ export class ZodSet extends ZodType {
+                     exact: false,
+                     message: def.maxSize.message,
+                 });
+-                status.dirty();
++                return INVALID;
+             }
+         }
+         const valueType = this._def.valueType;
+@@ -2829,12 +2895,18 @@ export class ZodSet extends ZodType {
+             }
+             return { status: status.value, value: parsedSet };
+         }
+-        const elements = [...ctx.data.values()].map((item, i) => valueType._parse(new ParseInputLazyPath(ctx, item, ctx.path, i)));
++        const elements = [];
++        let index = 0;
++        for (const item of ctx.data.values()) {
++            if (ctx.common.budget?.exceeded)
++                break;
++            elements.push(valueType._parse(new ParseInputLazyPath(ctx, item, ctx.path, index++)));
++        }
+         if (ctx.common.async) {
+-            return Promise.all(elements).then((elements) => finalizeSet(elements));
++            return Promise.all(elements).then(elements => ctx.common.budget?.exceeded ? INVALID : finalizeSet(elements));
+         }
+         else {
+-            return finalizeSet(elements);
++            return ctx.common.budget?.exceeded ? INVALID : finalizeSet(elements);
+         }
+     }
+     min(minSize, message) {
+@@ -3145,12 +3217,31 @@ export class ZodPromise extends ZodType {
+             return INVALID;
+         }
+         const promisified = ctx.parsedType === ZodParsedType.promise ? ctx.data : Promise.resolve(ctx.data);
+-        return OK(promisified.then((data) => {
+-            return this._def.type.parseAsync(data, {
+-                path: ctx.path,
+-                errorMap: ctx.common.contextualErrorMap,
++        const parsedPromise = promisified.then((data) => {
++            const childCtx = {
++                ...ctx,
++                common: { ...ctx.common, async: true, issues: [] },
++                data,
++                parsedType: getParsedType(data),
++            };
++            return this._def.type._parseAsync({
++                data, path: ctx.path, parent: childCtx,
++            }).then(result => {
++                const parsed = handleResult(childCtx, result);
++                if (!parsed.success)
++                    throw parsed.error;
++                return parsed.data;
+             });
+-        }));
++        });
++        // Async parents must observe rejection before discarding resource-aborted output.
++        return ctx.common.async
++            ? parsedPromise.then(() => OK(parsedPromise), (error) => {
++                if (ctx.common.budget?.exceeded)
++                    throw error;
++                // v3 safeParseAsync returns ordinary validation failure in its data Promise.
++                return OK(parsedPromise);
++            })
++            : OK(parsedPromise);
+     }
+ }
+ ZodPromise.create = (schema, params) => {
+diff --git a/v3/types.cjs b/v3/types.cjs
+index 11ed4dfc4..6ba3d84ca 100644
+--- a/v3/types.cjs
++++ b/v3/types.cjs
+@@ -30,10 +30,15 @@ class ParseInputLazyPath {
+     }
+ }
+ const handleResult = (ctx, result) => {
+-    if ((0, parseUtil_js_1.isValid)(result)) {
++    if ((0, parseUtil_js_1.isValid)(result) && !ctx.common.budget?.exceeded) {
+         return { success: true, data: result.value };
+     }
+     else {
++        if (ctx.common.budget?.exceeded && !ctx.common.issues.some(issue => issue.code === "custom" && issue.message === "Validation resource limit exceeded")) {
++            ctx.common.issues.push({
++                code: "custom", path: [], message: "Validation resource limit exceeded",
++            });
++        }
+         if (!ctx.common.issues.length) {
+             throw new Error("Validation failed but no issues detected.");
+         }
+@@ -150,7 +155,7 @@ class ZodType {
+         if (!this["~standard"].async) {
+             try {
+                 const result = this._parseSync({ data, path: [], parent: ctx });
+-                return (0, parseUtil_js_1.isValid)(result)
++                return (0, parseUtil_js_1.isValid)(result) && !ctx.common.budget?.exceeded
+                     ? {
+                         value: result.value,
+                     }
+@@ -168,7 +173,7 @@ class ZodType {
+                 };
+             }
+         }
+-        return this._parseAsync({ data, path: [], parent: ctx }).then((result) => (0, parseUtil_js_1.isValid)(result)
++        return this._parseAsync({ data, path: [], parent: ctx }).then((result) => (0, parseUtil_js_1.isValid)(result) && !ctx.common.budget?.exceeded
+             ? {
+                 value: result.value,
+             }
+@@ -195,7 +200,7 @@ class ZodType {
+             data,
+             parsedType: (0, util_js_1.getParsedType)(data),
+         };
+-        const maybeAsyncResult = this._parse({ data, path: ctx.path, parent: ctx });
++        const maybeAsyncResult = this._parseAsync({ data, path: ctx.path, parent: ctx });
+         const result = await ((0, parseUtil_js_1.isAsync)(maybeAsyncResult) ? maybeAsyncResult : Promise.resolve(maybeAsyncResult));
+         return handleResult(ctx, result);
+     }
+@@ -262,6 +267,18 @@ class ZodType {
+         /** Alias of safeParseAsync */
+         this.spa = this.safeParseAsync;
+         this._def = def;
++        const parse = this._parse.bind(this);
++        this._parse = (input) => {
++            const budget = (0, parseUtil_js_1.enterParse)(input);
++            if (!budget)
++                return parseUtil_js_1.INVALID;
++            try {
++                return parse(input);
++            }
++            finally {
++                budget.depth--;
++            }
++        };
+         this.parse = this.parse.bind(this);
+         this.safeParse = this.safeParse.bind(this);
+         this.parseAsync = this.parseAsync.bind(this);
+@@ -1790,6 +1807,8 @@ class ZodArray extends ZodType {
+                     exact: true,
+                     message: def.exactLength.message,
+                 });
++                if (tooBig)
++                    return parseUtil_js_1.INVALID;
+                 status.dirty();
+             }
+         }
+@@ -1816,20 +1835,25 @@ class ZodArray extends ZodType {
+                     exact: false,
+                     message: def.maxLength.message,
+                 });
+-                status.dirty();
++                return parseUtil_js_1.INVALID;
+             }
+         }
+         if (ctx.common.async) {
+-            return Promise.all([...ctx.data].map((item, i) => {
+-                return def.type._parseAsync(new ParseInputLazyPath(ctx, item, ctx.path, i));
+-            })).then((result) => {
+-                return parseUtil_js_1.ParseStatus.mergeArray(status, result);
+-            });
++            const pending = [];
++            for (let i = 0; i < ctx.data.length; i++) {
++                if (ctx.common.budget?.exceeded)
++                    break;
++                pending.push(def.type._parseAsync(new ParseInputLazyPath(ctx, ctx.data[i], ctx.path, i)));
++            }
++            return Promise.all(pending).then(result => ctx.common.budget?.exceeded ? parseUtil_js_1.INVALID : parseUtil_js_1.ParseStatus.mergeArray(status, result));
+         }
+-        const result = [...ctx.data].map((item, i) => {
+-            return def.type._parseSync(new ParseInputLazyPath(ctx, item, ctx.path, i));
+-        });
+-        return parseUtil_js_1.ParseStatus.mergeArray(status, result);
++        const result = [];
++        for (let i = 0; i < ctx.data.length; i++) {
++            if (ctx.common.budget?.exceeded)
++                return parseUtil_js_1.INVALID;
++            result.push(def.type._parseSync(new ParseInputLazyPath(ctx, ctx.data[i], ctx.path, i)));
++        }
++        return ctx.common.budget?.exceeded ? parseUtil_js_1.INVALID : parseUtil_js_1.ParseStatus.mergeArray(status, result);
+     }
+     get element() {
+         return this._def.type;
+@@ -1965,7 +1989,16 @@ class ZodObject extends ZodType {
+             return parseUtil_js_1.INVALID;
+         }
+         const { status, ctx } = this._processInputParams(input);
+-        const { shape, keys: shapeKeys } = this._getCached();
++        const shape = this._cached?.shape ?? this._def.shape();
++        let shapeSize = 0;
++        for (const key in shape) {
++            if (Object.prototype.hasOwnProperty.call(shape, key) && ++shapeSize > parseUtil_js_1.SKYANCHOR_PARSE_LIMITS.collection)
++                break;
++        }
++        if (!(0, parseUtil_js_1.reserveParseSlots)(ctx, shapeSize))
++            return parseUtil_js_1.INVALID;
++        const shapeKeys = this._cached?.keys ?? util_js_1.util.objectKeys(shape);
++        this._cached = { shape, keys: shapeKeys };
+         const extraKeys = [];
+         if (!(this._def.catchall instanceof ZodNever && this._def.unknownKeys === "strip")) {
+             for (const key in ctx.data) {
+@@ -1976,6 +2009,8 @@ class ZodObject extends ZodType {
+         }
+         const pairs = [];
+         for (const key of shapeKeys) {
++            if (ctx.common.budget?.exceeded)
++                break;
+             const keyValidator = shape[key];
+             const value = ctx.data[key];
+             pairs.push({
+@@ -1988,6 +2023,8 @@ class ZodObject extends ZodType {
+             const unknownKeys = this._def.unknownKeys;
+             if (unknownKeys === "passthrough") {
+                 for (const key of extraKeys) {
++                    if (ctx.common.budget?.exceeded)
++                        break;
+                     pairs.push({
+                         key: { status: "valid", value: key },
+                         value: { status: "valid", value: ctx.data[key] },
+@@ -2013,6 +2050,8 @@ class ZodObject extends ZodType {
+             // run catchall validation
+             const catchall = this._def.catchall;
+             for (const key of extraKeys) {
++                if (ctx.common.budget?.exceeded)
++                    break;
+                 const value = ctx.data[key];
+                 pairs.push({
+                     key: { status: "valid", value: key },
+@@ -2029,6 +2068,8 @@ class ZodObject extends ZodType {
+                 for (const pair of pairs) {
+                     const key = await pair.key;
+                     const value = await pair.value;
++                    if (ctx.common.budget?.exceeded)
++                        continue;
+                     syncPairs.push({
+                         key,
+                         value,
+@@ -2038,11 +2079,11 @@ class ZodObject extends ZodType {
+                 return syncPairs;
+             })
+                 .then((syncPairs) => {
+-                return parseUtil_js_1.ParseStatus.mergeObjectSync(status, syncPairs);
++                return ctx.common.budget?.exceeded ? parseUtil_js_1.INVALID : parseUtil_js_1.ParseStatus.mergeObjectSync(status, syncPairs);
+             });
+         }
+         else {
+-            return parseUtil_js_1.ParseStatus.mergeObjectSync(status, pairs);
++            return ctx.common.budget?.exceeded ? parseUtil_js_1.INVALID : parseUtil_js_1.ParseStatus.mergeObjectSync(status, pairs);
+         }
+     }
+     get shape() {
+@@ -2291,7 +2332,11 @@ class ZodUnion extends ZodType {
+     _parse(input) {
+         const { ctx } = this._processInputParams(input);
+         const options = this._def.options;
++        if (!(0, parseUtil_js_1.reserveParseSlots)(ctx, options.length))
++            return parseUtil_js_1.INVALID;
+         function handleResults(results) {
++            if (ctx.common.budget?.exceeded)
++                return parseUtil_js_1.INVALID;
+             // return first issue-free validation if it exists
+             for (const result of results) {
+                 if (result.result.status === "valid") {
+@@ -2314,29 +2359,37 @@ class ZodUnion extends ZodType {
+             return parseUtil_js_1.INVALID;
+         }
+         if (ctx.common.async) {
+-            return Promise.all(options.map(async (option) => {
+-                const childCtx = {
+-                    ...ctx,
+-                    common: {
+-                        ...ctx.common,
+-                        issues: [],
+-                    },
+-                    parent: null,
+-                };
+-                return {
+-                    result: await option._parseAsync({
+-                        data: ctx.data,
+-                        path: ctx.path,
+-                        parent: childCtx,
+-                    }),
+-                    ctx: childCtx,
+-                };
+-            })).then(handleResults);
++            const pending = [];
++            for (const option of options) {
++                if (ctx.common.budget?.exceeded)
++                    break;
++                pending.push((async () => {
++                    const childCtx = {
++                        ...ctx,
++                        common: {
++                            ...ctx.common,
++                            issues: [],
++                        },
++                        parent: null,
++                    };
++                    return {
++                        result: await option._parseAsync({
++                            data: ctx.data,
++                            path: ctx.path,
++                            parent: childCtx,
++                        }),
++                        ctx: childCtx,
++                    };
++                })());
++            }
++            return Promise.all(pending).then(handleResults);
+         }
+         else {
+             let dirty = undefined;
+             const issues = [];
+             for (const option of options) {
++                if (ctx.common.budget?.exceeded)
++                    return parseUtil_js_1.INVALID;
+                 const childCtx = {
+                     ...ctx,
+                     common: {
+@@ -2360,6 +2413,8 @@ class ZodUnion extends ZodType {
+                     issues.push(childCtx.common.issues);
+                 }
+             }
++            if (ctx.common.budget?.exceeded)
++                return parseUtil_js_1.INVALID;
+             if (dirty) {
+                 ctx.common.issues.push(...dirty.ctx.common.issues);
+                 return dirty.result;
+@@ -2646,21 +2701,23 @@ class ZodTuple extends ZodType {
+             });
+             status.dirty();
+         }
+-        const items = [...ctx.data]
+-            .map((item, itemIndex) => {
++        if (!(0, parseUtil_js_1.reserveParseSlots)(ctx, this._def.items.length))
++            return parseUtil_js_1.INVALID;
++        const items = [];
++        for (let itemIndex = 0; itemIndex < ctx.data.length; itemIndex++) {
++            if (ctx.common.budget?.exceeded)
++                break;
+             const schema = this._def.items[itemIndex] || this._def.rest;
+-            if (!schema)
+-                return null;
+-            return schema._parse(new ParseInputLazyPath(ctx, item, ctx.path, itemIndex));
+-        })
+-            .filter((x) => !!x); // filter nulls
++            if (schema)
++                items.push(schema._parse(new ParseInputLazyPath(ctx, ctx.data[itemIndex], ctx.path, itemIndex)));
++        }
+         if (ctx.common.async) {
+             return Promise.all(items).then((results) => {
+-                return parseUtil_js_1.ParseStatus.mergeArray(status, results);
++                return ctx.common.budget?.exceeded ? parseUtil_js_1.INVALID : parseUtil_js_1.ParseStatus.mergeArray(status, results);
+             });
+         }
+         else {
+-            return parseUtil_js_1.ParseStatus.mergeArray(status, items);
++            return ctx.common.budget?.exceeded ? parseUtil_js_1.INVALID : parseUtil_js_1.ParseStatus.mergeArray(status, items);
+         }
+     }
+     get items() {
+@@ -2706,6 +2763,8 @@ class ZodRecord extends ZodType {
+         const keyType = this._def.keyType;
+         const valueType = this._def.valueType;
+         for (const key in ctx.data) {
++            if (ctx.common.budget?.exceeded)
++                break;
+             pairs.push({
+                 key: keyType._parse(new ParseInputLazyPath(ctx, key, ctx.path, key)),
+                 value: valueType._parse(new ParseInputLazyPath(ctx, ctx.data[key], ctx.path, key)),
+@@ -2759,27 +2818,34 @@ class ZodMap extends ZodType {
+         }
+         const keyType = this._def.keyType;
+         const valueType = this._def.valueType;
+-        const pairs = [...ctx.data.entries()].map(([key, value], index) => {
+-            return {
++        const pairs = [];
++        let index = 0;
++        for (const [key, value] of ctx.data.entries()) {
++            if (ctx.common.budget?.exceeded)
++                break;
++            pairs.push({
+                 key: keyType._parse(new ParseInputLazyPath(ctx, key, ctx.path, [index, "key"])),
+                 value: valueType._parse(new ParseInputLazyPath(ctx, value, ctx.path, [index, "value"])),
+-            };
+-        });
++            });
++            index++;
++        }
+         if (ctx.common.async) {
+             const finalMap = new Map();
+             return Promise.resolve().then(async () => {
+                 for (const pair of pairs) {
+                     const key = await pair.key;
+                     const value = await pair.value;
+-                    if (key.status === "aborted" || value.status === "aborted") {
+-                        return parseUtil_js_1.INVALID;
++                    if (ctx.common.budget?.exceeded || key.status === "aborted" || value.status === "aborted") {
++                        status.abort();
++                        continue;
+                     }
+                     if (key.status === "dirty" || value.status === "dirty") {
+                         status.dirty();
+                     }
+                     finalMap.set(key.value, value.value);
+                 }
+-                return { status: status.value, value: finalMap };
++                return status.value === "aborted" || ctx.common.budget?.exceeded
++                    ? parseUtil_js_1.INVALID : { status: status.value, value: finalMap };
+             });
+         }
+         else {
+@@ -2843,7 +2909,7 @@ class ZodSet extends ZodType {
+                     exact: false,
+                     message: def.maxSize.message,
+                 });
+-                status.dirty();
++                return parseUtil_js_1.INVALID;
+             }
+         }
+         const valueType = this._def.valueType;
+@@ -2858,12 +2924,18 @@ class ZodSet extends ZodType {
+             }
+             return { status: status.value, value: parsedSet };
+         }
+-        const elements = [...ctx.data.values()].map((item, i) => valueType._parse(new ParseInputLazyPath(ctx, item, ctx.path, i)));
++        const elements = [];
++        let index = 0;
++        for (const item of ctx.data.values()) {
++            if (ctx.common.budget?.exceeded)
++                break;
++            elements.push(valueType._parse(new ParseInputLazyPath(ctx, item, ctx.path, index++)));
++        }
+         if (ctx.common.async) {
+-            return Promise.all(elements).then((elements) => finalizeSet(elements));
++            return Promise.all(elements).then(elements => ctx.common.budget?.exceeded ? parseUtil_js_1.INVALID : finalizeSet(elements));
+         }
+         else {
+-            return finalizeSet(elements);
++            return ctx.common.budget?.exceeded ? parseUtil_js_1.INVALID : finalizeSet(elements);
+         }
+     }
+     min(minSize, message) {
+@@ -3180,12 +3252,31 @@ class ZodPromise extends ZodType {
+             return parseUtil_js_1.INVALID;
+         }
+         const promisified = ctx.parsedType === util_js_1.ZodParsedType.promise ? ctx.data : Promise.resolve(ctx.data);
+-        return (0, parseUtil_js_1.OK)(promisified.then((data) => {
+-            return this._def.type.parseAsync(data, {
+-                path: ctx.path,
+-                errorMap: ctx.common.contextualErrorMap,
++        const parsedPromise = promisified.then((data) => {
++            const childCtx = {
++                ...ctx,
++                common: { ...ctx.common, async: true, issues: [] },
++                data,
++                parsedType: (0, util_js_1.getParsedType)(data),
++            };
++            return this._def.type._parseAsync({
++                data, path: ctx.path, parent: childCtx,
++            }).then(result => {
++                const parsed = handleResult(childCtx, result);
++                if (!parsed.success)
++                    throw parsed.error;
++                return parsed.data;
+             });
+-        }));
++        });
++        // Async parents must observe rejection before discarding resource-aborted output.
++        return ctx.common.async
++            ? parsedPromise.then(() => (0, parseUtil_js_1.OK)(parsedPromise), (error) => {
++                if (ctx.common.budget?.exceeded)
++                    throw error;
++                // v3 safeParseAsync returns ordinary validation failure in its data Promise.
++                return (0, parseUtil_js_1.OK)(parsedPromise);
++            })
++            : (0, parseUtil_js_1.OK)(parsedPromise);
+     }
+ }
+ exports.ZodPromise = ZodPromise;
+diff --git a/v3/helpers/parseUtil.js b/v3/helpers/parseUtil.js
+index 91b2afb81..2e26f5e99 100644
+--- a/v3/helpers/parseUtil.js
++++ b/v3/helpers/parseUtil.js
+@@ -29,7 +29,80 @@ export const makeIssue = (params) => {
+     };
+ };
+ export const EMPTY_PATH = [];
++export const SKYANCHOR_PARSE_LIMITS = Object.freeze({
++    nodes: 16384,
++    slots: 32768,
++    issues: 128,
++    depth: 64,
++    collection: 4096,
++});
++export function exhaustParseBudget(ctx) {
++    const budget = ctx.common.budget;
++    if (!budget || budget.exceeded)
++        return;
++    budget.exceeded = true;
++    budget.rootIssues.push({
++        code: "custom",
++        path: [],
++        message: "Validation resource limit exceeded",
++    });
++}
++/** Reserve schema-driven fanout before constructing child pairs, contexts or promises. */
++export function reserveParseSlots(ctx, slots) {
++    const budget = ctx.common.budget;
++    if (!budget || budget.exceeded)
++        return false;
++    if (slots > SKYANCHOR_PARSE_LIMITS.collection ||
++        budget.slots + slots > SKYANCHOR_PARSE_LIMITS.slots) {
++        exhaustParseBudget(ctx);
++        return false;
++    }
++    budget.slots += slots;
++    return true;
++}
++export function enterParse(input) {
++    const ctx = input.parent;
++    const budget = ctx.common.budget ?? (ctx.common.budget = {
++        nodes: 0, slots: 0, issues: 0, depth: 0,
++        exceeded: false, rootIssues: ctx.common.issues,
++    });
++    if (budget.exceeded)
++        return;
++    let slots = 0;
++    const data = input.data;
++    if (Array.isArray(data))
++        slots = data.length;
++    else if (typeof Map !== "undefined" && data instanceof Map)
++        slots = data.size * 2;
++    else if (typeof Set !== "undefined" && data instanceof Set)
++        slots = data.size;
++    else if (data !== null && typeof data === "object") {
++        for (const _key in data) {
++            if (++slots > SKYANCHOR_PARSE_LIMITS.collection)
++                break;
++        }
++    }
++    if (++budget.nodes > SKYANCHOR_PARSE_LIMITS.nodes ||
++        budget.depth >= SKYANCHOR_PARSE_LIMITS.depth ||
++        input.path.length > SKYANCHOR_PARSE_LIMITS.depth ||
++        slots > SKYANCHOR_PARSE_LIMITS.collection ||
++        (budget.slots += slots) > SKYANCHOR_PARSE_LIMITS.slots) {
++        exhaustParseBudget(ctx);
++        return;
++    }
++    budget.depth++;
++    return budget;
++}
+ export function addIssueToContext(ctx, issueData) {
++    const budget = ctx.common.budget;
++    if (budget) {
++        if (budget.exceeded)
++            return;
++        if (budget.issues++ >= SKYANCHOR_PARSE_LIMITS.issues) {
++            exhaustParseBudget(ctx);
++            return;
++        }
++    }
+     const overrideMap = getErrorMap();
+     const issue = makeIssue({
+         issueData: issueData,
+diff --git a/v3/helpers/parseUtil.cjs b/v3/helpers/parseUtil.cjs
+index 36cf2d833..8799ffe3e 100644
+--- a/v3/helpers/parseUtil.cjs
++++ b/v3/helpers/parseUtil.cjs
+@@ -3,7 +3,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
+     return (mod && mod.__esModule) ? mod : { "default": mod };
+ };
+ Object.defineProperty(exports, "__esModule", { value: true });
+-exports.isAsync = exports.isValid = exports.isDirty = exports.isAborted = exports.OK = exports.DIRTY = exports.INVALID = exports.ParseStatus = exports.EMPTY_PATH = exports.makeIssue = void 0;
++exports.isAsync = exports.isValid = exports.isDirty = exports.isAborted = exports.OK = exports.DIRTY = exports.INVALID = exports.ParseStatus = exports.SKYANCHOR_PARSE_LIMITS = exports.EMPTY_PATH = exports.makeIssue = void 0;
++exports.exhaustParseBudget = exhaustParseBudget;
++exports.reserveParseSlots = reserveParseSlots;
++exports.enterParse = enterParse;
+ exports.addIssueToContext = addIssueToContext;
+ const errors_js_1 = require("../errors.cjs");
+ const en_js_1 = __importDefault(require("../locales/en.cjs"));
+@@ -37,7 +40,80 @@ const makeIssue = (params) => {
+ };
+ exports.makeIssue = makeIssue;
+ exports.EMPTY_PATH = [];
++exports.SKYANCHOR_PARSE_LIMITS = Object.freeze({
++    nodes: 16384,
++    slots: 32768,
++    issues: 128,
++    depth: 64,
++    collection: 4096,
++});
++function exhaustParseBudget(ctx) {
++    const budget = ctx.common.budget;
++    if (!budget || budget.exceeded)
++        return;
++    budget.exceeded = true;
++    budget.rootIssues.push({
++        code: "custom",
++        path: [],
++        message: "Validation resource limit exceeded",
++    });
++}
++/** Reserve schema-driven fanout before constructing child pairs, contexts or promises. */
++function reserveParseSlots(ctx, slots) {
++    const budget = ctx.common.budget;
++    if (!budget || budget.exceeded)
++        return false;
++    if (slots > exports.SKYANCHOR_PARSE_LIMITS.collection ||
++        budget.slots + slots > exports.SKYANCHOR_PARSE_LIMITS.slots) {
++        exhaustParseBudget(ctx);
++        return false;
++    }
++    budget.slots += slots;
++    return true;
++}
++function enterParse(input) {
++    const ctx = input.parent;
++    const budget = ctx.common.budget ?? (ctx.common.budget = {
++        nodes: 0, slots: 0, issues: 0, depth: 0,
++        exceeded: false, rootIssues: ctx.common.issues,
++    });
++    if (budget.exceeded)
++        return;
++    let slots = 0;
++    const data = input.data;
++    if (Array.isArray(data))
++        slots = data.length;
++    else if (typeof Map !== "undefined" && data instanceof Map)
++        slots = data.size * 2;
++    else if (typeof Set !== "undefined" && data instanceof Set)
++        slots = data.size;
++    else if (data !== null && typeof data === "object") {
++        for (const _key in data) {
++            if (++slots > exports.SKYANCHOR_PARSE_LIMITS.collection)
++                break;
++        }
++    }
++    if (++budget.nodes > exports.SKYANCHOR_PARSE_LIMITS.nodes ||
++        budget.depth >= exports.SKYANCHOR_PARSE_LIMITS.depth ||
++        input.path.length > exports.SKYANCHOR_PARSE_LIMITS.depth ||
++        slots > exports.SKYANCHOR_PARSE_LIMITS.collection ||
++        (budget.slots += slots) > exports.SKYANCHOR_PARSE_LIMITS.slots) {
++        exhaustParseBudget(ctx);
++        return;
++    }
++    budget.depth++;
++    return budget;
++}
+ function addIssueToContext(ctx, issueData) {
++    const budget = ctx.common.budget;
++    if (budget) {
++        if (budget.exceeded)
++            return;
++        if (budget.issues++ >= exports.SKYANCHOR_PARSE_LIMITS.issues) {
++            exhaustParseBudget(ctx);
++            return;
++        }
++    }
+     const overrideMap = (0, errors_js_1.getErrorMap)();
+     const issue = (0, exports.makeIssue)({
+         issueData: issueData,

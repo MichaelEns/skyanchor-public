@@ -1,0 +1,24 @@
+version: 2
+# Official release candidates own application dependency updates; the full audit
+# runs weekly in the exact candidate gate; maintenance discovery runs weekly.
+# Disable routine mixed native/npm PRs, without disabling security updates.
+updates:
+  - package-ecosystem: npm
+    directory: /
+    cooldown:
+      default-days: 7
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 3
+    groups:
+      personal-ci:
+        patterns: ['*']
+        update-types: [minor, patch]
