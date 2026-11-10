@@ -1305,6 +1305,7 @@ try {
             ?.getBoundingClientRect().top,
         phonePlace.anchor,
       )
+    await phonePage.waitForLoadState('networkidle')
     const phoneBefore = await phoneTop()
     await phonePage.reload()
     await phonePage.getByTestId('HomeScreen').waitFor()
