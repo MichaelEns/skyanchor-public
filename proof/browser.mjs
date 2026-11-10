@@ -1274,6 +1274,7 @@ try {
       mockUpstream,
       did: didA,
       report,
+      worker,
     })
   const initialKeys = await page
     .locator('[data-skyanchor-key]')

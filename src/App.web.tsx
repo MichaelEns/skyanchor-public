@@ -39,6 +39,7 @@ import {
   useSession,
   useSessionApi,
 } from '#/state/session'
+import {isSessionResumeCredentialsError} from '#/state/session/session-core'
 import {readLastActiveAccount} from '#/state/session/util'
 import {Provider as ShellStateProvider} from '#/state/shell'
 import {Provider as ComposerProvider} from '#/state/shell/composer'
@@ -82,6 +83,7 @@ import {
   StartupConfigStatus,
   startupPhase,
   StartupRecovery,
+  StartupSignIn,
 } from '#/features/skyanchor/StartupRecovery'
 import * as Geo from '#/geolocation'
 import {Splash} from '#/Splash'
@@ -99,7 +101,8 @@ void prefetchAppConfig()
 
 function InnerApp() {
   const [isReady, setIsReady] = useState(false)
-  const [failed, setFailed] = useState(false)
+  const [failed, setFailed] = useState<{accountDid?: string} | undefined>()
+  const [signInAccountDid, setSignInAccountDid] = useState<string>()
   const [attempt, setAttempt] = useState(0)
   const {currentAccount} = useSession()
   const {resumeSession} = useSessionApi()
@@ -111,7 +114,7 @@ function InnerApp() {
   useEffect(() => {
     let active = true
     startupPhase('session')
-    setFailed(false)
+    setFailed(undefined)
     async function onLaunch(account?: SessionAccount) {
       try {
         if (account) {
@@ -122,7 +125,11 @@ function InnerApp() {
       } catch (e) {
         logger.warn('session: resumeSession failed', {message: e})
         if (active) {
-          setFailed(true)
+          setFailed({
+            accountDid: isSessionResumeCredentialsError(e)
+              ? account?.did
+              : undefined,
+          })
           startupPhase('blocked')
         }
         return
@@ -139,7 +146,8 @@ function InnerApp() {
   useEffect(() => {
     // Another tab may finish an account switch while this launch was superseded.
     if (currentAccount) {
-      setFailed(false)
+      setSignInAccountDid(undefined)
+      setFailed(undefined)
       setIsReady(true)
     }
   }, [currentAccount])
@@ -158,6 +166,12 @@ function InnerApp() {
         <ContextMenuProvider>
           {failed && (
             <StartupRecovery
+              accountDid={failed.accountDid}
+              onSignIn={() => {
+                setSignInAccountDid(failed.accountDid)
+                setFailed(undefined)
+                setIsReady(true)
+              }}
               onRetry={() => {
                 startupPhase('retry')
                 setAttempt(value => value + 1)
@@ -183,6 +197,18 @@ function InnerApp() {
                                 <LabelDefsProvider>
                                   <ModerationOptsProvider>
                                     <LoggedOutViewProvider>
+                                      {signInAccountDid && !currentAccount && (
+                                        <StartupSignIn
+                                          accountDid={signInAccountDid}
+                                          onCancel={() => {
+                                            setFailed({
+                                              accountDid: signInAccountDid,
+                                            })
+                                            setSignInAccountDid(undefined)
+                                            setIsReady(false)
+                                          }}
+                                        />
+                                      )}
                                       <SelectedFeedProvider>
                                         <HiddenRepliesProvider>
                                           <HomeBadgeProvider>

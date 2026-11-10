@@ -1,4 +1,4 @@
-import {type Client} from '@atproto/lex'
+import {type Client, XrpcResponseError} from '@atproto/lex'
 import {
   PasswordSession,
   type PasswordSessionOptions,
@@ -42,6 +42,17 @@ export {
   sessionDataToSessionAccount,
 } from './session-data'
 export type {AtpSessionEvent} from './types'
+
+export function isSessionResumeCredentialsError(error: unknown): boolean {
+  if (!(error instanceof XrpcResponseError)) return false
+  const response: XrpcResponseError = error
+  return (
+    response.method.nsid === 'com.atproto.server.refreshSession' &&
+    !response.shouldRetry() &&
+    response.matchesSchemaErrors() &&
+    (response.error === 'InvalidToken' || response.error === 'ExpiredToken')
+  )
+}
 
 /**
  * The service the bundle authenticated against.

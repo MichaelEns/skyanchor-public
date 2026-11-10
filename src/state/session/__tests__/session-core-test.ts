@@ -5,6 +5,7 @@ import {
 } from '@atproto/lex-password-session'
 import {beforeEach, describe, expect, it, jest} from '@jest/globals'
 
+import {com} from '#/lexicons'
 import {type SessionAccount} from '../types'
 
 jest.mock('#/state/events', () => ({
@@ -97,6 +98,7 @@ import {
   createSessionBundleFromStoredAccount,
   disposeBundle,
   finishPreparation,
+  isSessionResumeCredentialsError,
   makeSessionHooks,
   registerBundleKillSwitch,
   sessionAccountToSessionData,
@@ -117,6 +119,67 @@ import {
 
 describe('bounded web startup', () => {
   afterEach(() => jest.useRealTimers())
+
+  it.each(['InvalidToken', 'ExpiredToken'])(
+    'classifies a real SDK refresh %s without changing stored credentials',
+    async code => {
+      const stored = makeAccount({service: PDS_URL, pdsUrl: PDS_URL})
+      const bytes = JSON.stringify(stored)
+      const change = jest.fn()
+      const fetch = makeMockFetch({
+        'com.atproto.server.refreshSession': () =>
+          json({error: code, message: 'Fixture invalid refresh'}, 401),
+      })
+      await withFreshFactory(asFetch(fetch), async core => {
+        const error = await core
+          .createSessionBundleAndResume(stored, change, {
+            signal: new AbortController().signal,
+          })
+          .catch((error: unknown) => error)
+        expect(core.isSessionResumeCredentialsError(error)).toBe(true)
+        expect(change).not.toHaveBeenCalled()
+        expect(JSON.stringify(stored)).toBe(bytes)
+        expect(fetch).toHaveBeenCalledTimes(1)
+      })
+    },
+  )
+
+  it('does not classify transient failures, untyped messages or unrelated 401s as invalid startup credentials', () => {
+    const responseError = (
+      method:
+        | typeof com.atproto.server.refreshSession.main
+        | typeof com.atproto.server.getSession.main,
+      error: string,
+      status: number,
+    ) =>
+      new XrpcResponseError(method, new Response(null, {status}), {
+        encoding: 'application/json',
+        body: {error},
+      })
+    for (const error of [
+      new Error('InvalidToken'),
+      new TypeError('Network request failed'),
+      new DOMException('Aborted', 'AbortError'),
+      responseError(
+        com.atproto.server.refreshSession.main,
+        'UpstreamFailure',
+        503,
+      ),
+      responseError(
+        com.atproto.server.refreshSession.main,
+        'InvalidToken',
+        503,
+      ),
+      responseError(
+        com.atproto.server.refreshSession.main,
+        'AuthenticationRequired',
+        401,
+      ),
+      responseError(com.atproto.server.getSession.main, 'InvalidToken', 401),
+    ]) {
+      expect(isSessionResumeCredentialsError(error)).toBe(false)
+    }
+  })
 
   it('aborts a hung real expired regional refresh without committing or expiring stored credentials', async () => {
     jest.useFakeTimers()
@@ -1153,3 +1216,4 @@ describe('a throwing onSessionChange does not brick the session', () => {
     ).resolves.toBeDefined()
   })
 })
+import {XrpcResponseError} from '@atproto/lex'

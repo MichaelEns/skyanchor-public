@@ -1,5 +1,7 @@
+import {useLayoutEffect} from 'react'
 import {Trans, useLingui} from '@lingui/react/macro'
 
+import {useLoggedOutViewControls} from '#/state/shell/logged-out'
 import {atoms as a, useTheme} from '#/alf'
 import {Button, ButtonText} from '#/components/Button'
 import {Text} from '#/components/Typography'
@@ -49,7 +51,47 @@ export function StartupConfigStatus() {
   )
 }
 
-export function StartupRecovery({onRetry}: {onRetry: () => void}) {
+export function StartupSignIn({
+  accountDid,
+  onCancel,
+}: {
+  accountDid: string
+  onCancel: () => void
+}) {
+  const {t: l} = useLingui()
+  const {requestSwitchToAccount, setShowLoggedOut, clearRequestedAccount} =
+    useLoggedOutViewControls()
+  useLayoutEffect(() => {
+    requestSwitchToAccount({requestedAccount: accountDid})
+  }, [accountDid, requestSwitchToAccount])
+  return (
+    <div style={{position: 'fixed', top: 12, right: 12, zIndex: 1000}}>
+      <Button
+        label={l`Cancel sign-in`}
+        size="small"
+        color="secondary"
+        onPress={() => {
+          setShowLoggedOut(false)
+          clearRequestedAccount()
+          onCancel()
+        }}>
+        <ButtonText>
+          <Trans>Cancel sign-in</Trans>
+        </ButtonText>
+      </Button>
+    </div>
+  )
+}
+
+export function StartupRecovery({
+  onRetry,
+  accountDid,
+  onSignIn,
+}: {
+  onRetry: () => void
+  accountDid?: string
+  onSignIn: () => void
+}) {
   const t = useTheme()
   const {t: l} = useLingui()
   return (
@@ -69,17 +111,38 @@ export function StartupRecovery({onRetry}: {onRetry: () => void}) {
         background: t.atoms.bg.backgroundColor,
       }}>
       <Text style={[a.text_lg, a.text_center]}>
-        <Trans>Startup is taking longer than expected.</Trans>
+        {accountDid ? (
+          <Trans>Please sign in again.</Trans>
+        ) : (
+          <Trans>Startup is taking longer than expected.</Trans>
+        )}
       </Text>
       <Text style={[a.text_center]}>
-        <Trans>
-          Check your connection and try again. Your saved account and reading
-          place have not been cleared.
-        </Trans>
+        {accountDid ? (
+          <Trans>
+            Your session is no longer valid. Your saved account and reading
+            place have not been cleared.
+          </Trans>
+        ) : (
+          <Trans>
+            Check your connection and try again. Your saved account and reading
+            place have not been cleared.
+          </Trans>
+        )}
       </Text>
-      <Button label={l`Retry`} size="large" color="primary" onPress={onRetry}>
+      <Button
+        label={accountDid ? l`Sign in again` : l`Retry`}
+        size="large"
+        color="primary"
+        onPress={() => {
+          if (accountDid) {
+            onSignIn()
+          } else {
+            onRetry()
+          }
+        }}>
         <ButtonText>
-          <Trans>Retry</Trans>
+          {accountDid ? <Trans>Sign in again</Trans> : <Trans>Retry</Trans>}
         </ButtonText>
       </Button>
     </div>

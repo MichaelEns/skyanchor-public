@@ -31,7 +31,12 @@ acceptance are separate owner responsibilities and are not claimed.
 
 Web startup bounds uncached geolocation to 3 seconds and session resume to
 10 seconds. A failed resume offers Retry without clearing credentials or the
-saved window. Optional age-assurance prefetch no longer gates web resume;
+saved window.
+Definitive SDK refresh-token rejection instead offers **Sign in again**, opening
+the normal login form for the saved account. Cancel returns to recovery without
+clearing credentials or reading data; only successful sign-in replaces tokens.
+Network failures, timeouts and temporary service errors retain bounded Retry.
+Optional age-assurance prefetch no longer gates web resume;
 mounted queries retain their fail-closed loading/error behavior and bound their
 requests to 8 seconds. On web, an unknown country caps age-assurance access at
 Safe, even with cached adult metadata or assured/full server state. Minimum-age

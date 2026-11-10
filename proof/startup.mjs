@@ -10,6 +10,7 @@ export async function verifyStartup({
   mockUpstream,
   did,
   report,
+  worker,
 }) {
   await seedPage
     .locator('[data-skyanchor-key]')
@@ -37,6 +38,10 @@ export async function verifyStartup({
     'geo-cached-adult',
     'refresh',
     'foreground',
+    'invalid-refresh',
+    'expired-refresh',
+    'unavailable-refresh',
+    'aborted-refresh',
     'age',
     'chunk',
     'locale',
@@ -125,7 +130,13 @@ export async function verifyStartup({
       }
       record.value = JSON.stringify(cache)
     }
-    if (scenario === 'refresh' || scenario === 'foreground') {
+    const refreshScenario =
+      scenario === 'refresh' ||
+      scenario === 'foreground' ||
+      scenario.endsWith('-refresh')
+    const needsSignIn =
+      scenario === 'invalid-refresh' || scenario === 'expired-refresh'
+    if (refreshScenario) {
       const entry = entries.find(entry => entry.name === 'BSKY_STORAGE')
       const data = JSON.parse(entry.value)
       for (const account of [
@@ -170,6 +181,10 @@ export async function verifyStartup({
     const pageErrors = []
     const unexpectedFailures = []
     let current
+    const cloudBefore = await worker.db
+      .prepare('SELECT state, revision FROM places WHERE did = ?')
+      .bind(did)
+      .first()
     try {
       await mockUpstream(context)
       if (scenario.startsWith('fade-')) {
@@ -203,7 +218,7 @@ export async function verifyStartup({
         scenario === 'cached-geo'
           ? url.origin === origin &&
             url.pathname === '/api/skyanchor/geolocation/geolocation'
-          : scenario === 'refresh' || scenario === 'foreground'
+          : refreshScenario
             ? url.pathname === '/xrpc/com.atproto.server.refreshSession'
             : scenario === 'age'
               ? url.pathname === '/xrpc/app.bsky.ageassurance.getConfig'
@@ -217,10 +232,25 @@ export async function verifyStartup({
                       url.pathname,
                     ))
       await context.route('**/*', async route => {
-        if (!hanging && route.request().isNavigationRequest()) release()
         if (hanging && matches(new URL(route.request().url()))) {
           reached++
+          if (needsSignIn || scenario === 'unavailable-refresh') {
+            return route.fulfill({
+              status: needsSignIn ? 401 : 503,
+              contentType: 'application/json',
+              body: JSON.stringify({
+                error:
+                  scenario === 'invalid-refresh'
+                    ? 'InvalidToken'
+                    : scenario === 'expired-refresh'
+                      ? 'ExpiredToken'
+                      : 'UpstreamFailure',
+                message: 'Fixture refresh unavailable',
+              }),
+            })
+          }
           heldRequests.add(route.request())
+          if (scenario === 'aborted-refresh') return route.abort('failed')
           await held
         }
         await route.fallback()
@@ -246,7 +276,12 @@ export async function verifyStartup({
             url.pathname === '/xrpc/com.atproto.repo.getRecord' &&
             url.searchParams.get('collection') ===
               'chat.bsky.actor.declaration' &&
-            url.searchParams.get('rkey') === 'self')
+            url.searchParams.get('rkey') === 'self') ||
+          (hanging &&
+            refreshScenario &&
+            matches(url) &&
+            response.status() === (needsSignIn ? 401 : 503) &&
+            (needsSignIn || scenario === 'unavailable-refresh'))
         ))
           pageErrors.push(
             `Unexpected startup HTTP ${response.status()} ${url.pathname}`,
@@ -268,6 +303,10 @@ export async function verifyStartup({
         })
       }
       const recovery = current.getByRole('button', {name: 'Retry', exact: true})
+      const signInAgain = current.getByRole('button', {
+        name: 'Sign in again',
+        exact: true,
+      })
       const regionalRetry = current.getByRole('button', {
         name: 'Retry regional configuration',
         exact: true,
@@ -277,6 +316,7 @@ export async function verifyStartup({
           .getByTestId('HomeScreen')
           .or(recovery)
           .or(regionalRetry)
+          .or(signInAgain)
           .filter({visible: true})
           .first(),
       ).toBeVisible({
@@ -291,6 +331,79 @@ export async function verifyStartup({
         () =>
           document.documentElement.dataset.skyanchorStartupPhase ?? 'scripts',
       )
+      if (refreshScenario) {
+        await expect(needsSignIn ? signInAgain : recovery).toBeVisible()
+        await expect(needsSignIn ? recovery : signInAgain).toHaveCount(0)
+        assert.equal(
+          await current.evaluate(key => localStorage.getItem(key), readingKey),
+          saved,
+        )
+        const sessionBytes = entries.find(
+          entry => entry.name === 'BSKY_STORAGE',
+        ).value
+        assert.equal(
+          await current.evaluate(() => localStorage.getItem('BSKY_STORAGE')),
+          sessionBytes,
+        )
+        await current.waitForTimeout(300)
+        assert.equal(
+          reached,
+          1,
+          'Startup failure cannot automatically retry refresh',
+        )
+        if (needsSignIn) {
+          await signInAgain.click()
+          await expect(current.getByTestId('loginUsernameInput')).toHaveValue(
+            'reader.test',
+          )
+          await expect(current.getByTestId('loginPasswordInput')).toBeVisible()
+          if (scenario === 'invalid-refresh') {
+            await current
+              .getByRole('button', {name: 'Cancel sign-in', exact: true})
+              .click()
+            await expect(signInAgain).toBeVisible()
+            await expect(current.getByTestId('signIn')).toHaveCount(0)
+            assert.equal(
+              await current.evaluate(
+                key => localStorage.getItem(key),
+                readingKey,
+              ),
+              saved,
+            )
+            assert.equal(
+              await current.evaluate(() =>
+                localStorage.getItem('BSKY_STORAGE'),
+              ),
+              sessionBytes,
+            )
+            assert.equal(
+              reached,
+              1,
+              'Canceling password entry must not renew automatically',
+            )
+            await signInAgain.click()
+            await expect(
+              current.getByTestId('loginPasswordInput'),
+            ).toBeVisible()
+            assert.equal(
+              reached,
+              1,
+              'Reopening password entry must not renew an invalid token',
+            )
+          }
+          assert.deepEqual(
+            await worker.db
+              .prepare('SELECT state, revision FROM places WHERE did = ?')
+              .bind(did)
+              .first(),
+            cloudBefore,
+          )
+          await current
+            .getByTestId('loginPasswordInput')
+            .fill('synthetic-startup-password')
+          await current.getByTestId('loginNextButton').click()
+        }
+      }
       if (scenario === 'geo-cached-adult') {
         await expect(current.getByTestId('moderationScreen')).toBeVisible()
         const adultToggle = current.getByRole('checkbox', {
@@ -347,6 +460,12 @@ export async function verifyStartup({
       hanging = false
       if (scenario === 'foreground')
         await current.clock.setSystemTime(new Date())
+      const reload =
+        scenario === 'chunk' || scenario === 'locale'
+          ? current.waitForEvent('framenavigated', {
+              predicate: frame => frame === current.mainFrame(),
+            })
+          : undefined
       if (await recovery.isVisible()) {
         if (scenario === 'chunk') {
           // WebKit can withhold animation frames while a deferred script hangs.
@@ -386,6 +505,7 @@ export async function verifyStartup({
           await recovery.click({noWaitAfter: true})
         }
       }
+      if (reload) await reload
       release()
       if (scenario === 'geo' || scenario === 'geo-cached-adult') {
         await current.evaluate(() => window.dispatchEvent(new Event('online')))
@@ -410,6 +530,24 @@ export async function verifyStartup({
       }
       await current.getByTestId('HomeScreen').waitFor({timeout: 20_000})
       await current.getByTestId('skyanchor-reading-button').waitFor()
+      if (needsSignIn) {
+        const authenticated = await current.evaluate(
+          () =>
+            JSON.parse(localStorage.getItem('BSKY_STORAGE')).session
+              .currentAccount,
+        )
+        const previous = JSON.parse(
+          entries.find(entry => entry.name === 'BSKY_STORAGE').value,
+        ).session.currentAccount
+        assert.equal(authenticated.did, did)
+        assert.notEqual(authenticated.refreshJwt, previous.refreshJwt)
+        await expect(
+          current.getByRole('button', {name: 'Cancel sign-in', exact: true}),
+        ).toHaveCount(0)
+        report.checks.push(
+          `${phone ? 'WebKit phone' : 'Chromium'}: ${scenario} offers real account-prefilled sign-in, preserves reading and cloud progress, and updates credentials only after successful login.`,
+        )
+      }
       await expect
         .poll(
           () =>
@@ -428,6 +566,14 @@ export async function verifyStartup({
         )
         .toBeLessThanOrEqual(2)
       assert.deepEqual(pageErrors, [])
+      assert.deepEqual(
+        await worker.db
+          .prepare('SELECT state, revision FROM places WHERE did = ?')
+          .bind(did)
+          .first(),
+        cloudBefore,
+        'Startup recovery and legitimate sign-in cannot write cloud progress',
+      )
       assert.deepEqual(
         unexpectedFailures,
         [],
