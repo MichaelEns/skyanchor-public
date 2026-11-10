@@ -2,8 +2,12 @@
 
 ## Status and owner prerequisites
 
-The sanitized source is public; Actions and automatic merging remain disabled
-pending owner verification and protected-check acceptance.
+The sanitized source is public at
+[MichaelEns/skyanchor-public](https://github.com/MichaelEns/skyanchor-public).
+All four workflows are active. Native-token policy, full required candidate CI
+and protected automatic merging have been accepted without administrator bypass,
+self-approval or fabricated statuses. The original private source history,
+live application and saved data remain unchanged.
 Never push the private repository, a private commit, bundle, object database or
 release ledger. The first public commit must be a clean, parentless sanitized
 snapshot with the owner's GitHub no-reply author and committer. Keep the private
@@ -12,7 +16,8 @@ licenses. The upstream pin is public provenance, not a private merge base.
 The official remote tag is `1.137.0` (release name `release1.137.0`); the pin
 is validated against the real public tag rather than inferring a tag name.
 
-Publication and activation are **blocked** until the owner verifies an effective
+For initial setup or reactivation, publication and activation must remain
+**blocked** until the owner verifies an effective
 personal no-paid-usage policy. Net usage of $0 and billing endpoint 404 responses
 are not evidence of an enforced stop. In personal GitHub Settings > Billing >
 Budgets and alerts, set an Actions product budget of $0 and enable **Stop usage
@@ -24,9 +29,17 @@ issue may attest to the verified configuration without exposing billing data.
 The owner verified an account-wide $0 Actions budget with Stop usage enabled
 after a settings-page reload at setup. Private verification evidence remains
 outside source. This is an owner attestation, not an API-verified billing claim.
-The owner reports public visibility and strict app-bound main protection
-configured. Native-token preflight and actual protected-merge acceptance remain
-parent-only prerequisites; this source does not claim those have completed.
+Public visibility, strict app-bound main protection, administrator enforcement,
+all-external-contributor workflow approval and read-only default tokens are
+configured. Native-token policy and full candidate CI succeeded in
+[run 42788352969](https://github.com/MichaelEns/skyanchor-public/actions/runs/42788352969).
+[PR #3](https://github.com/MichaelEns/skyanchor-public/pull/3) waited for required
+[run 42788488611](https://github.com/MichaelEns/skyanchor-public/actions/runs/42788488611)
+to succeed, then GitHub automatically merged it at 2026-11-10T09:32:01Z as
+`bca90527b16e58fc135f7eb333b9fbfb77a4d644`. Protection remained enforced.
+The additional main check
+[42791503051](https://github.com/MichaelEns/skyanchor-public/actions/runs/42791503051)
+was still in progress at this documentation update; no success is claimed for it.
 
 Before any push, independently review every reachable new Git object with
 private markers held outside this repository. Run the publication inventory,
@@ -46,8 +59,8 @@ initial full-tree commit is recorded separately in the local publication review.
 Owning automation/security script tests and the complete release gate remain
 mandatory; this matcher does not exempt them from their declared verification.
 
-The parent alone creates/configures `MichaelEns/skyanchor-public` after review
-and verified zero-spend policy. Use standard public Windows/Ubuntu runners only.
+Only the owner configures the public repository after review and verified
+zero-spend policy. Use standard public Windows/Ubuntu runners only.
 No CI artifacts, caches, packages, signing, deployments, cloud secrets or AI jobs
 are permitted. Ordinary application use does not run Actions.
 
@@ -96,12 +109,12 @@ Setup never mutates the API readback. The owning regression loads the actual
 published `fb76bfb` validator and proves it accepts this canonical output
 while still rejecting the unclassified raw personal response.
 
-The parent runs the reviewed local fix branch with `GH_REPOSITORY` set to
+For future owner-admin re-verification, run the reviewed source with `GH_REPOSITORY` set to
 `MichaelEns/skyanchor-public`, `SKYANCHOR_ADMIN_POLICY_EVIDENCE` set to
-`https://github.com/MichaelEns/skyanchor-public/issues/2` and its personal
-owner token in local `GH_TOKEN`, then invokes
+`https://github.com/MichaelEns/skyanchor-public/issues/2` and the personal
+owner token in local `GH_TOKEN`, then invoke
 `node scripts/skyanchor/upstream.mjs verify-setup`. Keep the token outside CI
-and source. Review that output before setting the attestation variable; the
+and source. Review that output before setting the attestation variable; every
 fix PR must satisfy the existing required check without an administrator bypass.
 
 Runtime policy validates that owner attestation, then uses ordinary public
@@ -113,12 +126,13 @@ to the attestation. Strict up-to-date/no-bypass/fork-approval settings remain
 owner-admin verified, not falsely claimed runtime admin reads. GitHub's strict
 server-side protection remains authoritative for every merge.
 
-**Activation remains blocked until the parent exercises the actual native
-public `GITHUB_TOKEN` against these runtime endpoints.** Local request fixtures
+The actual native public `GITHUB_TOKEN` policy preflight has passed. For any
+new setup, **activation must remain blocked until that preflight succeeds**.
+Local request fixtures
 do not establish API access or response shape. If public branch metadata omits
 the required enforcement/app fields, stop for a reviewed least-privilege
 alternative; do not broaden credentials or treat omitted fields as safe.
-For that preflight, leave maintenance and the other workflows disabled and
+For a new preflight, leave maintenance and the other workflows disabled and
 enable only the candidate workflow after owner setup. Its trusted policy step
 must pass with the native token before dependency installation or candidate
 execution. Keep maintenance disabled until that actual response is reviewed.
@@ -141,14 +155,24 @@ push the reviewed source, configure protection/fork approval/attestations, then
 enable Actions and dispatch the actual main check. Disabled activation after
 that produces a failed required context, not a skipped green gate.
 
-Exercise the exact-head check and protected merge on a harmless reviewed
-documentation PR first. Dispatch the candidate workflow on its exact branch,
+The exact-head check and protected automatic merge were exercised on reviewed
+PR #3. For any new setup, exercise protected acceptance before maintenance:
+dispatch the candidate workflow on the reviewed PR's exact branch,
 verify the Actions check belongs to that head and trusted workflow, and merge
 without administrator bypass or fabricated statuses. Do not change the
-upstream pin to invent a release for this exercise. Remote acceptance remains a
-parent responsibility; local tests are not evidence it happened.
+upstream pin to invent a release for this exercise. Remote acceptance remains an
+owner responsibility; local tests alone are not evidence it happened.
 
 ## Maintenance protocol
+
+The actual native-token maintenance
+[run 42791725138](https://github.com/MichaelEns/skyanchor-public/actions/runs/42791725138)
+succeeded on the accepted main commit. Inspection found no new stable upstream
+release, so candidate verification and publication correctly skipped.
+This proves the no-update path, not an actual trivial-upstream-release landing.
+At acceptance, Actions artifact and cache inventories and repository secrets
+were all empty. Standard public runners and the verified hard-zero policy remain
+mandatory; ordinary application use consumes no Actions compute.
 
 Weekly/manual discovery accepts no arbitrary repository, ref, workflow or remote
 inputs. It validates the persisted stable tag against the official remote and
@@ -179,7 +203,9 @@ A subsequent maintenance run independently reconstructs again and requires the
 successful exact-head Actions check and matching workflow job/run. Main, tag,
 candidate, visibility and protection are checked again. The merge API receives
 the exact candidate SHA; strict server-side protection remains authoritative.
-No auto-merge flag, approval, synthetic status or bypass is used. Main advances,
+The maintenance publisher uses no auto-merge flag, approval, synthetic status or
+bypass; GitHub's queued automatic merge used for PR #3 is separate from this
+two-pass updater protocol. Main advances,
 head tampering, failed checks and unknown responses stop rather than broaden scope.
 If main advances, the stale branch requires owner cleanup/review; it is never
 force-pushed. These fail-closed pauses are intentional.

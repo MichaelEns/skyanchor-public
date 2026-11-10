@@ -13,6 +13,9 @@ supported. For an explicitly authorized deployment, make an ignored
 and review it locally. Never commit it, credentials, saved sessions or DB exports.
 There is no CI deployment. No deployment, migration or real-account acceptance
 is implied by this source snapshot. Do not replay migrations on existing data.
+The public source and guarded maintenance setup have been accepted; that work
+did not redeploy the live application or change its saved data. Public support
+uses same-origin pages and repository Issues, not a personal mailbox or namespace.
 
 Keep the Free configuration: no CPU limit override, paid binding, observability
 or remote sandbox. Assets own SPA fallback; API requests run the Worker first.
