@@ -186,6 +186,7 @@ export async function verifyStartup({
           )
       })
       const started = Date.now()
+      const thresholdMs = 20_000
       await current.goto(origin + '/', {waitUntil: 'commit'})
       if (!scenario.startsWith('fade-'))
         await expect.poll(() => reached, {timeout: 5000}).toBeGreaterThan(0)
@@ -208,8 +209,24 @@ export async function verifyStartup({
           .or(regionalRetry)
           .filter({visible: true})
           .first(),
-      ).toBeVisible({timeout: 17_000})
+      ).toBeVisible({
+        timeout: Math.max(1, thresholdMs - (Date.now() - started)),
+      })
       const elapsed = Date.now() - started
+      assert.ok(
+        elapsed <= thresholdMs,
+        'Recovery is bounded from document navigation, including script startup',
+      )
+      const bootPhase = await current.evaluate(
+        () =>
+          document.documentElement.dataset.skyanchorStartupPhase ?? 'scripts',
+      )
+      if (scenario === 'age') {
+        await expect
+          .poll(() => failures.length, {timeout: 10_000})
+          .toBeGreaterThan(0)
+        await expect(current.getByTestId('HomeScreen')).toBeVisible()
+      }
       if (['refresh', 'foreground', 'chunk', 'locale'].includes(scenario)) {
         await expect(recovery).toBeVisible()
         assert.equal(
@@ -331,7 +348,8 @@ export async function verifyStartup({
         engine: phone ? 'webkit-phone' : 'chromium',
         scenario,
         boundedUIWithinMs: elapsed,
-        thresholdMs: 17_000,
+        thresholdMs,
+        bootPhase,
         exactPlaceWithinCSSPx: 2,
         expectedHeldRequestFailures: failures.length,
       })
