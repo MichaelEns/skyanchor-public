@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import {spawnSync} from 'node:child_process'
+import {parse} from 'yaml'
 import {gitAt} from '../scripts/skyanchor/upstream.mjs'
 import {
   inspectFile,
@@ -135,6 +136,95 @@ test('Every actual workflow is public-bound, zero-storage and uses only standard
       /per-job/,
     )
   }
+})
+
+test('Every active candidate-policy caller receives the complete trusted policy environment', () => {
+  const required = {
+    GH_TOKEN: '${{ github.token }}',
+    ...Object.fromEntries(
+      [
+        'SKYANCHOR_AUTOMATION_ENABLED',
+        'SKYANCHOR_ZERO_SPEND_VERIFIED',
+        'SKYANCHOR_ZERO_SPEND_EVIDENCE',
+        'SKYANCHOR_FORK_APPROVAL_VERIFIED',
+        'SKYANCHOR_ADMIN_POLICY_ATTESTATION',
+      ].map(key => [key, '${{ vars.' + key + ' }}']),
+    ),
+  }
+  function callers(workflow) {
+    return Object.entries(workflow.jobs).flatMap(([jobName, job]) =>
+      (job.steps ?? []).flatMap((step, index) =>
+        /(?:^|[\s\\/])upstream\.mjs\s+candidate-policy(?:\s|$)/.test(
+          step.run ?? '',
+        )
+          ? [{jobName, index, env: {...workflow.env, ...job.env, ...step.env}}]
+          : [],
+      ),
+    )
+  }
+  function verify(caller, file) {
+    for (const [key, value] of Object.entries(required))
+      assert.equal(
+        caller.env[key],
+        value,
+        `${file}/${caller.jobName}/${caller.index}: ${key}`,
+      )
+  }
+  let count = 0
+  for (const file of fs
+    .readdirSync('.github/workflows')
+    .filter(file => /\.ya?ml$/.test(file))) {
+    const workflow = parse(
+      fs.readFileSync(path.join('.github/workflows', file), 'utf8'),
+    )
+    for (const caller of callers(workflow)) {
+      count++
+      verify(caller, file)
+      for (const key of Object.keys(required)) {
+        const changed = structuredClone(workflow)
+        delete changed.env?.[key]
+        delete changed.jobs[caller.jobName].env?.[key]
+        delete changed.jobs[caller.jobName].steps[caller.index].env?.[key]
+        const missing = callers(changed).find(
+          entry =>
+            entry.jobName === caller.jobName && entry.index === caller.index,
+        )
+        assert.throws(() => verify(missing, file), {code: 'ERR_ASSERTION'})
+        changed.jobs[caller.jobName].steps[caller.index].env = {
+          ...changed.jobs[caller.jobName].steps[caller.index].env,
+          [key]: '',
+        }
+        assert.throws(
+          () =>
+            verify(
+              callers(changed).find(
+                entry =>
+                  entry.jobName === caller.jobName &&
+                  entry.index === caller.index,
+              ),
+              file,
+            ),
+          {code: 'ERR_ASSERTION'},
+        )
+      }
+    }
+  }
+  assert.ok(
+    count > 0,
+    'At least one actual trusted policy caller must be checked',
+  )
+  const inherited = {
+    env: {GH_TOKEN: required.GH_TOKEN},
+    jobs: {
+      synthetic: {
+        env: Object.fromEntries(
+          Object.entries(required).filter(([key]) => key !== 'GH_TOKEN'),
+        ),
+        steps: [{run: 'node scripts/skyanchor/upstream.mjs candidate-policy'}],
+      },
+    },
+  }
+  verify(callers(inherited)[0], 'synthetic-inheritance')
 })
 
 test('Required candidate cannot skip disabled activation or continue after a failed trusted guard', () => {
