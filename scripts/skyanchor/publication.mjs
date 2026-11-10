@@ -100,7 +100,13 @@ export function inspectFile(file, bytes) {
     throw new Error(`Non-placeholder deployment identifier in ${file}`)
 }
 
-export function inspectWorkflow(file, text) {
+export function inspectWorkflow(file, text, historical = false) {
+  const requiredCandidate =
+    file === '.github/workflows/skyanchor-candidate.yml' &&
+    (!historical ||
+      text.includes('name: Require owner activation before checkout'))
+  const publicGuard =
+    "github.repository == 'MichaelEns/skyanchor-public' && github.event.repository.private == false"
   const guard =
     "github.repository == 'MichaelEns/skyanchor-public' && github.event.repository.private == false && vars.SKYANCHOR_ZERO_SPEND_VERIFIED == 'true' && vars.SKYANCHOR_AUTOMATION_ENABLED == 'true'"
   const jobs = text.split(/^jobs:\s*$/m)
@@ -114,11 +120,43 @@ export function inspectWorkflow(file, text) {
     const conditional = /^ {4}if: (.+)$/m.exec(block)?.[1]
     if (
       !conditional ||
-      !conditional.replace(/^always\(\) && /, '').startsWith(guard) ||
+      !(requiredCandidate
+        ? conditional === publicGuard
+        : conditional.replace(/^always\(\) && /, '').startsWith(guard)) ||
       [...block.matchAll(/^ {4}runs-on: (.+)$/gm)].length !== 1 ||
       !/^ {4}timeout-minutes: [1-9]\d*$/m.test(block)
     )
       throw new Error(`Missing per-job public/cost/time guard in ${file}`)
+  }
+  if (requiredCandidate) {
+    const firstStep = blocks[0].split(/^ {6}- /m)[1]
+    if (
+      blocks.length !== 1 ||
+      /continue-on-error:/.test(blocks[0]) ||
+      !/^ {4}name: SkyAnchor exact candidate$/m.test(blocks[0]) ||
+      !firstStep?.startsWith(
+        'name: Require owner activation before checkout\n',
+      ) ||
+      !firstStep.includes(
+        "throw 'Owner activation and verified setup evidence required; required check must fail, not skip'",
+      ) ||
+      !firstStep.includes(
+        "if ($env:ENABLED -ne 'true' -or $env:ZERO_SPEND -ne 'true' -or $env:FORK_APPROVAL -ne 'true' -or [string]::IsNullOrWhiteSpace($env:ADMIN_POLICY) -or $env:BUDGET_EVIDENCE -notmatch '^https://github\\.com/MichaelEns/skyanchor-public/issues/[1-9]\\d*$') {",
+      ) ||
+      firstStep.includes('continue-on-error:') ||
+      /^ {8}if:/m.test(firstStep) ||
+      !firstStep.includes('shell: pwsh') ||
+      ![
+        'ENABLED: ${{ vars.SKYANCHOR_AUTOMATION_ENABLED }}',
+        'ZERO_SPEND: ${{ vars.SKYANCHOR_ZERO_SPEND_VERIFIED }}',
+        'FORK_APPROVAL: ${{ vars.SKYANCHOR_FORK_APPROVAL_VERIFIED }}',
+        'ADMIN_POLICY: ${{ vars.SKYANCHOR_ADMIN_POLICY_ATTESTATION }}',
+        'BUDGET_EVIDENCE: ${{ vars.SKYANCHOR_ZERO_SPEND_EVIDENCE }}',
+      ].every(value => firstStep.includes(value))
+    )
+      throw new Error(
+        'Required candidate must fail before checkout when owner activation is unavailable',
+      )
   }
   for (const required of [
     "github.repository == 'MichaelEns/skyanchor-public'",
@@ -127,7 +165,10 @@ export function inspectWorkflow(file, text) {
     "vars.SKYANCHOR_AUTOMATION_ENABLED == 'true'",
     'timeout-minutes:',
   ])
-    if (!text.includes(required))
+    if (
+      !text.includes(required) &&
+      !(requiredCandidate && required.startsWith('vars.'))
+    )
       throw new Error(`Missing public/cost/time guard in ${file}`)
   if (
     /upload-artifact|download-artifact|actions\/cache|cache:\s*(?:true|npm|pnpm|yarn)|pull_request_target|workflow_run|secrets\.|self-hosted|ubuntu-\w+-\d+x|packages:\s*write|id-token:\s*write/i.test(
@@ -269,7 +310,7 @@ export function verifyPublication(root = process.cwd(), ref = 'HEAD') {
   ])
   let inventory
   const checked = new Set()
-  for (const treeEntries of entries) {
+  for (const [treeIndex, treeEntries] of entries.entries()) {
     inspectSurfaces(
       treeEntries.map(entry => entry.file),
       file => blobs.get(treeEntries.find(entry => entry.file === file).oid),
@@ -280,7 +321,7 @@ export function verifyPublication(root = process.cwd(), ref = 'HEAD') {
       if (!checked.has(key)) {
         inspectFile(file, bytes)
         if (/^\.github\/workflows\/[^/]+\.ya?ml$/.test(file))
-          inspectWorkflow(file, bytes.toString('utf8'))
+          inspectWorkflow(file, bytes.toString('utf8'), treeIndex > 0)
         checked.add(key)
       }
       return {file, mode, bytes: bytes.length, sha256: hash(bytes)}

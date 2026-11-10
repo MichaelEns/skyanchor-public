@@ -13,6 +13,7 @@ env:
   SKYANCHOR_ZERO_SPEND_VERIFIED: ${{ vars.SKYANCHOR_ZERO_SPEND_VERIFIED }}
   SKYANCHOR_ZERO_SPEND_EVIDENCE: ${{ vars.SKYANCHOR_ZERO_SPEND_EVIDENCE }}
   SKYANCHOR_FORK_APPROVAL_VERIFIED: ${{ vars.SKYANCHOR_FORK_APPROVAL_VERIFIED }}
+  SKYANCHOR_ADMIN_POLICY_ATTESTATION: ${{ vars.SKYANCHOR_ADMIN_POLICY_ATTESTATION }}
 jobs:
   inspect:
     if: github.repository == 'MichaelEns/skyanchor-public' && github.event.repository.private == false && vars.SKYANCHOR_ZERO_SPEND_VERIFIED == 'true' && vars.SKYANCHOR_AUTOMATION_ENABLED == 'true' && github.ref == 'refs/heads/main'

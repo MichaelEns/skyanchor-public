@@ -8,6 +8,8 @@ import {
   requireReleasePin,
   requireMainProtection,
   requirePublicPolicy,
+  verifyOwnerSetup,
+  verifyRuntimePolicy,
   requireReceipt,
   requireExactCheck,
   reconstruct,
@@ -38,12 +40,23 @@ const policy = {
   SKYANCHOR_ZERO_SPEND_EVIDENCE: `https://github.com/${repository}/issues/1`,
 }
 const info = {
+  id: 1452249834,
   full_name: repository,
   private: false,
   visibility: 'public',
   fork: false,
   default_branch: 'main',
   archived: false,
+}
+const attestation = {
+  schemaVersion: 1,
+  repository,
+  repositoryId: info.id,
+  defaultBranch: 'main',
+  protection,
+  forkApprovalPolicy: 'all_external_contributors',
+  additionalRulesets: [],
+  evidence: policy.SKYANCHOR_ZERO_SPEND_EVIDENCE,
 }
 
 function fixture(t) {
@@ -131,7 +144,7 @@ test('Stable release provenance uses real release tags and detects pinned tag dr
 })
 
 test('Public identity, cost evidence and strict app-bound protection fail closed', () => {
-  requirePublicPolicy(info, policy, protection)
+  requirePublicPolicy(info, policy, attestation)
   for (const change of [
     {private: true},
     {visibility: 'private'},
@@ -139,14 +152,15 @@ test('Public identity, cost evidence and strict app-bound protection fail closed
     {fork: true},
     {default_branch: 'other'},
     {archived: true},
+    {id: 1},
   ])
     assert.throws(() =>
-      requirePublicPolicy({...info, ...change}, policy, protection),
+      requirePublicPolicy({...info, ...change}, policy, attestation),
     )
   for (const key of Object.keys(policy)) {
     const changed = {...policy}
     delete changed[key]
-    assert.throws(() => requirePublicPolicy(info, changed, protection))
+    assert.throws(() => requirePublicPolicy(info, changed, attestation))
   }
   for (const change of [
     {
@@ -174,6 +188,156 @@ test('Public identity, cost evidence and strict app-bound protection fail closed
     },
   ])
     assert.throws(() => requireMainProtection({...protection, ...change}))
+})
+
+test('Owner-admin setup reads privileged policy once; omitted bypass evidence never means safe', async () => {
+  const replies = {
+    '': info,
+    'branches/main/protection': protection,
+    'actions/permissions/fork-pr-contributor-approval': {
+      approval_policy: 'all_external_contributors',
+    },
+    'rulesets?includes_parents=true': [],
+    'rules/branches/main': [],
+  }
+  const request = async endpoint => {
+    assert.ok(Object.hasOwn(replies, endpoint), endpoint)
+    return replies[endpoint]
+  }
+  const verified = await verifyOwnerSetup(request, attestation.evidence)
+  requirePublicPolicy(info, policy, verified)
+  for (const change of [
+    {protection: undefined},
+    {
+      protection: {
+        ...protection,
+        required_pull_request_reviews: {required_approving_review_count: 0},
+      },
+    },
+    {repositoryId: 1},
+    {additionalRulesets: undefined},
+    {additionalRulesets: [{id: 1}]},
+    {evidence: ''},
+    {forkApprovalPolicy: 'first_time_contributors'},
+  ])
+    assert.throws(() =>
+      requirePublicPolicy(info, policy, {...verified, ...change}),
+    )
+  await assert.rejects(
+    () =>
+      verifyOwnerSetup(async () => {
+        throw Error('HTTP 403')
+      }, attestation.evidence),
+    /403/,
+  )
+  replies['rulesets?includes_parents=true'] = [{id: 1}]
+  await assert.rejects(
+    () => verifyOwnerSetup(request, attestation.evidence),
+    /ruleset/,
+  )
+})
+
+test('Native-token runtime reads only public policy surfaces and halts on unknown or denied data', async () => {
+  const main = 'a'.repeat(40)
+  const branch = {
+    name: 'main',
+    protected: true,
+    commit: {sha: main},
+    protection: {
+      enabled: true,
+      required_status_checks: {
+        enforcement_level: 'everyone',
+        contexts: ['SkyAnchor exact candidate'],
+        checks: [{context: 'SkyAnchor exact candidate', app_id: 15368}],
+      },
+    },
+  }
+  const replies = {
+    '': info,
+    'branches/main': branch,
+    'rules/branches/main': [],
+    'git/ref/heads/main': {object: {sha: main}},
+  }
+  const variables = {
+    ...policy,
+    SKYANCHOR_ADMIN_POLICY_ATTESTATION: JSON.stringify(attestation),
+  }
+  const called = []
+  const request = async endpoint => {
+    called.push(endpoint)
+    assert.ok(
+      Object.hasOwn(replies, endpoint),
+      `Unexpected privileged endpoint: ${endpoint}`,
+    )
+    return replies[endpoint]
+  }
+  await verifyRuntimePolicy(request, variables, main)
+  assert.deepEqual(called, [
+    '',
+    'branches/main',
+    'rules/branches/main',
+    'git/ref/heads/main',
+  ])
+  for (const change of [
+    {protected: false},
+    {protection: undefined},
+    {
+      protection: {
+        ...branch.protection,
+        required_status_checks: {
+          enforcement_level: 'non_admins',
+          contexts: [],
+          checks: [],
+        },
+      },
+    },
+    {commit: {sha: 'b'.repeat(40)}},
+  ]) {
+    replies['branches/main'] = {...branch, ...change}
+    await assert.rejects(
+      () => verifyRuntimePolicy(request, variables, main),
+      /protection|advanced/,
+    )
+  }
+  replies['branches/main'] = branch
+  for (const rules of [null, {}, [{type: 'required_status_checks'}]]) {
+    replies['rules/branches/main'] = rules
+    await assert.rejects(
+      () => verifyRuntimePolicy(request, variables, main),
+      /ruleset/,
+    )
+  }
+  replies['rules/branches/main'] = []
+  await assert.rejects(
+    () =>
+      verifyRuntimePolicy(
+        request,
+        {...variables, SKYANCHOR_ADMIN_POLICY_ATTESTATION: ''},
+        main,
+      ),
+    /attestation/,
+  )
+  await assert.rejects(
+    () =>
+      verifyRuntimePolicy(
+        request,
+        {...variables, SKYANCHOR_AUTOMATION_ENABLED: ''},
+        main,
+      ),
+    /Public binding/,
+  )
+  await assert.rejects(
+    () =>
+      verifyRuntimePolicy(
+        async endpoint => {
+          if (endpoint === 'branches/main') throw Error('HTTP 403')
+          return request(endpoint)
+        },
+        variables,
+        main,
+      ),
+    /403/,
+  )
 })
 
 test('Real independent snapshot no-update leaves the exact base unchanged', t => {

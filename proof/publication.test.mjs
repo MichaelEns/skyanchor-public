@@ -2,6 +2,7 @@ import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
+import {spawnSync} from 'node:child_process'
 import {gitAt} from '../scripts/skyanchor/upstream.mjs'
 import {
   inspectFile,
@@ -135,3 +136,67 @@ test('Every actual workflow is public-bound, zero-storage and uses only standard
     )
   }
 })
+
+test('Required candidate cannot skip disabled activation or continue after a failed trusted guard', () => {
+  const file = '.github/workflows/skyanchor-candidate.yml'
+  const text = fs.readFileSync(file, 'utf8')
+  inspectWorkflow(file, text)
+  for (const changed of [
+    text.replace(
+      'github.event.repository.private == false',
+      "github.event.repository.private == false && vars.SKYANCHOR_AUTOMATION_ENABLED == 'true'",
+    ),
+    text.replace("$env:ENABLED -ne 'true'", '$false'),
+    text.replace(
+      'name: Require owner activation before checkout',
+      'name: Bypass',
+    ),
+    text.replace('shell: pwsh', 'continue-on-error: true\n        shell: pwsh'),
+    text.replace('shell: pwsh', 'if: false\n        shell: pwsh'),
+    text.replace('vars.SKYANCHOR_ADMIN_POLICY_ATTESTATION', 'vars.UNRELATED'),
+  ])
+    assert.throws(
+      () => inspectWorkflow(file, changed),
+      /per-job|Required candidate/,
+    )
+})
+
+test(
+  'Actual first candidate PowerShell guard fails for every missing owner prerequisite',
+  {skip: process.platform !== 'win32'},
+  () => {
+    const text = fs.readFileSync(
+      '.github/workflows/skyanchor-candidate.yml',
+      'utf8',
+    )
+    const script = text
+      .split('        run: |\n')[1]
+      .split('      - uses:')[0]
+      .replace(/^ {10}/gm, '')
+    const valid = {
+      ENABLED: 'true',
+      ZERO_SPEND: 'true',
+      FORK_APPROVAL: 'true',
+      ADMIN_POLICY:
+        '{"synthetic":"owner-attestation-validated-later-by-trusted-policy"}',
+      BUDGET_EVIDENCE:
+        'https://github.com/MichaelEns/skyanchor-public/issues/1',
+    }
+    const run = env => {
+      const result = spawnSync(
+        'powershell.exe',
+        ['-NoProfile', '-NonInteractive', '-Command', script],
+        {
+          env: {...process.env, ...env},
+          encoding: 'utf8',
+        },
+      )
+      if (result.error) throw result.error
+      return result.status
+    }
+    assert.equal(run(valid), 0)
+    for (const key of Object.keys(valid))
+      assert.notEqual(run({...valid, [key]: ''}), 0, key)
+    assert.notEqual(run({...valid, ENABLED: 'false'}), 0)
+  },
+)

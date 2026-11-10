@@ -60,6 +60,39 @@ self-approval; zero required approving reviews does not waive the independent
 required check. Additional or unknown rulesets halt maintenance for owner review.
 The token must be allowed to create PRs, but never bypass protection.
 
+The native `GITHUB_TOKEN` cannot request Administration permission. Reading
+`branches/main/protection` and Actions fork-contributor approval settings is an
+**owner-admin setup operation**, not a runtime workflow capability. Never put an
+owner OAuth token or an administrative credential into CI. Outside Actions,
+the owner runs `node scripts/skyanchor/upstream.mjs verify-setup` with a local
+`GH_TOKEN` authorized to read those settings and
+`SKYANCHOR_ADMIN_POLICY_EVIDENCE` set to a sanitized owner-reviewed issue URL.
+This read-only command validates the actual public repository ID, full strict
+app-bound protection, administrator enforcement, explicit empty bypass lists,
+fork approval policy and absence of additional rulesets. It prints a JSON
+attestation; install that exact output as repository variable
+`SKYANCHOR_ADMIN_POLICY_ATTESTATION`. Do not copy tokens or private billing
+evidence. Missing bypass fields are unknown, never an empty safe list.
+
+Runtime policy validates that owner attestation, then uses ordinary public
+repository/branch metadata, effective branch rules and the main ref. It requires
+`protected`, enabled protection, administrator-inclusive enforcement and the
+exact check/app binding in the live branch response. Additional rules,
+missing fields, HTTP 403 or any unknown response halt rather than fall back
+to the attestation. Strict up-to-date/no-bypass/fork-approval settings remain
+owner-admin verified, not falsely claimed runtime admin reads. GitHub's strict
+server-side protection remains authoritative for every merge.
+
+**Activation remains blocked until the parent exercises the actual native
+public `GITHUB_TOKEN` against these runtime endpoints.** Local request fixtures
+do not establish API access or response shape. If public branch metadata omits
+the required enforcement/app fields, stop for a reviewed least-privilege
+alternative; do not broaden credentials or treat omitted fields as safe.
+For that preflight, leave maintenance and the other workflows disabled and
+enable only the candidate workflow after owner setup. Its trusted policy step
+must pass with the native token before dependency installation or candidate
+execution. Keep maintenance disabled until that actual response is reviewed.
+
 Only after verifying those settings, set repository variables
 `SKYANCHOR_ZERO_SPEND_VERIFIED=true`,
 `SKYANCHOR_FORK_APPROVAL_VERIFIED=true`,
@@ -67,6 +100,16 @@ Only after verifying those settings, set repository variables
 finally `SKYANCHOR_AUTOMATION_ENABLED=true`. These variables are owner
 attestations, not a billing API or proof that GitHub has enforced a budget.
 Missing settings or unavailable APIs halt execution; never invent evidence.
+
+The required candidate job's job condition is **only public repository binding**,
+not activation flags. On this public repository it runs a fast first trusted
+PowerShell guard before checkout and fails when activation or owner evidence is
+missing. It must not be skipped merely because automation is disabled: GitHub
+can accept skipped required jobs. Private or differently bound repositories
+still run no jobs. During initial public bootstrap, keep **all Actions disabled**,
+push the reviewed source, configure protection/fork approval/attestations, then
+enable Actions and dispatch the actual main check. Disabled activation after
+that produces a failed required context, not a skipped green gate.
 
 Exercise the exact-head check and protected merge on a harmless reviewed
 documentation PR first. Dispatch the candidate workflow on its exact branch,
@@ -110,3 +153,8 @@ No auto-merge flag, approval, synthetic status or bypass is used. Main advances,
 head tampering, failed checks and unknown responses stop rather than broaden scope.
 If main advances, the stale branch requires owner cleanup/review; it is never
 force-pushed. These fail-closed pauses are intentional.
+
+Retained historical trees keep the previous workflow policy for provenance.
+The publication guard enforces the new non-skipping required-job invariant on
+the current tree while still scanning every historical tree for privacy,
+runner/capability limits and its original per-job public/cost guards.

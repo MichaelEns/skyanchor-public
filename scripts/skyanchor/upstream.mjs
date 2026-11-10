@@ -7,6 +7,7 @@ import {isDeepStrictEqual} from 'node:util'
 import {verifyPublication} from './publication.mjs'
 
 export const repository = 'MichaelEns/skyanchor-public'
+const repositoryId = 1452249834
 const official = 'https://github.com/bluesky-social/social-app.git'
 const provenancePath = 'scripts/skyanchor/upstream-provenance.json'
 const context = 'SkyAnchor exact candidate'
@@ -315,11 +316,12 @@ export function requireMainProtection(protection) {
     throw new Error('Strict app-bound protection without bypass is required')
 }
 
-export function requirePublicPolicy(info, variables, protection) {
+export function requirePublicPolicy(info, variables, attestation) {
   if (
     !info ||
     !variables ||
     info.full_name !== repository ||
+    info.id !== repositoryId ||
     info.private !== false ||
     info.visibility !== 'public' ||
     info.fork !== false ||
@@ -335,13 +337,97 @@ export function requirePublicPolicy(info, variables, protection) {
     throw new Error(
       'Public binding, verified hard-zero budget and fork approval evidence required',
     )
-  requireMainProtection(protection)
+  if (
+    attestation?.schemaVersion !== 1 ||
+    attestation.repository !== repository ||
+    attestation.repositoryId !== repositoryId ||
+    attestation.defaultBranch !== 'main' ||
+    attestation.forkApprovalPolicy !== 'all_external_contributors' ||
+    !isDeepStrictEqual(attestation.additionalRulesets, []) ||
+    !/^https:\/\/github\.com\/MichaelEns\/skyanchor-public\/issues\/[1-9]\d*$/.test(
+      attestation.evidence || '',
+    )
+  )
+    throw new Error('Owner-admin setup attestation required')
+  requireMainProtection(attestation.protection)
+}
+
+export async function verifyOwnerSetup(request, evidence) {
+  const info = await request('')
+  const raw = await request('branches/main/protection')
+  requireMainProtection(raw)
+  const fork = await request('actions/permissions/fork-pr-contributor-approval')
+  const rulesets = await request('rulesets?includes_parents=true')
+  const rules = await request('rules/branches/main')
+  if (!isDeepStrictEqual(rulesets, []) || !isDeepStrictEqual(rules, []))
+    throw new Error('Unreviewed additional ruleset; owner review required')
+  const protection = Object.fromEntries(
+    [
+      'required_status_checks',
+      'enforce_admins',
+      'allow_force_pushes',
+      'allow_deletions',
+      'allow_fork_syncing',
+      'required_pull_request_reviews',
+      'restrictions',
+    ].map(key => [key, raw[key] ?? null]),
+  )
+  const attestation = {
+    schemaVersion: 1,
+    repository,
+    repositoryId: info.id,
+    defaultBranch: info.default_branch,
+    protection,
+    forkApprovalPolicy: fork.approval_policy,
+    additionalRulesets: rulesets,
+    evidence,
+  }
+  requirePublicPolicy(
+    info,
+    {
+      SKYANCHOR_AUTOMATION_ENABLED: 'true',
+      SKYANCHOR_ZERO_SPEND_VERIFIED: 'true',
+      SKYANCHOR_ZERO_SPEND_EVIDENCE: evidence,
+      SKYANCHOR_FORK_APPROVAL_VERIFIED: 'true',
+    },
+    attestation,
+  )
+  return attestation
+}
+
+export async function verifyRuntimePolicy(request, variables, main) {
+  const info = await request('')
+  const attestation = JSON.parse(
+    variables.SKYANCHOR_ADMIN_POLICY_ATTESTATION || 'null',
+  )
+  requirePublicPolicy(info, variables, attestation)
+  const branch = await request('branches/main')
+  const checks = branch.protection?.required_status_checks
+  if (
+    branch.name !== 'main' ||
+    branch.protected !== true ||
+    branch.protection?.enabled !== true ||
+    checks?.enforcement_level !== 'everyone' ||
+    !isDeepStrictEqual(checks.contexts, [context]) ||
+    !isDeepStrictEqual(checks.checks, [{context, app_id: 15368}])
+  )
+    throw new Error(
+      'Live public app-bound branch protection unavailable or changed',
+    )
+  const rules = await request('rules/branches/main')
+  if (!isDeepStrictEqual(rules, []))
+    throw new Error('Unreviewed additional ruleset; owner review required')
+  if (
+    branch.commit?.sha !== main ||
+    (await request('git/ref/heads/main')).object?.sha !== main
+  )
+    throw new Error('Main advanced')
 }
 
 async function api(endpoint, options = {}) {
   if (!process.env.GH_TOKEN) throw new Error('Scoped workflow token required')
   const response = await fetch(
-    `https://api.github.com/repos/${repository}/${endpoint}`,
+    `https://api.github.com/repos/${repository}${endpoint ? '/' + endpoint : ''}`,
     {
       ...options,
       headers: {
@@ -367,22 +453,7 @@ async function policy(trustedMain = true) {
     (trustedMain && process.env.GITHUB_REF !== 'refs/heads/main')
   )
     throw new Error('Trusted public main workflow required')
-  const infoResponse = await fetch(
-    `https://api.github.com/repos/${repository}`,
-    {headers: {Authorization: `Bearer ${process.env.GH_TOKEN}`}},
-  )
-  if (!infoResponse.ok) throw new Error('Repository visibility lookup failed')
-  const info = await infoResponse.json()
-  const protection = await api('branches/main/protection')
-  requirePublicPolicy(info, process.env, protection)
-  const fork = await api('actions/permissions/fork-pr-contributor-approval')
-  if (fork.approval_policy !== 'all_external_contributors')
-    throw new Error('All external contributors must require workflow approval')
-  const rules = await api('rules/branches/main')
-  if (!Array.isArray(rules) || rules.length)
-    throw new Error('Unreviewed additional ruleset; owner review required')
-  if ((await api('git/ref/heads/main')).object.sha !== git('rev-parse', 'HEAD'))
-    throw new Error('Main advanced')
+  await verifyRuntimePolicy(api, process.env, git('rev-parse', 'HEAD'))
 }
 
 async function discover() {
@@ -580,6 +651,19 @@ async function land(plan) {
 }
 
 async function main(action) {
+  if (action === 'verify-setup') {
+    if (process.env.GITHUB_ACTIONS)
+      throw new Error('Owner-admin verification must run outside Actions')
+    console.log(
+      JSON.stringify(
+        await verifyOwnerSetup(
+          api,
+          process.env.SKYANCHOR_ADMIN_POLICY_EVIDENCE,
+        ),
+      ),
+    )
+    return
+  }
   try {
     await policy(action !== 'candidate-policy')
     if (action === 'policy' || action === 'candidate-policy') return

@@ -14,10 +14,22 @@ concurrency:
 jobs:
   verify:
     name: SkyAnchor exact candidate
-    if: github.repository == 'MichaelEns/skyanchor-public' && github.event.repository.private == false && vars.SKYANCHOR_ZERO_SPEND_VERIFIED == 'true' && vars.SKYANCHOR_AUTOMATION_ENABLED == 'true'
+    if: github.repository == 'MichaelEns/skyanchor-public' && github.event.repository.private == false
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
+      - name: Require owner activation before checkout
+        shell: pwsh
+        env:
+          ENABLED: ${{ vars.SKYANCHOR_AUTOMATION_ENABLED }}
+          ZERO_SPEND: ${{ vars.SKYANCHOR_ZERO_SPEND_VERIFIED }}
+          FORK_APPROVAL: ${{ vars.SKYANCHOR_FORK_APPROVAL_VERIFIED }}
+          ADMIN_POLICY: ${{ vars.SKYANCHOR_ADMIN_POLICY_ATTESTATION }}
+          BUDGET_EVIDENCE: ${{ vars.SKYANCHOR_ZERO_SPEND_EVIDENCE }}
+        run: |
+          if ($env:ENABLED -ne 'true' -or $env:ZERO_SPEND -ne 'true' -or $env:FORK_APPROVAL -ne 'true' -or [string]::IsNullOrWhiteSpace($env:ADMIN_POLICY) -or $env:BUDGET_EVIDENCE -notmatch '^https://github\.com/MichaelEns/skyanchor-public/issues/[1-9]\d*$') {
+            throw 'Owner activation and verified setup evidence required; required check must fail, not skip'
+          }
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: main
@@ -33,6 +45,7 @@ jobs:
           SKYANCHOR_ZERO_SPEND_VERIFIED: ${{ vars.SKYANCHOR_ZERO_SPEND_VERIFIED }}
           SKYANCHOR_ZERO_SPEND_EVIDENCE: ${{ vars.SKYANCHOR_ZERO_SPEND_EVIDENCE }}
           SKYANCHOR_FORK_APPROVAL_VERIFIED: ${{ vars.SKYANCHOR_FORK_APPROVAL_VERIFIED }}
+          SKYANCHOR_ADMIN_POLICY_ATTESTATION: ${{ vars.SKYANCHOR_ADMIN_POLICY_ATTESTATION }}
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
