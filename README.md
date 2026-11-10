@@ -40,6 +40,11 @@ See [setup and limits](docs/skyanchor-release.md),
 Code retains its MIT license; assets have separate restrictions.
 SkyAnchor is not affiliated with or supported by Bluesky Social PBC.
 
-The intended public namespace is `MichaelEns/skyanchor-public`; existence,
-publication and automatic merging are not claimed. Neither app use nor local
-development invokes GitHub Actions.
+Source is public at [MichaelEns/skyanchor-public](https://github.com/MichaelEns/skyanchor-public).
+Required candidate CI and protected automatic merging have been exercised;
+guarded upstream maintenance is active. Its automatic scope is only verified
+small punctuation/whitespace edits in two existing upstream documentation files,
+not application, dependency or security updates. The first maintenance run found
+no new stable upstream release; no upstream update has been automatically landed.
+Neither app use nor local development invokes GitHub Actions. Publishing this
+source did not redeploy the live application.
