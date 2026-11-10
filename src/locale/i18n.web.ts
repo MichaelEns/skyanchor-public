@@ -5,6 +5,7 @@ import {enUS as defaultLocale} from 'date-fns/locale/en-US'
 
 import {sanitizeAppLanguageSetting} from '#/locale/helpers'
 import {AppLanguage} from '#/locale/languages'
+import {logger} from '#/logger'
 import {useLanguagePrefs} from '#/state/preferences'
 
 /**
@@ -313,9 +314,11 @@ export function useLocaleLanguage() {
     const sanitizedLanguage = sanitizeAppLanguageSetting(appLanguage)
 
     document.documentElement.lang = sanitizedLanguage
-    void dynamicActivate(sanitizedLanguage).then(locale => {
-      setDateLocale(locale)
-    })
+    void dynamicActivate(sanitizedLanguage).then(
+      locale => setDateLocale(locale),
+      error =>
+        logger.error('startup: language loading failed', {message: error}),
+    )
   }, [appLanguage])
 
   return dateLocale

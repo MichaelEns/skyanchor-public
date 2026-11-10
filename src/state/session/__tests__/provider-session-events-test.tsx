@@ -556,4 +556,31 @@ describe('cross-tab sync', () => {
     expect(mockDisposeBundle).toHaveBeenCalledWith(resumedBundle)
     expect(mockRebuilds.length).toBe(0)
   })
+
+  it('refuses a late resume generation after another tab has rotated the current account', async () => {
+    const account = makeAccount()
+    const {api, currentAccount} = await renderLoggedIn(
+      account,
+      makeBundle(account),
+    )
+    const lateBundle = makeBundle(account)
+    let finish!: (value: unknown) => void
+    mockResume.mockReturnValueOnce(
+      new Promise(resolve => {
+        finish = resolve
+      }),
+    )
+    const pending = api.resumeSession(account)
+    const newer = makeAccount({
+      accessJwt: 'access-jwt-newer',
+      refreshJwt: 'refresh-jwt-newer',
+    })
+    act(() => emitSynced({accounts: [newer], currentAccount: newer}))
+    await act(async () => {
+      finish({bundle: lateBundle, account})
+      expect(await pending).toBe(false)
+    })
+    expect(currentAccount()?.refreshJwt).toBe('refresh-jwt-newer')
+    expect(mockDisposeBundle).toHaveBeenCalledWith(lateBundle)
+  })
 })

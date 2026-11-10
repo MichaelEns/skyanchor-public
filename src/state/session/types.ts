@@ -44,7 +44,7 @@ export type SessionApiContext = {
   resumeSession: (
     account: SessionAccount,
     isSwitchingAccounts?: boolean,
-  ) => Promise<void>
+  ) => Promise<boolean>
   removeAccount: (account: SessionAccount) => void
   /**
    * Calls `getSession` and patches the email fields of the current account.

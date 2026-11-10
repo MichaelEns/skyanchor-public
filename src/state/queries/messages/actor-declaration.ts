@@ -117,13 +117,19 @@ export function useDeleteActorDeclaration() {
 export async function fetchActorDeclarationRecord({
   client,
   did,
+  signal,
 }: {
   client: Client
   did?: string
+  signal?: AbortSignal
 }) {
   if (!did) return
   const res = await client
-    .get(chat.bsky.actor.declaration, {repo: did as DidString, rkey: 'self'})
+    .get(chat.bsky.actor.declaration, {
+      repo: did as DidString,
+      rkey: 'self',
+      signal,
+    })
     .catch(_e => undefined)
   return res?.value
 }

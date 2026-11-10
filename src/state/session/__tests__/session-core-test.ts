@@ -93,6 +93,7 @@ jest.mock('jwt-decode', () => ({
 import {
   type AtpSessionEvent,
   buildBundle,
+  createSessionBundleAndResume,
   createSessionBundleFromStoredAccount,
   disposeBundle,
   finishPreparation,
@@ -106,12 +107,131 @@ import {
   asFetch,
   DID,
   HANDLE,
+  json,
   makeAccount,
   makeDidDoc,
   makeMockFetch,
   PDS_HOST as PDS_URL,
   SERVICE,
 } from './mock-fetch'
+
+describe('bounded web startup', () => {
+  afterEach(() => jest.useRealTimers())
+
+  it('aborts a hung real expired regional refresh without committing or expiring stored credentials', async () => {
+    jest.useFakeTimers()
+    const stored = makeAccount({pdsUrl: PDS_URL})
+    const bytes = JSON.stringify(stored)
+    const change = jest.fn()
+    const fetch = makeMockFetch({
+      'com.atproto.server.refreshSession': (_url, init) =>
+        new Promise((_resolve, reject) => {
+          init.signal!.addEventListener('abort', () =>
+            reject(new Error('aborted')),
+          )
+        }),
+    })
+    await withFreshFactory(asFetch(fetch), async core => {
+      const task = core.createSessionBundleAndResume(stored, change, {
+        signal: new AbortController().signal,
+      })
+      const rejected = expect(task).rejects.toThrow('timed out')
+      await jest.advanceTimersByTimeAsync(10000)
+      await rejected
+      expect(change).not.toHaveBeenCalled()
+      expect(JSON.stringify(stored)).toBe(bytes)
+      expect(fetch).toHaveBeenCalledTimes(1)
+      expect(jest.getTimerCount()).toBe(0)
+    })
+  })
+
+  it('does not await optional AA prefetch on the nonexpired web fast path', async () => {
+    mockPrefetchAgeAssuranceServerData.mockImplementationOnce(
+      () => new Promise(() => {}),
+    )
+    const result = await createSessionBundleAndResume(
+      makeAccount({accessJwt: 'valid-access-jwt'}),
+      jest.fn(),
+      {signal: new AbortController().signal},
+    )
+    expect(result.account.accessJwt).toBe('valid-access-jwt')
+    disposeBundle(result.bundle)
+    mockPrefetchAgeAssuranceServerData.mockReset()
+  })
+
+  it('retains tokens already rotated when optional getSession stalls, and leaves the live bundle usable', async () => {
+    jest.useFakeTimers()
+    const stored = makeAccount({service: PDS_URL, pdsUrl: PDS_URL})
+    const fetch = makeMockFetch({
+      'com.atproto.server.refreshSession': () =>
+        json({
+          accessJwt: 'access-jwt-rotated',
+          refreshJwt: 'refresh-jwt-rotated',
+          handle: HANDLE,
+          did: DID,
+          active: true,
+        }),
+      'com.atproto.server.getSession': (_url, init) =>
+        new Promise((_resolve, reject) => {
+          init.signal!.addEventListener('abort', () =>
+            reject(new Error('aborted')),
+          )
+        }),
+    })
+    await withFreshFactory(asFetch(fetch), async core => {
+      const change = jest.fn()
+      const task = core.createSessionBundleAndResume(stored, change, {
+        signal: new AbortController().signal,
+      })
+      await jest.advanceTimersByTimeAsync(10000)
+      const {account, bundle} = await task
+      expect(account.refreshJwt).toBe('refresh-jwt-rotated')
+      expect(account.pdsUrl).toBe(`${PDS_URL}/`)
+      expect(change).not.toHaveBeenCalled()
+      expect(jest.getTimerCount()).toBe(0)
+      await bundle.session.fetchHandler('/xrpc/fixture', {})
+      core.disposeBundle(bundle)
+    })
+  })
+
+  it('surfaces transient refresh failure without accepting stale credentials and a subsequent attempt recovers', async () => {
+    let offline = true
+    const fetch = makeMockFetch({
+      'com.atproto.server.refreshSession': () => {
+        if (offline) throw new TypeError('Network request failed')
+        return json({
+          accessJwt: 'access-jwt-recovered',
+          refreshJwt: 'refresh-jwt-recovered',
+          handle: HANDLE,
+          did: DID,
+          emailConfirmed: true,
+          didDoc: makeDidDoc(PDS_URL),
+          active: true,
+        })
+      },
+    })
+    const stored = makeAccount({service: PDS_URL, pdsUrl: PDS_URL})
+    const bytes = JSON.stringify(stored)
+    await withFreshFactory(asFetch(fetch), async core => {
+      const change = jest.fn()
+      await expect(
+        core.createSessionBundleAndResume(stored, change, {
+          signal: new AbortController().signal,
+        }),
+      ).rejects.toThrow('could not be resumed')
+      expect(JSON.stringify(stored)).toBe(bytes)
+      expect(change).not.toHaveBeenCalled()
+      offline = false
+      const {account, bundle} = await core.createSessionBundleAndResume(
+        stored,
+        change,
+        {signal: new AbortController().signal},
+      )
+      expect(account.refreshJwt).toBe('refresh-jwt-recovered')
+      core.disposeBundle(bundle)
+    })
+  })
+})
 
 function synthDidDoc(
   did: string,

@@ -200,5 +200,74 @@
     </div>
     <div id="root">
     </div>
+    <form id="startup-failure" action="" hidden lang="en" aria-label="Startup recovery">
+      <div role="alert">
+        <h1>SkyAnchor</h1>
+        <p>Startup is taking longer than expected.</p>
+        <p>Check your connection, then retry. Your saved account and reading place will not be cleared.</p>
+        <button type="submit">Retry</button>
+      </div>
+    </form>
+    <style>
+      #startup-failure:not([hidden]) {
+        display: flex;
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+        background: var(--background);
+        color: var(--text);
+        padding: 24px;
+      }
+      #startup-failure div { max-width: 32rem; }
+      #startup-failure button {
+        background: #287c87;
+        color: white;
+        border: 0;
+        border-radius: 24px;
+        font: inherit;
+        padding: 12px 24px;
+        cursor: pointer;
+      }
+    </style>
+    <script>
+      ;(() => {
+        let started = Date.now()
+        let timer
+        let blocked = false
+        const fallback = document.getElementById('startup-failure')
+        fallback.addEventListener('submit', event => {
+          event.preventDefault()
+          window.location.reload()
+        })
+        const check = () => {
+          if (!blocked && Date.now() - started >= 15000) fallback.hidden = false
+        }
+        const arm = () => { timer = setTimeout(check, 15000) }
+        const phase = event => {
+          if (event.detail === 'ready') {
+            clearTimeout(timer)
+            fallback.remove()
+            window.removeEventListener('skyanchor-startup', phase)
+            window.removeEventListener('pageshow', check)
+            document.removeEventListener('visibilitychange', check)
+          } else if (event.detail === 'blocked') {
+            blocked = true
+            clearTimeout(timer)
+            fallback.hidden = true
+          } else if (event.detail === 'retry') {
+            blocked = false
+            started = Date.now()
+            clearTimeout(timer)
+            arm()
+          }
+        }
+        window.addEventListener('skyanchor-startup', phase)
+        window.addEventListener('pageshow', check)
+        document.addEventListener('visibilitychange', check)
+        arm()
+      })()
+    </script>
   </body>
 </html>

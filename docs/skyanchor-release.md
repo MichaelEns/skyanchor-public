@@ -28,3 +28,21 @@ compatibility tests, continuous-history/Back/viewport/browser proofs, asset and
 license checks, strict dependency-use evidence and a fresh raw audit.
 Generated reports are local only. Physical iPhone, installed-browser and hosted
 acceptance are separate owner responsibilities and are not claimed.
+
+Web startup bounds uncached geolocation to 3 seconds and session resume to
+10 seconds. A failed resume offers Retry without clearing credentials or the
+saved window. Optional age-assurance prefetch no longer gates web resume;
+mounted queries retain their fail-closed loading/error behavior and bound their
+requests to 8 seconds. Unknown geolocation stays unknown, with a visible status
+and retry on connectivity return. A 15-second HTML watchdog also covers missing
+entry/language chunks before React recovery can render. Its minimal English
+fallback is marked `lang="en"`; normal recovery UI uses Lingui.
+
+Foreground/pageshow checks reconcile elapsed request deadlines and the splash
+fade. Successful startup removes the watchdog; it never reloads an active app.
+Only explicit Retry reloads for a pre-React failure. Existing storage and the
+service worker are not reset. This is not a full offline shell: an uncached
+critical script or an unavailable authentication server can still prevent the
+feed from opening, but must show an honest recovery screen instead of an
+indefinite anchor. Browser fixtures emulate phone-sized WebKit, not physical
+iOS process eviction or installation.

@@ -78,6 +78,11 @@ import {
   Provider as LiveEventsProvider,
 } from '#/features/liveEvents/context'
 import {PwaUpdates} from '#/features/skyanchor/PwaUpdates'
+import {
+  StartupConfigStatus,
+  startupPhase,
+  StartupRecovery,
+} from '#/features/skyanchor/StartupRecovery'
 import * as Geo from '#/geolocation'
 import {Splash} from '#/Splash'
 import {Provider as HideBottomBarBorderProvider} from './lib/hooks/useHideBottomBarBorder'
@@ -94,6 +99,8 @@ void prefetchAppConfig()
 
 function InnerApp() {
   const [isReady, setIsReady] = useState(false)
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const {currentAccount} = useSession()
   const {resumeSession} = useSessionApi()
   const theme = useColorModeTheme()
@@ -102,21 +109,40 @@ function InnerApp() {
 
   // init
   useEffect(() => {
+    let active = true
+    startupPhase('session')
+    setFailed(false)
     async function onLaunch(account?: SessionAccount) {
       try {
         if (account) {
-          await resumeSession(account)
+          if (!(await resumeSession(account))) return
         } else {
           await features.init
         }
       } catch (e) {
         logger.warn('session: resumeSession failed', {message: e})
+        if (active) {
+          setFailed(true)
+          startupPhase('blocked')
+        }
+        return
       }
-      setIsReady(true)
+      if (active) setIsReady(true)
     }
     const account = readLastActiveAccount()
     void onLaunch(account)
-  }, [resumeSession])
+    return () => {
+      active = false
+    }
+  }, [resumeSession, attempt])
+
+  useEffect(() => {
+    // Another tab may finish an account switch while this launch was superseded.
+    if (currentAccount) {
+      setFailed(false)
+      setIsReady(true)
+    }
+  }, [currentAccount])
 
   useEffect(() => {
     return listenSessionDropped(() => {
@@ -130,7 +156,16 @@ function InnerApp() {
     <Alf theme={theme}>
       <ThemeProvider theme={theme}>
         <ContextMenuProvider>
+          {failed && (
+            <StartupRecovery
+              onRetry={() => {
+                startupPhase('retry')
+                setAttempt(value => value + 1)
+              }}
+            />
+          )}
           <Splash isReady={isReady && hasCheckedLanding}>
+            <StartupConfigStatus />
             <VideoVolumeProvider>
               <ActiveVideoProvider>
                 <Fragment
@@ -203,9 +238,19 @@ function App() {
   const [isReady, setIsReady] = useState(false)
 
   useEffect(() => {
+    let active = true
+    startupPhase('storage')
     void Promise.all([initPersistedState(), Geo.resolve(), setupDeviceId]).then(
-      () => setIsReady(true),
+      () => {
+        if (active) setIsReady(true)
+      },
+      error => {
+        logger.error('startup: local initialization failed', {message: error})
+      },
     )
+    return () => {
+      active = false
+    }
   }, [])
 
   if (!isReady) {

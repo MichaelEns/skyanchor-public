@@ -5,6 +5,10 @@ import {
   type SessionData,
 } from '@atproto/lex-password-session'
 
+import {
+  createRequestDeadline,
+  withRequestDeadline,
+} from '#/lib/async/requestDeadline'
 import {PUBLIC_BSKY_SERVICE} from '#/lib/constants'
 import {canParseUrl} from '#/lib/strings/url-helpers'
 import {logger} from '#/logger'
@@ -137,12 +141,14 @@ export function makeSessionHooks({
   onSessionChange,
   getBundle,
   getDid,
+  preparationSignal,
 }: {
   onSessionChange: OnSessionChange
   /** Deferred: hooks are created before the bundle exists. */
   getBundle: () => SessionBundle
   /** Deferred: hooks are created before the bundle exists. */
   getDid: () => string
+  preparationSignal?: AbortSignal
 }) {
   let armed = false
   let killed = false
@@ -175,7 +181,22 @@ export function makeSessionHooks({
       if (killed) {
         throw new Error('session disposed')
       }
-      return networkAwareFetch(input, init)
+      return preparationSignal
+        ? withRequestDeadline(
+            'session',
+            10000,
+            async signal => {
+              const response = await networkAwareFetch(input, {...init, signal})
+              const body = await response.arrayBuffer()
+              return new Response(response.status === 204 ? null : body, {
+                status: response.status,
+                statusText: response.statusText,
+                headers: response.headers,
+              })
+            },
+            [preparationSignal, init?.signal],
+          )
+        : networkAwareFetch(input, init)
     },
     onUpdated(data) {
       dispatch('update', data)
@@ -189,6 +210,7 @@ export function makeSessionHooks({
   }
   return Object.assign(hooks, {
     arm() {
+      preparationSignal = undefined
       armed = true
     },
     kill() {
@@ -276,69 +298,100 @@ export async function finishPreparation<T>(
 /**
  * Resume a stored account into a {@link SessionBundle}. Expired sessions take a
  * network resume; still-valid stored tokens take a synchronous no-network fast
- * path. Hooks are armed only after the prepare tail resolves.
+ * path. Web startup defers optional preparation to the mounted fail-closed
+ * queries; other callers arm hooks only after the prepare tail resolves.
  */
 export async function createSessionBundleAndResume(
   storedAccount: SessionAccount,
   onSessionChange: OnSessionChange,
+  startup?: {signal: AbortSignal},
 ): Promise<{account: SessionAccount; bundle: SessionBundle}> {
+  const deadline = startup
+    ? createRequestDeadline('session', 10000, [startup.signal])
+    : undefined
   const gates = features.refresh({strategy: 'prefer-low-latency'})
+  void gates.catch(error => {
+    logger.error('session: feature preparation failed', {message: error})
+  })
   let bundle!: SessionBundle
   const hooks = makeSessionHooks({
     onSessionChange,
     getBundle: () => bundle,
     getDid: () => storedAccount.did,
+    preparationSignal: deadline?.signal,
   })
 
-  let session: PasswordSession
-  const sessionData = sessionAccountToSessionData(storedAccount)
-  if (isSessionExpired(storedAccount)) {
-    /*
-     * The arm latch swallows resume's initial onUpdated event.
-     *
-     * There is deliberately no network retry here: `resume` rejects only when
-     * the session is definitively invalid, and it swallows everything else -
-     * a failed refresh reports through `onUpdateFailure` and resolves with the
-     * stale tokens. So an offline cold start now stays signed in with dead
-     * tokens (requests fail until connectivity returns) rather than throwing
-     * the way the old `CredentialSession.resumeSession` did, and retrying a
-     * definitive rejection would only repeat a request that cannot succeed.
-     */
-    session = await PasswordSession.resume(sessionData, hooks)
-  } else {
-    // Sync fast path: trust the stored tokens, no network.
-    session = new PasswordSession(sessionData, hooks)
-  }
+  try {
+    let session: PasswordSession
+    const sessionData = sessionAccountToSessionData(storedAccount)
+    if (isSessionExpired(storedAccount)) {
+      /*
+       * The arm latch swallows resume's initial onUpdated event.
+       *
+       * There is deliberately no network retry here: `resume` rejects only when
+       * the session is definitively invalid, and it swallows everything else -
+       * a failed refresh reports through `onUpdateFailure` and resolves with the
+       * stale tokens. Bounded web startup detects that no-op below and offers
+       * Retry without committing those tokens. Other callers retain the SDK's
+       * transient-failure semantics.
+       */
+      session = await PasswordSession.resume(sessionData, hooks)
+      if (startup?.signal.aborted) throw new Error('Session resume superseded')
+      if (startup && session.session === sessionData) {
+        deadline?.throwIfAborted()
+        throw new Error('Network request failed: session could not be resumed')
+      }
+    } else {
+      // Sync fast path: trust the stored tokens, no network.
+      session = new PasswordSession(sessionData, hooks)
+    }
 
-  bundle = buildBundle(session, storedAccount.pdsUrl)
-  registerBundleKillSwitch(bundle, hooks.kill)
-  // The returned account is captured again after asynchronous preparation.
-  const earlyAccount =
-    sessionDataToSessionAccount(
-      session.session,
-      session.session.service,
-      storedAccount.pdsUrl,
-    ) ?? storedAccount
-
-  configureModerationForAccount(bundle, earlyAccount)
-  const aa = prefetchAgeAssuranceServerData({
-    appviewClient: bundle.appviewClient,
-    accountClient: bundle.pdsClient,
-  })
-
-  // Preparation may auto-refresh the session while hooks are still disarmed.
-  const account = await finishPreparation(
-    bundle,
-    Promise.all([gates, aa]),
-    () =>
+    bundle = buildBundle(session, storedAccount.pdsUrl)
+    registerBundleKillSwitch(bundle, hooks.kill)
+    // The returned account is captured again after asynchronous preparation.
+    const earlyAccount =
       sessionDataToSessionAccount(
         session.session,
         session.session.service,
         storedAccount.pdsUrl,
-      ) ?? storedAccount,
-  )
-  hooks.arm()
-  return {account, bundle}
+      ) ?? storedAccount
+
+    configureModerationForAccount(bundle, earlyAccount)
+    if (startup) {
+      /*
+       * The mounted AA queries own their loading/error UI and fail-closed data.
+       * Do not hold authentication (or freshly rotated credentials) behind
+       * optional prefetches. Native and explicit factory preparation stay intact.
+       */
+      if (startup.signal.aborted) throw new Error('Session resume superseded')
+      hooks.arm()
+      return {account: earlyAccount, bundle}
+    }
+    const aa = prefetchAgeAssuranceServerData({
+      appviewClient: bundle.appviewClient,
+      accountClient: bundle.pdsClient,
+    })
+
+    // Preparation may auto-refresh the session while hooks are still disarmed.
+    const account = await finishPreparation(
+      bundle,
+      Promise.all([gates, aa]),
+      () =>
+        sessionDataToSessionAccount(
+          session.session,
+          session.session.service,
+          storedAccount.pdsUrl,
+        ) ?? storedAccount,
+    )
+    hooks.arm()
+    return {account, bundle}
+  } catch (error) {
+    hooks.kill()
+    if (bundle) disposeBundle(bundle)
+    throw error
+  } finally {
+    deadline?.dispose()
+  }
 }
 
 /**

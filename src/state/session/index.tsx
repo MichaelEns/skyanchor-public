@@ -46,6 +46,7 @@ import {
 export type {SessionAccount} from '#/state/session/types'
 
 import {clearPersistedQueryStorage} from '#/lib/persisted-query-storage'
+import {logger} from '#/logger'
 import {
   type SessionApiContext,
   type SessionStateContext,
@@ -74,7 +75,7 @@ const ApiContext = createContext<SessionApiContext>({
   login: async () => {},
   logoutCurrentAccount: () => {},
   logoutEveryAccount: () => {},
-  resumeSession: async () => {},
+  resumeSession: () => Promise.resolve(false),
   removeAccount: () => {},
   partialRefreshSession: async () => {},
   refreshSession: () => Promise.resolve(undefined),
@@ -416,15 +417,23 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
         account: redactAccount(storedAccount),
       })
       const signal = cancelPendingTask()
-      const {bundle, account} = await createSessionBundleAndResume(
-        storedAccount,
-        onSessionChange,
-      )
+      let resumed: Awaited<ReturnType<typeof createSessionBundleAndResume>>
+      try {
+        resumed = await createSessionBundleAndResume(
+          storedAccount,
+          onSessionChange,
+          IS_WEB ? {signal} : undefined,
+        )
+      } catch (error) {
+        if (signal.aborted) return false
+        throw error
+      }
+      const {bundle, account} = resumed
 
       if (signal.aborted) {
         // The factory returns an armed bundle, so a superseded resume must dispose it.
         disposeBundle(bundle)
-        return
+        return false
       }
       /*
        * A cross-tab logout may clear or remove the account while resume is in
@@ -433,9 +442,13 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
        */
       const latest = store.getState()
       const latestEntry = latest.accounts.find(a => a.did === account.did)
-      if (!latestEntry || !latestEntry.refreshJwt) {
+      if (
+        !latestEntry?.refreshJwt ||
+        (latestEntry.refreshJwt !== storedAccount.refreshJwt &&
+          latestEntry.refreshJwt !== account.refreshJwt)
+      ) {
         disposeBundle(bundle)
-        return
+        return false
       }
       store.dispatch({
         type: 'switched-to-account',
@@ -451,6 +464,7 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
         // reset onboarding flow on switch account
         onboardingDispatch({type: 'skip'})
       }
+      return true
     },
     [store, onSessionChange, cancelPendingTask, onboardingDispatch],
   )
@@ -594,7 +608,9 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
       if (syncedAccount && syncedAccount.refreshJwt) {
         if (syncedAccount.did !== state.currentBundleState.did) {
           // The leader refreshes before broadcasting, so followers receive fresh tokens.
-          void resumeSession(syncedAccount)
+          void resumeSession(syncedAccount).catch(error => {
+            logger.warn('session: synchronized resume failed', {message: error})
+          })
         } else {
           /*
            * PasswordSession cannot be patched in place. Rebuild from the tokens
@@ -747,6 +763,7 @@ function useOneTaskAtATime() {
     abortController.current = new AbortController()
     return abortController.current.signal
   }, [])
+  useEffect(() => () => abortController.current?.abort(), [])
   return cancelPendingTask
 }
 

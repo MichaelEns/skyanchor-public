@@ -13,6 +13,7 @@ files.push(
   path.join('src', 'features', 'skyanchor'),
   path.join('scripts', 'skyanchor'),
   path.join('proof', 'browser.mjs'),
+  path.join('proof', 'startup.mjs'),
   path.join('proof', 'profile-reading.mjs'),
   path.join('proof', 'handoff.mjs'),
   path.join('proof', 'reading-panel.mjs'),
