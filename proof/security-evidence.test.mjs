@@ -26,7 +26,61 @@ import {
 import {createRequire} from 'node:module'
 import ts from 'typescript'
 import {spawnSync} from 'node:child_process'
+import {verify, X509Certificate} from 'node:crypto'
 import {parse, parseAllDocuments, stringify} from 'yaml'
+
+test('Expo certificate consumer round-trips generated keys, X.509 and CSR with the installed forge', () => {
+  const require = createRequire(import.meta.url)
+  const certificates = require('@expo/code-signing-certificates')
+  const keyPair = certificates.convertKeyPairPEMToKeyPair(
+    certificates.convertKeyPairToPEM(certificates.generateKeyPair()),
+  )
+  const now = Date.now()
+  const certificate = certificates.convertCertificatePEMToCertificate(
+    certificates.convertCertificateToCertificatePEM(
+      certificates.generateSelfSignedCodeSigningCertificate({
+        keyPair,
+        validityNotBefore: new Date(now - 60_000),
+        validityNotAfter: new Date(now + 3_600_000),
+        commonName: 'fixture.example.test',
+      }),
+    ),
+  )
+  certificates.validateSelfSignedCertificate(certificate, keyPair)
+  const pem = certificates.convertCertificateToCertificatePEM(certificate)
+  const parsed = new X509Certificate(pem)
+  assert.ok(parsed.verify(parsed.publicKey))
+  const message = Buffer.from('Synthetic local certificate compatibility')
+  const signature = certificates.signBufferRSASHA256AndVerify(
+    keyPair.privateKey,
+    certificate,
+    message,
+  )
+  assert.ok(
+    verify(
+      'sha256',
+      message,
+      parsed.publicKey,
+      Buffer.from(signature, 'base64'),
+    ),
+  )
+  assert.equal(
+    verify(
+      'sha256',
+      Buffer.from('Changed synthetic message'),
+      parsed.publicKey,
+      Buffer.from(signature, 'base64'),
+    ),
+    false,
+  )
+  const csr = certificates.convertCSRPEMToCSR(
+    certificates.convertCSRToCSRPEM(
+      certificates.generateCSR(keyPair, 'fixture.example.test'),
+    ),
+  )
+  assert.ok(csr.verify())
+  assert.equal(csr.subject.getField('CN').value, 'fixture.example.test')
+})
 
 test('Only the Expo export child receives bounded 4 GiB heap and one Metro worker without dropping source evidence', () => {
   const source = fs.readFileSync(
