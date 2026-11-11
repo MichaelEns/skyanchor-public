@@ -4,7 +4,7 @@
 
 The sanitized source is public at
 [MichaelEns/skyanchor-public](https://github.com/MichaelEns/skyanchor-public).
-All four workflows are active. Native-token policy, full required candidate CI
+The four existing workflows are active. Native-token policy, full required candidate CI
 and protected automatic merging have been accepted without administrator bypass,
 self-approval or fabricated statuses. The original private source history,
 live application and saved data remain unchanged.
@@ -162,6 +162,67 @@ verify the Actions check belongs to that head and trusted workflow, and merge
 without administrator bypass or fabricated statuses. Do not change the
 upstream pin to invent a release for this exercise. Remote acceptance remains an
 owner responsibility; local tests alone are not evidence it happened.
+
+## Owner-reviewed fix merges
+
+`skyanchor-owner-merge.yml` is a separate, dispatch-only helper, not an expansion
+of the fully automatic upstream classifier. The owner authorizes an attempt
+for one already-reviewed PR number and exact 40-character head. It neither
+reviews the code nor approves a PR. Only MichaelEns (ID 44419611), a fresh
+`workflow_dispatch` on current main in the bound public repository, may use it.
+Reruns and dispatches from other refs/actors fail. Missing activation, cost or
+owner-policy evidence fails visibly rather than skipping to a green result.
+
+The job checks out only its exact trusted main SHA, with credentials persistence
+disabled. It installs no dependencies, reads no candidate checkout, and uses no
+artifacts, caches, personal tokens or cloud credentials. Its native token has
+only contents/pull-request write and Actions/checks read permissions (checks read
+is used to inspect the exact-candidate check runs). It rechecks runtime
+policy, current main, the open same-repository PR/head/base and the latest
+successful, unskipped exact-candidate PR run from Actions app 15368, including
+check-suite, job and URL bindings. Unknown/overflow inventories halt. The
+candidate workflow blob must match trusted main, and all job steps, including
+the actual full `pnpm skyanchor:verify` step, must succeed without skips.
+Intentional candidate-workflow changes require the existing manual owner path.
+The existing strict protection and server-side conversation requirements remain
+authoritative: the only mutation is `PUT pulls/N/merge` with the reviewed `sha`
+and `merge_method: merge`. No admin bypass, approval, branch deletion, email
+override, account change or deployment is attempted.
+
+[GitHub documents the native token](https://docs.github.com/en/actions/concepts/security/github_token)
+as a repository-scoped GitHub App installation token, available through
+`github.token`; the workflow passes that value directly, not an owner OAuth
+token. The [merge REST contract](https://docs.github.com/en/rest/pulls/pulls#merge-a-pull-request)
+supports exact-head SHA matching, not an author-email parameter. This is not a
+claim that arbitrary user-token defaults preserve email privacy. After merging,
+the helper verifies the API commit's GitHub Actions bot author ID and canonical
+NoReply email, a bot NoReply or GitHub web-flow `noreply@github.com` committer,
+the two exact parents and the approved head tree. A post-merge mismatch fails
+with an explicit **merge occurred** warning; it cannot roll back a
+merge. GitHub's actual native-token attribution must be accepted remotely
+before this helper is considered operational.
+
+Bootstrap requires one normally protected, reviewed PR to land this workflow
+on main; the new workflow cannot merge its own bootstrap. After the parent's
+logic/privacy review, run the single final clean-HEAD release gate and required
+GitHub candidate CI, then merge through the existing owner path without bypass.
+Next open a harmless same-repository documentation PR and let its actual
+`SkyAnchor exact candidate` PR run finish successfully. From the owner's existing
+personal CLI authentication, dispatch:
+
+```powershell
+gh workflow run skyanchor-owner-merge.yml --repo MichaelEns/skyanchor-public --ref main -f pr_number=NUMBER -f expected_head=EXACT_40_CHARACTER_HEAD
+```
+
+Inspect that helper run and the resulting commit's bot/NoReply identities,
+parents, tree and enforced protection; a local fixture is not this acceptance.
+The helper is not claimed enabled or remotely accepted by this source change.
+After acceptance, future user-authorized fixes can use that same owner dispatch
+without a separate native-web merge/email selection; no credential handoff is
+needed. Dispatch is permission to attempt that exact reviewed merge, not a
+promise of success or an exemption from the full required gate. Merges performed
+with `GITHUB_TOKEN` may not trigger a main push workflow; this helper does not
+deploy or substitute for any separately required post-merge validation.
 
 ## Maintenance protocol
 

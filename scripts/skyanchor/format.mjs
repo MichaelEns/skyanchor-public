@@ -41,6 +41,7 @@ files.push(
   path.join('patches', 'security-usage.json'),
   path.join('public', 'skyanchor.html'),
   path.join('.github', 'workflows', 'skyanchor-candidate.yml'),
+  path.join('.github', 'workflows', 'skyanchor-owner-merge.yml'),
   path.join('.github', 'workflows', 'skyanchor-upstream.yml'),
   path.join('.github', 'workflows', 'asset-notices.yml'),
   path.join('.github', 'workflows', 'zizmor.yml'),

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "scope": "Reviewed personal static-web release commands only, not general Expo/native/Atlas tooling safety. No exemption may apply to a bundled browser or Worker package.",
   "lockSha256": "a34079622ae1cb80267738d9bfc3766b21ee17f3e97d0881ba52ea9b92563edc",
-  "boundarySha256": "0b23ea10e8f7e304b54ccc02d63a7ec922ad2d26b05692362621e4d74b8043ee",
+  "boundarySha256": "dbf037bcaf8bd5793e656965d5aff156e64331130a4479c5423440b8f0370b94",
   "boundaryFiles": [
     ".gitattributes",
     "worker/index.ts",
@@ -29,6 +29,7 @@
     "scripts/skyanchor/worker-dry-run.mjs",
     "scripts/skyanchor/pnpm-cli.mjs",
     "scripts/skyanchor/upstream.mjs",
+    "scripts/skyanchor/owner-merge.mjs",
     "scripts/skyanchor/publication.mjs",
     "scripts/skyanchor/release-commands.mjs",
     "scripts/skyanchor/inputs.mjs",
@@ -49,6 +50,7 @@
     "worker/wrangler.jsonc",
     ".github/workflows/skyanchor-candidate.yml",
     ".github/workflows/skyanchor-upstream.yml",
+    ".github/workflows/skyanchor-owner-merge.yml",
     ".github/workflows/asset-notices.yml",
     ".github/workflows/zizmor.yml"
   ],

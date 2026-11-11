@@ -1,0 +1,75 @@
+name: SkyAnchor owner-reviewed merge
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Owner-reviewed pull request number
+        required: true
+        type: string
+      expected_head:
+        description: Exact reviewed 40-character head SHA
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: skyanchor-owner-merge
+  cancel-in-progress: false
+jobs:
+  merge:
+    if: github.repository == 'MichaelEns/skyanchor-public' && github.event.repository.private == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+      checks: read
+    env:
+      SKYANCHOR_AUTOMATION_ENABLED: ${{ vars.SKYANCHOR_AUTOMATION_ENABLED }}
+      SKYANCHOR_ZERO_SPEND_VERIFIED: ${{ vars.SKYANCHOR_ZERO_SPEND_VERIFIED }}
+      SKYANCHOR_ZERO_SPEND_EVIDENCE: ${{ vars.SKYANCHOR_ZERO_SPEND_EVIDENCE }}
+      SKYANCHOR_FORK_APPROVAL_VERIFIED: ${{ vars.SKYANCHOR_FORK_APPROVAL_VERIFIED }}
+      SKYANCHOR_ADMIN_POLICY_ATTESTATION: ${{ vars.SKYANCHOR_ADMIN_POLICY_ATTESTATION }}
+    steps:
+      - name: Require owner activation before checkout
+        shell: pwsh
+        env:
+          ENABLED: ${{ vars.SKYANCHOR_AUTOMATION_ENABLED }}
+          ZERO_SPEND: ${{ vars.SKYANCHOR_ZERO_SPEND_VERIFIED }}
+          FORK_APPROVAL: ${{ vars.SKYANCHOR_FORK_APPROVAL_VERIFIED }}
+          ADMIN_POLICY: ${{ vars.SKYANCHOR_ADMIN_POLICY_ATTESTATION }}
+          BUDGET_EVIDENCE: ${{ vars.SKYANCHOR_ZERO_SPEND_EVIDENCE }}
+        run: |
+          if ($env:ENABLED -ne 'true' -or $env:ZERO_SPEND -ne 'true' -or $env:FORK_APPROVAL -ne 'true' -or [string]::IsNullOrWhiteSpace($env:ADMIN_POLICY) -or $env:BUDGET_EVIDENCE -notmatch '^https://github\.com/MichaelEns/skyanchor-public/issues/[1-9]\d*$') {
+            throw 'Owner activation and verified setup evidence required; required check must fail, not skip'
+          }
+      - name: Require fresh owner dispatch on main
+        env:
+          DISPATCH_ACTOR: ${{ github.actor }}
+          DISPATCH_ID: ${{ github.actor_id }}
+          TRIGGER_ACTOR: ${{ github.triggering_actor }}
+        run: |
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$GITHUB_REF" = refs/heads/main
+          test "$DISPATCH_ACTOR" = MichaelEns
+          test "$DISPATCH_ID" = 44419611
+          test "$TRIGGER_ACTOR" = MichaelEns
+          test "$GITHUB_RUN_ATTEMPT" = 1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 24.22.1
+          package-manager-cache: false
+      - run: node scripts/skyanchor/upstream.mjs candidate-policy
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Attempt protected exact-head merge
+        run: node scripts/skyanchor/owner-merge.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEWED_PR: ${{ inputs.pr_number }}
+          EXPECTED_HEAD: ${{ inputs.expected_head }}

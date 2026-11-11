@@ -105,6 +105,8 @@ export function inspectWorkflow(file, text, historical = false) {
     file === '.github/workflows/skyanchor-candidate.yml' &&
     (!historical ||
       text.includes('name: Require owner activation before checkout'))
+  const ownerMerge = file === '.github/workflows/skyanchor-owner-merge.yml'
+  const requiredActivation = requiredCandidate || ownerMerge
   const publicGuard =
     "github.repository == 'MichaelEns/skyanchor-public' && github.event.repository.private == false"
   const guard =
@@ -120,7 +122,7 @@ export function inspectWorkflow(file, text, historical = false) {
     const conditional = /^ {4}if: (.+)$/m.exec(block)?.[1]
     if (
       !conditional ||
-      !(requiredCandidate
+      !(requiredActivation
         ? conditional === publicGuard
         : conditional.replace(/^always\(\) && /, '').startsWith(guard)) ||
       [...block.matchAll(/^ {4}runs-on: (.+)$/gm)].length !== 1 ||
@@ -128,12 +130,13 @@ export function inspectWorkflow(file, text, historical = false) {
     )
       throw new Error(`Missing per-job public/cost/time guard in ${file}`)
   }
-  if (requiredCandidate) {
+  if (requiredActivation) {
     const firstStep = blocks[0].split(/^ {6}- /m)[1]
     if (
       blocks.length !== 1 ||
       /continue-on-error:/.test(blocks[0]) ||
-      !/^ {4}name: SkyAnchor exact candidate$/m.test(blocks[0]) ||
+      (requiredCandidate &&
+        !/^ {4}name: SkyAnchor exact candidate$/m.test(blocks[0])) ||
       !firstStep?.startsWith(
         'name: Require owner activation before checkout\n',
       ) ||
@@ -167,7 +170,7 @@ export function inspectWorkflow(file, text, historical = false) {
   ])
     if (
       !text.includes(required) &&
-      !(requiredCandidate && required.startsWith('vars.'))
+      !(requiredActivation && required.startsWith('vars.'))
     )
       throw new Error(`Missing public/cost/time guard in ${file}`)
   if (

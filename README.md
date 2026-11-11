@@ -65,5 +65,11 @@ guarded upstream maintenance is active. Its automatic scope is only verified
 small punctuation/whitespace edits in two existing upstream documentation files,
 not application, dependency or security updates. The first maintenance run found
 no new stable upstream release; no upstream update has been automatically landed.
+
+`skyanchor-owner-merge.yml` adds a separate owner-dispatched attempt for an
+already-reviewed fix PR and exact head, using only the native Actions App token.
+It is not automatic review or broader upstream eligibility. Bootstrap and a real
+protected-PR acceptance run are required before treating this helper as enabled;
+see [publication](docs/skyanchor-publication.md).
 Neither app use nor local development invokes GitHub Actions. Publishing this
 source did not redeploy the live application.

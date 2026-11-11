@@ -18,6 +18,10 @@ import {
   repository,
   digest,
 } from '../scripts/skyanchor/upstream.mjs'
+import {
+  ownerMerge,
+  requireMergedCommit,
+} from '../scripts/skyanchor/owner-merge.mjs'
 
 const ownerEmail = '44419611+MichaelEns@users.noreply.github.com'
 const protection = {
@@ -62,6 +66,544 @@ const attestation = {
   additionalRulesets: [],
   evidence: policy.SKYANCHOR_ZERO_SPEND_EVIDENCE,
 }
+
+function ownerMergeFixture() {
+  const main = 'a'.repeat(40)
+  const head = 'b'.repeat(40)
+  const merge = 'c'.repeat(40)
+  const tree = 'd'.repeat(40)
+  const env = {
+    ...policy,
+    SKYANCHOR_ADMIN_POLICY_ATTESTATION: JSON.stringify(attestation),
+    GITHUB_ACTIONS: 'true',
+    GITHUB_EVENT_NAME: 'workflow_dispatch',
+    GITHUB_REF: 'refs/heads/main',
+    GITHUB_SHA: main,
+    GITHUB_REPOSITORY: repository,
+    GITHUB_REPOSITORY_ID: '1452249834',
+    GITHUB_ACTOR: 'MichaelEns',
+    GITHUB_ACTOR_ID: '44419611',
+    GITHUB_TRIGGERING_ACTOR: 'MichaelEns',
+    GITHUB_RUN_ATTEMPT: '1',
+    GITHUB_WORKFLOW_REF: `${repository}/.github/workflows/skyanchor-owner-merge.yml@refs/heads/main`,
+    GITHUB_RUN_ID: '100',
+    REVIEWED_PR: '7',
+    EXPECTED_HEAD: head,
+  }
+  const event = {
+    sender: actor,
+    repository: info,
+    ref: 'refs/heads/main',
+    inputs: {pr_number: '7', expected_head: head},
+  }
+  const dispatch = {
+    id: 100,
+    run_attempt: 1,
+    event: 'workflow_dispatch',
+    path: '.github/workflows/skyanchor-owner-merge.yml',
+    head_sha: main,
+    head_branch: 'main',
+    status: 'in_progress',
+    repository: info,
+    head_repository: info,
+    actor,
+    triggering_actor: actor,
+  }
+  const pr = {
+    number: 7,
+    state: 'open',
+    draft: false,
+    merged: false,
+    mergeable: true,
+    mergeable_state: 'clean',
+    head: {sha: head, ref: 'fix/reviewed', repo: info},
+    base: {sha: main, ref: 'main', repo: info},
+  }
+  const check = {
+    id: 300,
+    name: 'SkyAnchor exact candidate',
+    head_sha: head,
+    app: {id: 15368},
+    status: 'completed',
+    conclusion: 'success',
+    url: `https://api.github.com/repos/${repository}/check-runs/300`,
+    details_url: `https://github.com/${repository}/actions/runs/200/job/400`,
+    check_suite: {id: 500},
+  }
+  const candidate = {
+    id: 200,
+    head_sha: head,
+    head_branch: pr.head.ref,
+    head_repository: info,
+    repository: info,
+    path: '.github/workflows/skyanchor-candidate.yml',
+    event: 'pull_request',
+    status: 'completed',
+    conclusion: 'success',
+    pull_requests: [{number: 7}],
+    check_suite_id: 500,
+  }
+  const job = {
+    id: 400,
+    name: check.name,
+    status: 'completed',
+    conclusion: 'success',
+    check_run_url: check.url,
+    steps: [
+      {
+        name: 'Run pnpm skyanchor:verify',
+        status: 'completed',
+        conclusion: 'success',
+      },
+    ],
+  }
+  const identity = {login: 'github-actions[bot]', id: 41898282, type: 'Bot'}
+  const email = '41898282+github-actions[bot]@users.noreply.github.com'
+  const commit = {
+    sha: merge,
+    author: identity,
+    committer: identity,
+    commit: {author: {email}, committer: {email}, tree: {sha: tree}},
+    parents: [{sha: main}, {sha: head}],
+  }
+  const branch = {
+    name: 'main',
+    protected: true,
+    protection: {
+      enabled: true,
+      required_status_checks: {
+        ...protection.required_status_checks,
+        enforcement_level: 'everyone',
+        contexts: ['SkyAnchor exact candidate'],
+      },
+    },
+    commit: {sha: main},
+  }
+  const values = {
+    '': info,
+    'branches/main': branch,
+    'rules/branches/main': [],
+    'git/ref/heads/main': {object: {sha: main}},
+    'actions/runs/100': dispatch,
+    'pulls/7': pr,
+    [`commits/${head}/check-runs?filter=latest&per_page=100`]: {
+      total_count: 1,
+      check_runs: [check],
+    },
+    [`actions/workflows/skyanchor-candidate.yml/runs?head_sha=${head}&event=pull_request&per_page=100`]:
+      {total_count: 1, workflow_runs: [candidate]},
+    'actions/runs/200/jobs?filter=latest&per_page=100': {
+      total_count: 1,
+      jobs: [job],
+    },
+    [`commits/${head}`]: {sha: head, commit: {tree: {sha: tree}}},
+    'pulls/7/merge': {merged: true, sha: merge},
+    [`commits/${merge}`]: commit,
+    [`contents/.github/workflows/skyanchor-candidate.yml?ref=${main}`]: {
+      type: 'file',
+      sha: 'e'.repeat(40),
+    },
+    [`contents/.github/workflows/skyanchor-candidate.yml?ref=${head}`]: {
+      type: 'file',
+      sha: 'e'.repeat(40),
+    },
+  }
+  const calls = []
+  let merged = false
+  const request = async (endpoint, options = {}) => {
+    calls.push({endpoint, ...options})
+    if (!(endpoint in values)) throw new Error('Unexpected API endpoint')
+    if (endpoint === 'pulls/7/merge') merged = values[endpoint].merged
+    if (endpoint === 'pulls/7' && merged)
+      return {...pr, merged: true, merge_commit_sha: merge}
+    return structuredClone(values[endpoint])
+  }
+  return {
+    env,
+    event,
+    main,
+    head,
+    merge,
+    tree,
+    dispatch,
+    pr,
+    check,
+    candidate,
+    job,
+    commit,
+    branch,
+    values,
+    calls,
+    request,
+  }
+}
+
+test('Owner-reviewed merge uses only the native protected exact-head PUT and verifies bot NoReply/tree/parents', async () => {
+  const f = ownerMergeFixture()
+  assert.throws(
+    () =>
+      requireExactCheck(
+        {head: f.head, base: f.main},
+        f.pr,
+        [f.check],
+        f.candidate,
+        [f.job],
+      ),
+    /exact-head/,
+  )
+  assert.deepEqual(await ownerMerge(f.request, f.env, f.event, f.main), {
+    pr: 7,
+    head: f.head,
+    merge: f.merge,
+  })
+  const writes = f.calls.filter(value => value.method)
+  assert.deepEqual(writes, [
+    {
+      endpoint: 'pulls/7/merge',
+      method: 'PUT',
+      body: JSON.stringify({sha: f.head, merge_method: 'merge'}),
+    },
+  ])
+  assert.equal(
+    f.calls.filter(value => value.endpoint === 'branches/main').length,
+    2,
+  )
+  assert.equal(
+    f.calls.filter(
+      value =>
+        value.endpoint ===
+        `commits/${f.head}/check-runs?filter=latest&per_page=100`,
+    ).length,
+    2,
+  )
+  assert.ok(
+    !f.calls.some(value =>
+      /protection|permissions|approval|\/user/.test(value.endpoint),
+    ),
+  )
+})
+
+test('Owner-reviewed merge refuses untrusted dispatch, changed policy/PR and incomplete or spoofed exact checks before any write', async () => {
+  const changes = [
+    f => {
+      f.env.GITHUB_ACTIONS = 'false'
+    },
+    f => {
+      f.env.GITHUB_EVENT_NAME = 'push'
+    },
+    f => {
+      f.env.GITHUB_REF = 'refs/heads/fix/reviewed'
+    },
+    f => {
+      f.env.GITHUB_ACTOR_ID = '1'
+    },
+    f => {
+      f.env.GITHUB_ACTOR = 'someone'
+    },
+    f => {
+      f.env.GITHUB_TRIGGERING_ACTOR = 'someone'
+    },
+    f => {
+      f.env.GITHUB_REPOSITORY_ID = '1'
+    },
+    f => {
+      f.env.GITHUB_WORKFLOW_REF = 'other/main'
+    },
+    f => {
+      f.env.GITHUB_RUN_ATTEMPT = '2'
+    },
+    f => {
+      f.env.REVIEWED_PR = '7; echo unsafe'
+    },
+    f => {
+      f.env.EXPECTED_HEAD = 'x'.repeat(40)
+    },
+    f => {
+      f.event.sender = {...actor, id: 1}
+    },
+    f => {
+      f.event.inputs.expected_head = f.main
+    },
+    f => {
+      f.dispatch.actor = {...actor, login: 'someone'}
+    },
+    f => {
+      f.dispatch.head_sha = f.head
+    },
+    f => {
+      f.dispatch.path = '.github/workflows/other.yml'
+    },
+    f => {
+      f.dispatch.event = 'pull_request'
+    },
+    f => {
+      f.dispatch.run_attempt = 2
+    },
+    f => {
+      delete f.env.SKYANCHOR_ZERO_SPEND_VERIFIED
+    },
+    f => {
+      delete f.env.SKYANCHOR_ZERO_SPEND_EVIDENCE
+    },
+    f => {
+      delete f.env.SKYANCHOR_FORK_APPROVAL_VERIFIED
+    },
+    f => {
+      delete f.env.SKYANCHOR_ADMIN_POLICY_ATTESTATION
+    },
+    f => {
+      f.values[''] = {...info, private: true}
+    },
+    f => {
+      f.values[''] = {...info, full_name: 'someone/other'}
+    },
+    f => {
+      f.values[''] = {...info, fork: true}
+    },
+    f => {
+      f.branch.protected = false
+    },
+    f => {
+      f.branch.protection.required_status_checks.checks = []
+    },
+    f => {
+      f.values['rules/branches/main'] = [{id: 1}]
+    },
+    f => {
+      f.values['git/ref/heads/main'].object.sha = f.head
+    },
+    f => {
+      f.pr.head = {...f.pr.head, repo: {...info, fork: true}}
+    },
+    f => {
+      f.pr.head.sha = f.main
+    },
+    f => {
+      f.pr.base.sha = f.head
+    },
+    f => {
+      f.pr.base.ref = 'other'
+    },
+    f => {
+      f.pr.draft = true
+    },
+    f => {
+      f.pr.state = 'closed'
+    },
+    f => {
+      f.pr.mergeable = null
+    },
+    f => {
+      f.pr.mergeable_state = 'blocked'
+    },
+    f => {
+      f.check.app.id = 1
+    },
+    f => {
+      f.check.head_sha = f.main
+    },
+    f => {
+      f.check.conclusion = 'failure'
+    },
+    f => {
+      f.check.status = 'in_progress'
+    },
+    f => {
+      f.check.details_url += 'spoofed'
+    },
+    f => {
+      f.check.check_suite.id = 1
+    },
+    f => {
+      f.candidate.path = '.github/workflows/other.yml'
+    },
+    f => {
+      f.candidate.event = 'workflow_dispatch'
+    },
+    f => {
+      f.candidate.head_sha = f.main
+    },
+    f => {
+      f.candidate.conclusion = 'skipped'
+    },
+    f => {
+      f.candidate.pull_requests = []
+    },
+    f => {
+      f.job.conclusion = 'skipped'
+    },
+    f => {
+      f.job.check_run_url = 'https://example.test/spoofed'
+    },
+    f => {
+      f.job.status = 'in_progress'
+    },
+    f => {
+      f.job.steps[0].conclusion = 'skipped'
+    },
+    f => {
+      f.job.steps = []
+    },
+    f => {
+      f.job.steps[0].name = 'Run echo success'
+    },
+    f => {
+      f.values[
+        `contents/.github/workflows/skyanchor-candidate.yml?ref=${f.head}`
+      ].sha = f.head
+    },
+    f => {
+      f.values['actions/runs/200/jobs?filter=latest&per_page=100'].total_count =
+        101
+    },
+    f => {
+      f.values[
+        `commits/${f.head}/check-runs?filter=latest&per_page=100`
+      ].total_count = 101
+    },
+    f => {
+      f.values[
+        `commits/${f.head}/check-runs?filter=latest&per_page=100`
+      ].check_runs.push({...f.check})
+    },
+    f => {
+      f.values[
+        `actions/workflows/skyanchor-candidate.yml/runs?head_sha=${f.head}&event=pull_request&per_page=100`
+      ].total_count = 101
+    },
+  ]
+  for (const change of changes) {
+    const f = ownerMergeFixture()
+    change(f)
+    await assert.rejects(
+      () => ownerMerge(f.request, f.env, f.event, f.main),
+      undefined,
+      change.toString(),
+    )
+    assert.equal(
+      f.calls.some(value => value.method),
+      false,
+      change.toString(),
+    )
+  }
+})
+
+test('Owner-reviewed merge rejects latest pending run, final base/head races, refused merges and post-merge identity/tree drift', async () => {
+  const f = ownerMergeFixture()
+  const listing =
+    f.values[
+      `actions/workflows/skyanchor-candidate.yml/runs?head_sha=${f.head}&event=pull_request&per_page=100`
+    ]
+  listing.total_count = 2
+  listing.workflow_runs.push({
+    ...f.candidate,
+    id: 201,
+    status: 'in_progress',
+    conclusion: null,
+  })
+  f.values['actions/runs/201/jobs?filter=latest&per_page=100'] = {
+    total_count: 1,
+    jobs: [f.job],
+  }
+  await assert.rejects(() => ownerMerge(f.request, f.env, f.event, f.main))
+  assert.equal(
+    f.calls.some(value => value.method),
+    false,
+  )
+  for (const target of ['branches/main', 'pulls/7']) {
+    const race = ownerMergeFixture()
+    let reads = 0
+    await assert.rejects(() =>
+      ownerMerge(
+        async (endpoint, options) => {
+          if (endpoint === target && ++reads === 2) {
+            if (target === 'branches/main') race.branch.commit.sha = race.head
+            else race.pr.head.sha = race.main
+          }
+          return race.request(endpoint, options)
+        },
+        race.env,
+        race.event,
+        race.main,
+      ),
+    )
+    assert.equal(
+      race.calls.some(value => value.method),
+      false,
+    )
+  }
+  const refused = ownerMergeFixture()
+  refused.values['pulls/7/merge'].merged = false
+  await assert.rejects(
+    () => ownerMerge(refused.request, refused.env, refused.event, refused.main),
+    /refused/,
+  )
+  const interrupted = ownerMergeFixture()
+  await assert.rejects(
+    () =>
+      ownerMerge(
+        async (endpoint, options) => {
+          if (endpoint === 'pulls/7/merge')
+            throw new Error('Synthetic interrupted response')
+          return interrupted.request(endpoint, options)
+        },
+        interrupted.env,
+        interrupted.event,
+        interrupted.main,
+      ),
+    /outcome unconfirmed/,
+  )
+  const unreadable = ownerMergeFixture()
+  await assert.rejects(
+    () =>
+      ownerMerge(
+        async (endpoint, options) => {
+          if (endpoint === `commits/${unreadable.merge}`)
+            throw new Error('Synthetic unavailable readback')
+          return unreadable.request(endpoint, options)
+        },
+        unreadable.env,
+        unreadable.event,
+        unreadable.main,
+      ),
+    /MERGE OCCURRED/,
+  )
+  for (const change of [
+    commit => {
+      commit.author.id = 1
+    },
+    commit => {
+      commit.commit.author.email = 'person@example.test'
+    },
+    commit => {
+      commit.commit.committer.email = 'person@example.test'
+    },
+    commit => {
+      commit.parents.reverse()
+    },
+    commit => {
+      commit.commit.tree.sha = 'e'.repeat(40)
+    },
+  ]) {
+    const invalid = ownerMergeFixture()
+    change(invalid.commit)
+    await assert.rejects(
+      () =>
+        ownerMerge(invalid.request, invalid.env, invalid.event, invalid.main),
+      /MERGE OCCURRED/,
+    )
+  }
+  const web = ownerMergeFixture()
+  web.commit.committer = {login: 'web-flow', id: 19864447}
+  web.commit.commit.committer.email = 'noreply@github.com'
+  requireMergedCommit(
+    web.commit,
+    {merged: true, sha: web.merge},
+    web.head,
+    web.main,
+    web.tree,
+  )
+})
 
 function fixture(t) {
   const directory = path.resolve('.publication-local')
