@@ -14,6 +14,7 @@ import {verifyComposer} from './composer.mjs'
 import {verifyHandoff} from './handoff.mjs'
 import {verifyProfileReading} from './profile-reading.mjs'
 import {verifyAuthContrast} from './auth-contrast.mjs'
+import {verifyStartup} from './startup.mjs'
 import {installViewportFixture, verifyViewport} from './viewport.mjs'
 import {
   readingPanel,
@@ -1261,6 +1262,20 @@ try {
   )
   await verifyReadingPanel(page, report)
   await verifyReadingPanel(phonePage, report)
+  for (const [browser, seedPage, isPhone] of [
+    [desktopBrowser, page, false],
+    [phoneBrowser, phonePage, true],
+  ])
+    await verifyStartup({
+      browser,
+      phone: isPhone,
+      seedPage,
+      origin,
+      mockUpstream,
+      did: didA,
+      report,
+      worker,
+    })
   const initialKeys = await page
     .locator('[data-skyanchor-key]')
     .evaluateAll(nodes => nodes.map(node => node.dataset.skyanchorKey))

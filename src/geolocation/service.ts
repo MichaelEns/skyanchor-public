@@ -1,7 +1,9 @@
 import {useEffect, useState} from 'react'
 import {EventEmitter} from 'eventemitter3'
 
+import {withRequestDeadline} from '#/lib/async/requestDeadline'
 import {networkRetry} from '#/lib/async/retry'
+import {IS_WEB} from '#/env'
 import {
   FALLBACK_GEOLOCATION_SERVICE_RESPONSE,
   GEOLOCATION_SERVICE_URL,
@@ -29,11 +31,14 @@ async function fetchGeolocationServiceData(
   url: string,
 ): Promise<Geolocation | undefined> {
   if (debug.enabled) return debug.resolve(debug.geolocation)
-  const res = await fetch(url)
-  if (!res.ok) {
-    throw new Error(`fetchGeolocationServiceData failed ${res.status}`)
+  async function request(signal?: AbortSignal) {
+    const res = await fetch(url, {signal})
+    if (!res.ok) {
+      throw new Error(`fetchGeolocationServiceData failed ${res.status}`)
+    }
+    return res.json() as Promise<Geolocation>
   }
-  return res.json() as Promise<Geolocation>
+  return IS_WEB ? withRequestDeadline('geolocation', 3000, request) : request()
 }
 
 /**
@@ -67,7 +72,7 @@ export async function resolve() {
      * THIS PROMISE SHOULD NEVER `reject()`! We want the app to proceed with
      * startup, even if geolocation resolution fails.
      */
-    geolocationServicePromise = new Promise(async resolve => {
+    geolocationServicePromise = (async () => {
       let success = false
 
       function cacheResponseOrThrow(response: Geolocation | undefined) {
@@ -94,27 +99,33 @@ export async function resolve() {
             safeMessage: e.message,
           },
         )
-
-        // retry 3 times, but don't await, proceed with default
-        networkRetry(3, () =>
-          fetchGeolocationServiceData(GEOLOCATION_SERVICE_URL),
-        )
-          .then(config => {
-            cacheResponseOrThrow(config)
-          })
-          .catch((e: any) => {
-            // complete fail closed
-            logger.debug(
-              `resolve(): fetchGeolocationServiceData failed retries`,
-              {
-                safeMessage: e.message,
-              },
-            )
-          })
-      } finally {
-        resolve({success})
+        if (!IS_WEB) {
+          void networkRetry(3, () =>
+            fetchGeolocationServiceData(GEOLOCATION_SERVICE_URL),
+          )
+            .then(cacheResponseOrThrow)
+            .catch((error: unknown) => {
+              logger.debug(
+                'resolve(): fetchGeolocationServiceData failed retries',
+                {
+                  safeMessage:
+                    error instanceof Error ? error.message : String(error),
+                },
+              )
+            })
+        }
+      }
+      return {success}
+    })()
+    const pending = geolocationServicePromise
+    void pending.then(() => {
+      if (geolocationServicePromise === pending) {
+        geolocationServicePromise = undefined
       }
     })
+    if (!device.get(['geolocationServiceResponse'])) {
+      await pending
+    }
   }
 }
 
@@ -127,9 +138,33 @@ export function useGeolocationServiceResponse() {
   })
 
   useEffect(() => {
-    return onGeolocationServiceResponseUpdate(config => {
+    const off = onGeolocationServiceResponseUpdate(config => {
       setConfig(config)
     })
+    const retry = () => {
+      if (navigator.onLine) void resolve()
+    }
+    const retryOnReturn = () => {
+      if (
+        document.visibilityState === 'visible' &&
+        !device.get(['geolocationServiceResponse'])
+      ) {
+        retry()
+      }
+    }
+    if (IS_WEB) {
+      window.addEventListener('online', retry)
+      window.addEventListener('pageshow', retryOnReturn)
+      document.addEventListener('visibilitychange', retryOnReturn)
+    }
+    return () => {
+      off()
+      if (IS_WEB) {
+        window.removeEventListener('online', retry)
+        window.removeEventListener('pageshow', retryOnReturn)
+        document.removeEventListener('visibilitychange', retryOnReturn)
+      }
+    }
   }, [])
 
   return config

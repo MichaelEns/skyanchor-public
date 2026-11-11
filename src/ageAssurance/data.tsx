@@ -7,6 +7,7 @@ import {focusManager, QueryClient, useQuery} from '@tanstack/react-query'
 import {persistQueryClient} from '@tanstack/react-query-persist-client'
 import debounce from 'lodash.debounce'
 
+import {withRequestDeadline} from '#/lib/async/requestDeadline'
 import {isRetryableRequestError, networkRetry} from '#/lib/async/retry'
 import {createPersistedQueryStorage} from '#/lib/persisted-query-storage'
 import {getAge} from '#/lib/strings/time'
@@ -30,7 +31,7 @@ import {
   getBirthdateStringFromAge,
   isLegacyBirthdateBug,
 } from '#/ageAssurance/util'
-import {IS_DEV} from '#/env'
+import {IS_DEV, IS_WEB} from '#/env'
 import {useGeolocation} from '#/geolocation'
 import {app, type chat} from '#/lexicons'
 import {device} from '#/storage'
@@ -103,7 +104,15 @@ export async function getConfig() {
    * before there is any session (and while logged out), so it goes through the
    * process-wide public client rather than a bundle one.
    */
-  return await getPublicAppviewClient().call(app.bsky.ageassurance.getConfig)
+  return IS_WEB
+    ? withRequestDeadline('age configuration', 8000, signal =>
+        getPublicAppviewClient().call(
+          app.bsky.ageassurance.getConfig,
+          {},
+          {signal},
+        ),
+      )
+    : getPublicAppviewClient().call(app.bsky.ageassurance.getConfig)
 }
 export function getConfigFromCache():
   app.bsky.ageassurance.getConfig.$OutputBody | undefined {
@@ -192,10 +201,15 @@ export async function getServerState({appviewClient}: {appviewClient: Client}) {
     logger.error(`getServerState: missing geolocation countryCode`)
     return null
   }
-  const data = await appviewClient.call(app.bsky.ageassurance.getState, {
+  const params = {
     countryCode: geolocation.countryCode,
     regionCode: geolocation.regionCode,
-  })
+  }
+  const data = IS_WEB
+    ? await withRequestDeadline('age state', 8000, signal =>
+        appviewClient.call(app.bsky.ageassurance.getState, params, {signal}),
+      )
+    : await appviewClient.call(app.bsky.ageassurance.getState, params)
   const did = appviewClient.did
   if (data && did && createdAtCache.has(did)) {
     /*
@@ -363,10 +377,14 @@ async function getOtherRequiredData({
 }): Promise<OtherRequiredData> {
   if (debug.enabled) return debug.resolve(debug.otherRequiredData)
   const did = accountClient.did
-  const [prefs, actorDeclaration] = await Promise.all([
-    accountClient.call(getPreferences),
-    fetchActorDeclarationRecord({did, client: accountClient}),
-  ])
+  const request = (signal?: AbortSignal) =>
+    Promise.all([
+      accountClient.call(getPreferences, undefined, {signal}),
+      fetchActorDeclarationRecord({did, client: accountClient, signal}),
+    ])
+  const [prefs, actorDeclaration] = IS_WEB
+    ? await withRequestDeadline('age account data', 8000, request)
+    : await request()
   const data: OtherRequiredData = {
     birthdate: prefs.birthDate ? prefs.birthDate.toISOString() : undefined,
     actorDeclaration,

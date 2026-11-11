@@ -9,6 +9,7 @@ import Svg, {Path} from 'react-native-svg'
 
 import {ANCHOR_PATH} from '#/view/icons/Logo'
 import {atoms as a, flattenToCSS} from '#/alf'
+import {startupPhase} from '#/features/skyanchor/StartupRecovery'
 
 const size = 100
 
@@ -24,30 +25,65 @@ export function Splash({
   // hide the static one that's baked into the HTML - gets replaced by our React version below
   useEffect(() => {
     // double rAF ensures that the React version gets painted first
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
+    let secondFrame = 0
+    const firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => {
         const splash = document.getElementById('splash')
         if (splash) {
           splash.remove()
         }
       })
     })
+    return () => {
+      cancelAnimationFrame(firstFrame)
+      cancelAnimationFrame(secondFrame)
+    }
   }, [])
 
   // when ready, we fade/scale out
   useEffect(() => {
     if (!isReady) return
+    let active = true
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let animation: Animation | undefined
+    const started = Date.now()
+    const reconcile = () => {
+      if (
+        document.visibilityState === 'visible' &&
+        Date.now() - started >= 300
+      ) {
+        complete()
+      }
+    }
+    const cleanup = () => {
+      clearTimeout(timer)
+      document.removeEventListener('visibilitychange', reconcile)
+      window.removeEventListener('pageshow', reconcile)
+      if (animation) {
+        animation.onfinish = null
+        animation.oncancel = null
+        animation.cancel()
+      }
+    }
+    const complete = () => {
+      if (!active) return
+      active = false
+      cleanup()
+      document.getElementById('splash')?.remove()
+      setIsAnimationComplete(true)
+      startupPhase('ready')
+    }
 
     const reduceMotion = window.matchMedia(
       '(prefers-reduced-motion: reduce)',
     ).matches
     const node = splashRef.current
     if (!node || reduceMotion) {
-      setIsAnimationComplete(true)
+      complete()
       return
     }
 
-    const animation = node.animate(
+    animation = node.animate(
       [
         {opacity: 1, transform: 'scale(1)'},
         {opacity: 0, transform: 'scale(1.5)'},
@@ -58,10 +94,15 @@ export function Splash({
         fill: 'forwards',
       },
     )
-    animation.onfinish = () => setIsAnimationComplete(true)
+    animation.onfinish = complete
+    animation.oncancel = complete
+    timer = setTimeout(complete, 500)
+    document.addEventListener('visibilitychange', reconcile)
+    window.addEventListener('pageshow', reconcile)
 
     return () => {
-      animation.cancel()
+      active = false
+      cleanup()
     }
   }, [isReady])
 

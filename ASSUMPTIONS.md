@@ -19,6 +19,9 @@ to Following; tombstones count toward the bound.
 Telemetry delivery, remote experiment initialization and automatic update
 delivery are disabled for the web export. Necessary provider API, media,
 moderation and age-assurance requests remain. No production mock switch exists.
+Cold-start recovery preserves saved accounts and reading windows; it does not
+provide an uncached offline feed or bypass regional/age restrictions. A suspended
+Home Screen app may cold-start rather than resume its old JavaScript process.
 
 Only the static web/PWA export and its independently configured Worker are
 supported distribution surfaces. Native signing/push and upstream Go/container

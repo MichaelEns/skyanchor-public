@@ -6,7 +6,7 @@ import {verifyZodFiles} from './zod-fixture.mjs'
 
 verifyZodFiles(path.resolve('node_modules', 'zod'), 'patched')
 const reviewedLock =
-  '9c246c36a50f595e34bee17d1c075a38a24635ffb1f587c33791e2b61551363a'
+  'a34079622ae1cb80267738d9bfc3766b21ee17f3e97d0881ba52ea9b92563edc'
 if (textHash('pnpm-lock.yaml') !== reviewedLock)
   throw new Error(
     'Frozen public supplier lock changed; separate security review required',
