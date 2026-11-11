@@ -19,6 +19,8 @@ export async function verifyScrollInput({
   const contexts = []
   const errors = []
   const puts = []
+  const sourcePlacements = []
+  let receivingWrites = 0
   const cloud = () =>
     worker.db
       .prepare(
@@ -34,6 +36,21 @@ export async function verifyScrollInput({
       : {}),
     ignoreDefaultArgs: ['--hide-scrollbars'],
   })
+  async function placement(page, row) {
+    const error = await page.evaluate(place => {
+      const node = [...document.querySelectorAll('[data-skyanchor-key]')].find(
+        node => node.dataset.skyanchorKey === place.anchor,
+      )
+      const header = document.querySelector('[data-testid="mobileHomeHeader"]')
+      return Math.abs(
+        node.getBoundingClientRect().top -
+          (header?.getBoundingClientRect().bottom ?? 0) -
+          place.offset,
+      )
+    }, JSON.parse(row.state))
+    assert.ok(error <= 2)
+    return error
+  }
   async function fresh(owner, phone = false) {
     const context = await owner.newContext({
       ...(phone
@@ -80,9 +97,11 @@ export async function verifyScrollInput({
       'Current local place confirmed shared',
     )
     await closeReadingPanel(page)
+    sourcePlacements.push(await placement(page, row))
     return row
   }
   async function receive(page, row) {
+    const before = puts.length
     await readingAction(page, 'Resume other device')
     await expect
       .poll(async () => JSON.stringify(await local(page)))
@@ -95,18 +114,10 @@ export async function verifyScrollInput({
       'Current local place confirmed shared',
     )
     await closeReadingPanel(page)
-    const error = await page.evaluate(place => {
-      const node = [...document.querySelectorAll('[data-skyanchor-key]')].find(
-        node => node.dataset.skyanchorKey === place.anchor,
-      )
-      const header = document.querySelector('[data-testid="mobileHomeHeader"]')
-      return Math.abs(
-        node.getBoundingClientRect().top -
-          (header?.getBoundingClientRect().bottom ?? 0) -
-          place.offset,
-      )
-    }, JSON.parse(row.state))
-    assert.ok(error <= 2)
+    const error = await placement(page, row)
+    await page.waitForTimeout(1000)
+    receivingWrites += puts.length - before
+    assert.equal(receivingWrites, 0, 'Receiving a shared place must not PUT')
     assert.deepEqual(await cloud(), row)
     return error
   }
@@ -136,8 +147,10 @@ export async function verifyScrollInput({
     await scrollReading(phone, 500)
     await readingAction(phone, 'Connect private sync')
     const first = await confirmed(phone, 0)
-    // Discrete JS steps have separate native scrollend events. Suppress only
-    // those ends to exercise the bounded fallback of a continuous inertial run.
+    /*
+     * Discrete JS steps have separate native scrollend events. Suppress only
+     * those ends to exercise the bounded fallback of a continuous inertial run.
+     */
     const momentum = await phone.evaluate(async () => {
       const suppressEnd = event => event.stopImmediatePropagation()
       document.addEventListener('scrollend', suppressEnd, true)
@@ -266,7 +279,8 @@ export async function verifyScrollInput({
         desktopPassiveError,
         phoneReceiveError,
       ],
-      passiveReceivingWrites: 0,
+      sourcePlacements,
+      passiveReceivingWrites: receivingWrites,
       puts,
       errors,
     }
