@@ -14,6 +14,7 @@ import {canParseUrl} from '#/lib/strings/url-helpers'
 import {logger} from '#/logger'
 import {prefetchAgeAssuranceServerData} from '#/ageAssurance/data'
 import {features} from '#/analytics'
+import {IS_WEB} from '#/env'
 import {
   buildAppviewClient,
   buildChatClient,
@@ -192,10 +193,19 @@ export function makeSessionHooks({
       if (killed) {
         throw new Error('session disposed')
       }
-      return preparationSignal
+      const url =
+        typeof input === 'string'
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input.url
+      const boundedRefresh =
+        IS_WEB &&
+        new URL(url).pathname === '/xrpc/com.atproto.server.refreshSession'
+      return preparationSignal || boundedRefresh
         ? withRequestDeadline(
             'session',
-            10000,
+            preparationSignal ? 10000 : 15000,
             async signal => {
               const response = await networkAwareFetch(input, {...init, signal})
               const body = await response.arrayBuffer()

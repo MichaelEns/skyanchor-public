@@ -5,6 +5,14 @@ export type ReadingPlace = {
   neighbors: string[]
 }
 
+export type ResumeOptions = {
+  signal: AbortSignal
+  progress: (
+    pages: number,
+    phase?: 'history' | 'revalidate' | 'placement',
+  ) => void
+}
+
 export type ReadingFeed =
   | 'following'
   | `author|${string}|posts_and_author_threads`
@@ -57,6 +65,7 @@ export type SyncPlace = {
   revision: number
   device: string | null
   state: ReadingPlace | null
+  updated?: number | null
 }
 export function validSyncPlace(
   value: unknown,
@@ -74,6 +83,12 @@ export function validSyncPlace(
     Number.isSafeInteger(remote.revision) &&
     remote.revision >= 0 &&
     (remote.device === null || typeof remote.device === 'string') &&
+    (remote.updated === undefined ||
+      remote.updated === null ||
+      (typeof remote.updated === 'number' &&
+        Number.isSafeInteger(remote.updated) &&
+        remote.updated > 0 &&
+        remote.updated <= 8_640_000_000_000_000)) &&
     (remote.state === null || validPlace(remote.state))
   )
 }

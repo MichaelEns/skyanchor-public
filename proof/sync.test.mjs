@@ -3,6 +3,66 @@ import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {build} from 'esbuild'
 
+test(
+  'A queued session exchange cancels promptly without sending, and an aborted response body releases the cookie queue',
+  {timeout: 3000},
+  async () => {
+    const result = await build({
+      entryPoints: [path.join('src', 'features', 'skyanchor', 'sync.web.ts')],
+      bundle: true,
+      format: 'esm',
+      write: false,
+    })
+    const sync = await import(
+      'data:text/javascript;base64,' +
+        Buffer.from(result.outputFiles[0].text).toString('base64')
+    )
+    const original = globalThis.fetch
+    const firstController = new AbortController()
+    const queuedController = new AbortController()
+    const calls = []
+    globalThis.fetch = async (_url, init) => {
+      calls.push(init.method)
+      if (calls.length > 1) return new Response('{}')
+      return new Response(
+        new ReadableStream({
+          start(controller) {
+            init.signal.addEventListener(
+              'abort',
+              () => controller.error(init.signal.reason),
+              {once: true},
+            )
+          },
+        }),
+      )
+    }
+    try {
+      const first = sync.syncSessionRequest({
+        method: 'POST',
+        signal: firstController.signal,
+      })
+      const firstRejected = assert.rejects(first, {name: 'AbortError'})
+      await new Promise(resolve => setImmediate(resolve))
+      const queued = sync.syncSessionRequest({
+        method: 'POST',
+        signal: queuedController.signal,
+      })
+      const queuedRejected = assert.rejects(queued, {name: 'AbortError'})
+      queuedController.abort(new Error('queued fixture cancelled'))
+      await queuedRejected
+      assert.deepEqual(calls, ['POST'])
+      firstController.abort(new Error('first fixture cancelled'))
+      await firstRejected
+      await sync.syncSessionRequest({method: 'POST'})
+      assert.deepEqual(calls, ['POST', 'POST'])
+    } finally {
+      firstController.abort()
+      queuedController.abort()
+      globalThis.fetch = original
+    }
+  },
+)
+
 test('Cookie changes serialize across delayed login, logout and next account; cancelled queued login never runs', async () => {
   const result = await build({
     entryPoints: [path.join('src', 'features', 'skyanchor', 'sync.web.ts')],

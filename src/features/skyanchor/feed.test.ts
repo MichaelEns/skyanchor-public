@@ -99,7 +99,11 @@ it('recovers the exact repost from later real history and revalidates current po
     'following',
     () => true,
   )
-  expect(mockFetch).toHaveBeenNthCalledWith(2, {cursor: 'next', limit: 30})
+  expect(mockFetch).toHaveBeenNthCalledWith(2, {
+    cursor: 'next',
+    limit: 30,
+    signal: expect.any(AbortSignal),
+  })
   expect(page.feed[0].reason).toEqual(expect.objectContaining(reason))
   expect(call).toHaveBeenCalledTimes(1)
 })
@@ -114,10 +118,143 @@ it('bounds unavailable occurrence recovery without substituting a same-URI origi
   )
   await expect(
     recoverRemoteWindow(did, client, place, 'following', () => true),
-  ).rejects.toThrow('bounded current history')
-  expect(mockFetch).toHaveBeenCalledTimes(12)
+  ).rejects.toThrow('history-limit')
+  expect(mockFetch).toHaveBeenCalledTimes(296)
   expect(call).not.toHaveBeenCalled()
 })
+
+it('recovers beyond 360 entries with progress and retains the actual history cursor without a second shallow search', async () => {
+  const {client, call} = clientWithPosts()
+  mockFetch.mockImplementation(() => {
+    const index = mockFetch.mock.calls.length
+    return Promise.resolve({
+      feed:
+        index === 16
+          ? [{post, reason}]
+          : Array.from({length: 30}, () => ({post})),
+      cursor: 'page' + index,
+    })
+  })
+  const progress = jest.fn()
+  const result = await recoverRemoteWindow(
+    did,
+    client,
+    place,
+    'following',
+    () => true,
+    undefined,
+    progress,
+  )
+  expect(mockFetch).toHaveBeenCalledTimes(16)
+  expect(progress).toHaveBeenLastCalledWith(16, 'revalidate')
+  expect(result.cursor).toBe('page16')
+  expect(call).toHaveBeenCalledTimes(1)
+})
+
+it.each(['exhausted', 'loop', 'oversized', 'deleted'])(
+  'preserves exact-identity failure for %s history',
+  async kind => {
+    const {client, call} = clientWithPosts()
+    mockFetch.mockResolvedValue({
+      feed:
+        kind === 'oversized'
+          ? Array.from({length: 31}, () => ({post}))
+          : [{post, ...(kind === 'deleted' ? {reason} : {})}],
+      cursor: kind === 'exhausted' ? undefined : 'loop',
+    })
+    if (kind === 'deleted')
+      call.mockResolvedValue(
+        new Response(JSON.stringify({posts: []}), {
+          headers: {'content-type': 'application/json'},
+        }),
+      )
+    await expect(
+      recoverRemoteWindow(did, client, place, 'following', () => true),
+    ).rejects.toThrow(
+      kind === 'exhausted'
+        ? 'unavailable'
+        : kind === 'loop'
+          ? 'cursor-loop'
+          : kind === 'oversized'
+            ? 'response-limit'
+            : 'unavailable',
+    )
+    expect(mockFetch.mock.calls.length).toBeLessThanOrEqual(2)
+  },
+)
+
+it('aborts a hung retrieval on its wall-time deadline and cleans up the owning request', async () => {
+  jest.useFakeTimers()
+  const {client} = clientWithPosts()
+  let aborted = false
+  mockFetch.mockImplementation(
+    ({signal}: {signal: AbortSignal}) =>
+      new Promise((_, reject) => {
+        signal.addEventListener(
+          'abort',
+          () => {
+            aborted = true
+            const reason: unknown = signal.reason
+            reject(
+              reason instanceof Error ? reason : new Error('History cancelled'),
+            )
+          },
+          {once: true},
+        )
+      }),
+  )
+  try {
+    const result = expect(
+      recoverRemoteWindow(did, client, place, 'following', () => true),
+    ).rejects.toThrow('timed out')
+    await jest.advanceTimersByTimeAsync(90_000)
+    await result
+    expect(aborted).toBe(true)
+    expect(jest.getTimerCount()).toBe(0)
+  } finally {
+    jest.useRealTimers()
+  }
+})
+
+it('retains the failing request phase and HTTP status without retaining provider payloads', async () => {
+  const {client} = clientWithPosts()
+  mockFetch.mockRejectedValue({
+    status: 429,
+    message: 'untrusted provider payload',
+  })
+  await expect(
+    recoverRemoteWindow(did, client, place, 'following', () => true),
+  ).rejects.toMatchObject({
+    reason: 'history-request',
+    status: 429,
+    message: 'history-request',
+  })
+})
+
+it.each(['cursor', 'feed'])(
+  'bounds %s response memory before adopting a candidate',
+  async kind => {
+    const {client} = clientWithPosts()
+    mockFetch.mockResolvedValue({
+      feed: [
+        {
+          post:
+            kind === 'feed'
+              ? {
+                  ...post,
+                  record: {...post.record, text: 'x'.repeat(9 * 1024 * 1024)},
+                }
+              : post,
+        },
+      ],
+      cursor: kind === 'cursor' ? 'x'.repeat(8193) : 'next',
+    })
+    await expect(
+      recoverRemoteWindow(did, client, place, 'following', () => true),
+    ).rejects.toThrow('response-limit')
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+  },
+)
 
 it('cancels a delayed history completion before fetching or adopting another account window', async () => {
   const {client, call} = clientWithPosts()

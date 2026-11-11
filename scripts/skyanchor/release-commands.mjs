@@ -22,6 +22,7 @@ export const releaseCommands = [
     path.join('src', 'lib', 'routes', 'profile-tabs.test.ts'),
     path.join('src', 'components', 'hooks', 'useWelcomeModal.test.ts'),
     path.join('src', 'features', 'skyanchor', 'feed.test.ts'),
+    path.join('src', 'features', 'skyanchor', 'readingStatus.test.ts'),
     path.join('src', 'features', 'skyanchor', 'auth-service.test.ts'),
     path.join(
       'src',

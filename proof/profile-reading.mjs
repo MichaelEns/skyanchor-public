@@ -557,7 +557,7 @@ export async function verifyProfileReading({
   await closeReadingPanel(phonePage)
   await expect(
     phonePage.getByTestId('skyanchor-reading-button'),
-  ).toHaveAccessibleName(/Needs attention/)
+  ).toHaveAccessibleName(/Reading place: Sync error: Offline: no write sent/)
   await expect(
     phonePage.getByTestId('skyanchor-reading-indicator'),
   ).toBeVisible()
@@ -597,7 +597,7 @@ export async function verifyProfileReading({
   await closeReadingPanel(phonePage)
   await expect(
     phonePage.getByTestId('skyanchor-reading-button'),
-  ).toHaveAccessibleName(/Needs attention/)
+  ).toHaveAccessibleName(/Reading place: Sync error: CAS conflict/)
   await followingUnchanged()
   await page.goto(origin + '/')
   await page.getByTestId('skyanchor-reading-button').waitFor({timeout: 30000})

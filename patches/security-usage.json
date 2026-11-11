@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "scope": "Reviewed personal static-web release commands only, not general Expo/native/Atlas tooling safety. No exemption may apply to a bundled browser or Worker package.",
   "lockSha256": "a34079622ae1cb80267738d9bfc3766b21ee17f3e97d0881ba52ea9b92563edc",
-  "boundarySha256": "fc5cff19a4810b6965fb29cfe72adbc866c0a2fb22eebd67e5f6557b4fbeda8f",
+  "boundarySha256": "0b23ea10e8f7e304b54ccc02d63a7ec922ad2d26b05692362621e4d74b8043ee",
   "boundaryFiles": [
     ".gitattributes",
     "worker/index.ts",

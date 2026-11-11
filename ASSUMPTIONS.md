@@ -15,6 +15,33 @@ Private sync uses same-origin secure cookies, server-verified provider identity,
 CSRF checks and D1 compare-and-swap revisions. Remote offers do not move the
 viewport automatically. Profile places are bounded to 64 per owner, in addition
 to Following; tombstones count toward the bound.
+Local captures are tracked before connection. After a successful initial check
+with no shared place, the current capture is automatically saved even without
+another scroll. Checks suspend writes, retain pending captures and reschedule
+the 750 ms debounce only after reconciliation; superseded read completions
+cannot clear a newer offer or re-enable saving. Checks wait for an in-flight
+write before observing its revision. New remote revisions still require an
+explicit decision. Errors and paused source sharing are visible separately
+from connection status. Shared timestamps come only from the server's `updated`
+value; browser origin labels do not identify a physical device.
+
+Explicit remote Resume searches current Following/profile API history rather
+than reconstructing a repost from its URI. Recovery permits 296 history pages
+of at most 30 entries, reserves four current-post/reply revalidation requests,
+and bounds the total to 16 MiB (conservative UTF-16 accounting) and 90 seconds.
+Exhaustion, repeated cursors, oversized responses, deletion, moderation,
+timeout or cancellation fail explicitly without accepting a remote revision.
+Only the recovered page becomes the reading window, retaining its real API
+cursor; this does not assert that older/newer gaps have been loaded.
+Existing Return and the original local window are not consumed by a failed
+Resume. Successful exact placement must settle and persist locally before
+revision acceptance. Resume does not upload the fetched place; a fresh remote
+check gates subsequent automatic saves, preserving newer source revisions.
+Private sync requests/session exchange have 15-second network deadlines;
+the complete connect/renew operation has a 20-second deadline.
+Foreground web SDK token renewal (including regional accounts first signed in
+in this browser) also bounds its owning request and response body to 15 seconds.
+This is separate from the already-merged cold-start recovery.
 
 Telemetry delivery, remote experiment initialization and automatic update
 delivery are disabled for the web export. Necessary provider API, media,

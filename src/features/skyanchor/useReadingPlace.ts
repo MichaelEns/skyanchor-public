@@ -14,9 +14,11 @@ export function useReadingPlace(_options: {
     capture: (): ReadingPlace | undefined => undefined,
     snapshot: (): ReadingPlace | undefined => undefined,
     preserve: (_place: ReadingPlace, update: () => void) => update(),
+    abandonTarget: (update: () => void) => update(),
     setTarget: async (
       _place: ReadingPlace | undefined,
       _exact = false,
+      _signal?: AbortSignal,
     ): Promise<void> => {},
   }
 }

@@ -11,7 +11,7 @@ import * as digest from 'multiformats/hashes/digest'
 import {workerRuntime, didA, didB} from './runtime.mjs'
 import {buildInputs} from '../scripts/skyanchor/inputs.mjs'
 import {verifyComposer} from './composer.mjs'
-import {verifyHandoff} from './handoff.mjs'
+import {verifyAutomaticSource, verifyHandoff} from './handoff.mjs'
 import {verifyProfileReading} from './profile-reading.mjs'
 import {verifyAuthContrast} from './auth-contrast.mjs'
 import {verifyStartup} from './startup.mjs'
@@ -658,6 +658,10 @@ async function mockUpstream(context, owner = didA) {
       const uris = url.searchParams.getAll('uris')
       const all = [
         ...(timeline ?? feed).map(item => item.post),
+        ...(timeline ?? feed).flatMap(item => [
+          ...(item.reply?.root?.record ? [item.reply.root] : []),
+          ...(item.reply?.parent?.record ? [item.reply.parent] : []),
+        ]),
         ...[...authorFeeds.values()].flat().map(item => item.post),
         rootPost,
         parentPost,
@@ -680,7 +684,7 @@ async function mockUpstream(context, owner = didA) {
                             cts: new Date().toISOString(),
                           },
                         ]
-                      : [],
+                      : (value.labels ?? []),
                 },
               ]
         }),
@@ -895,7 +899,7 @@ let desktopBrowser,
   page,
   pwaContext,
   freshPhoneContext
-try {
+async function runBrowserProof() {
   desktopBrowser = await chromium.launch({
     ...(process.env.SKYANCHOR_BROWSER_CHANNEL
       ? {channel: process.env.SKYANCHOR_BROWSER_CHANNEL}
@@ -1173,6 +1177,34 @@ try {
       .first()
       .waitFor({timeout: 30_000})
     await current.waitForTimeout(500)
+  }
+  if (process.argv.includes('--handoff-only')) {
+    await verifyAutomaticSource({
+      desktopBrowser,
+      phoneBrowser,
+      origin,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+      holdApi,
+    })
+    await verifyHandoff({
+      desktopBrowser,
+      phoneBrowser,
+      origin,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+      deleted,
+      entries,
+      post,
+      holdApi,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
   }
   await signIn(page, 'fixture@example.test', 'open')
   await signIn(phonePage, 'reader.test')
@@ -1455,6 +1487,12 @@ try {
       page.getByRole('button', {name: 'Save my place', exact: true}),
     ).toBeVisible()
     await readingAction(page, 'Check other device')
+    const initialCloud = await worker.db
+      .prepare(
+        "SELECT revision FROM places WHERE did = ? AND feed = 'following'",
+      )
+      .bind(didA)
+      .first()
     await closeReadingPanel(page)
     await page.evaluate(() => window.scrollBy(0, 45))
     const cloudPlace = () =>
@@ -1464,7 +1502,8 @@ try {
         .first()
     await expect
       .poll(async () => {
-        const cloud = (await cloudPlace())?.state
+        const row = await cloudPlace()
+        const cloud = row?.state
         const local = await page.evaluate(
           did =>
             JSON.stringify(
@@ -1473,7 +1512,11 @@ try {
             ),
           didA,
         )
-        return !!cloud && cloud === local
+        return (
+          !!cloud &&
+          row.revision > (initialCloud?.revision ?? 0) &&
+          cloud === local
+        )
       })
       .toBe(true)
     const automaticallySaved = JSON.parse((await cloudPlace()).state)
@@ -1490,7 +1533,7 @@ try {
     await closeReadingPanel(phonePage)
     await expect(
       phonePage.getByTestId('skyanchor-reading-button'),
-    ).toHaveAccessibleName(/Needs attention/)
+    ).toHaveAccessibleName(/Reading place: Other device place available/)
     await readingAction(phonePage, 'Resume other device')
     report.remoteResumeGeometry = await phonePage.evaluate(
       ({did, target}) => ({
@@ -1513,12 +1556,17 @@ try {
       .poll(() =>
         phonePage.evaluate(
           did =>
-            JSON.parse(localStorage.getItem('skyanchor:following:v1:' + did))
-              .place.anchor,
+            JSON.stringify(
+              JSON.parse(localStorage.getItem('skyanchor:following:v1:' + did))
+                .place,
+            ),
           didA,
         ),
       )
-      .toBe(automaticallySaved.anchor)
+      .toBe(JSON.stringify(automaticallySaved))
+    await expect(
+      phonePage.getByTestId('skyanchor-resume-result'),
+    ).toContainText('Resumed the other device')
     await expect
       .poll(async () => {
         const top = await phonePage.evaluate(
@@ -1630,8 +1678,11 @@ try {
     ).toBeVisible()
     staleRead.release()
     await expect(
-      page.getByText('Stale sync completion discarded.', {exact: true}),
-    ).toBeVisible()
+      page.getByRole('button', {name: 'Keep mine', exact: true}),
+    ).toBeEnabled()
+    await expect(page.getByTestId('skyanchor-connection-status')).toHaveText(
+      'Other device decision needed',
+    )
     assert.ok(
       Math.abs((await top()) - staleTop) <= 2,
       'Delayed older response cannot move the viewport or erase a newer remote offer',
@@ -2064,6 +2115,16 @@ try {
     await closeReadingPanel(page)
     await closeReadingPanel(phonePage)
   }
+  await verifyAutomaticSource({
+    desktopBrowser,
+    phoneBrowser,
+    origin,
+    mockUpstream,
+    signIn,
+    worker,
+    report,
+    holdApi,
+  })
   await verifyHandoff({
     desktopBrowser,
     phoneBrowser,
@@ -2073,6 +2134,9 @@ try {
     worker,
     report,
     deleted,
+    entries,
+    post,
+    holdApi,
   })
   await verifyNewContent({
     desktopBrowser,
@@ -2270,6 +2334,9 @@ try {
   report.fixtureTrust =
     'Chromium trusts only the ephemeral fixture key SPKI; no global certificate bypass, persisted key or system trust-store change. Does not prove production certificate installation.'
   report.passed = true
+}
+try {
+  await runBrowserProof()
 } catch (error) {
   report.passed = false
   report.failure = error.stack
@@ -2284,7 +2351,9 @@ try {
   report.upstreamCalls = upstreamCalls
   report.networkEvents = networkEvents
   fs.writeFileSync(
-    'proof-browser-report.json',
+    process.argv.includes('--handoff-only')
+      ? 'proof-handoff-report.json'
+      : 'proof-browser-report.json',
     JSON.stringify(report, null, 2) + '\n',
   )
   await Promise.all([

@@ -20,6 +20,25 @@ providers include the official regional PDS hosts. Signout clears local
 reading data and revokes sync; deleting cloud progress leaves revision
 tombstones. Fixtures use synthetic accounts only.
 
+For a first-use handoff, keep the source browser open until Reading place says
+**Current local place confirmed shared** (automatic scrolling saves debounce
+for 750 ms; **Save my place** also requests a save), then sign in
+normally in the new browser, open **Reading place** in the same feed, **Connect
+private sync**, and directly **Resume other device**. No extra Check is required.
+Resume shows cancellable history progress and a visible result after the panel
+closes. An unavailable exact occurrence is an error, not a nearby-post success.
+The panel shows the server-confirmed shared-save time and whether it came from
+this browser or another browser, not the age of the post. A remote decision
+pauses sharing: further scrolling remains local until Resume or Keep mine.
+Choose Keep mine only on the browser whose current place you intend to share,
+not an old destination merely to clear its red dot. Background saves are best
+effort, not a guarantee.
+
+The reading icon's red dot means an error, reading notice, or other-device
+decision (in that priority); blue means loading, unsynced local progress, new
+posts above, or Return available. The panel explains the reason and connection
+state. No dot does **not** prove connection or a confirmed cloud save.
+
 Install a separately deployed instance through Edge/Chrome's app menu or
 Safari's Share > Add to Home Screen. There is no native distribution, web push,
 offline whole-feed cache or guaranteed iPhone background sync. Browser WebKit

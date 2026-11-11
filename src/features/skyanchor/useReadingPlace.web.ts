@@ -401,7 +401,18 @@ export function useReadingPlace({
       flushSync(update)
       correct()
     },
-    setTarget(place: ReadingPlace | undefined, exact = false): Promise<void> {
+    abandonTarget(update: () => void) {
+      pendingTarget.current?.cancel()
+      desired.current = undefined
+      capturePaused.current = true
+      flushSync(update)
+      correctedScrollY.current = window.scrollY
+    },
+    setTarget(
+      place: ReadingPlace | undefined,
+      exact = false,
+      signal?: AbortSignal,
+    ): Promise<void> {
       pendingTarget.current?.cancel()
       panningUntil.current = 0
       capturePaused.current = false
@@ -443,6 +454,7 @@ export function useReadingPlace({
           if (pendingTarget.current !== pending) return
           if (
             lifetime.current !== active ||
+            signal?.aborted ||
             !active.alive ||
             !latest.current.enabled ||
             (did && active.epoch !== readingEpoch(did))
