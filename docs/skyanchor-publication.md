@@ -224,6 +224,18 @@ promise of success or an exemption from the full required gate. Merges performed
 with `GITHUB_TOKEN` may not trigger a main push workflow; this helper does not
 deploy or substitute for any separately required post-merge validation.
 
+### Operator acceptance checklist
+
+1. Review the exact PR head and wait for its required `SkyAnchor exact candidate`
+   check to succeed. Dispatch the [owner merge workflow](../../.github/workflows/skyanchor-owner-merge.yml)
+   on **main**, supplying that PR number and exact head SHA.
+2. Verify the helper attempts a normal protected merge as the Actions bot and
+   validates the returned merge's NoReply identities, exact parents and approved
+   head tree. Record the actual run result before claiming remote acceptance.
+3. If the head, main, check or policy is stale or changed, stop and resolve the
+   failure without bypassing protection. Use a fresh owner dispatch after
+   revalidation, not a rerun of an existing attempt.
+
 ## Maintenance protocol
 
 The actual native-token maintenance
