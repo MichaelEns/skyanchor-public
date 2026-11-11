@@ -44,6 +44,12 @@ export function useReadingPlace({
   const correctionFrame = useRef(0)
   const switching = useRef(false)
   const panningUntil = useRef(0)
+  const userScrollUntil = useRef(0)
+  const scrollContact = useRef<'touch' | number | undefined>(undefined)
+  const intentTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  )
+  const intentEpoch = useRef(0)
   const correctedScrollY = useRef<number | undefined>(undefined)
   const capturePaused = useRef(false)
   const pendingTarget = useRef<{cancel: () => void; frame: number} | undefined>(
@@ -55,6 +61,24 @@ export function useReadingPlace({
     epoch: did ? readingEpoch(did) : 0,
     alive: true,
   })
+  function endScrollIntent() {
+    clearTimeout(intentTimer.current)
+    userScrollUntil.current = 0
+    scrollContact.current = undefined
+    if (!Number.isFinite(panningUntil.current)) panningUntil.current = 0
+  }
+  function clearScrollIntent() {
+    endScrollIntent()
+    intentEpoch.current++
+  }
+  function continueScrollIntent() {
+    clearTimeout(intentTimer.current)
+    userScrollUntil.current = Date.now() + 250
+    intentTimer.current = setTimeout(
+      endScrollIntent,
+      scrollContact.current === undefined ? 250 : 30_000,
+    )
+  }
   if (lifetime.current.did !== did || lifetime.current.feed !== feed) {
     lifetime.current = {
       did,
@@ -67,11 +91,13 @@ export function useReadingPlace({
     initialized.current = false
     activated.current = false
     leaving.current = false
+    clearScrollIntent()
   }
   useEffect(() => {
     const active = lifetime.current
     active.alive = true
     return () => {
+      clearScrollIntent()
       active.alive = false
       pendingTarget.current?.cancel()
       cancelAnimationFrame(correctionFrame.current)
@@ -163,22 +189,24 @@ export function useReadingPlace({
     return place
   }
 
-  function capture() {
+  function capture(intentional = false) {
     if (leaving.current || switching.current || capturePaused.current)
       return undefined
     if (correcting.current || !initialized.current) return desired.current
     const place = snapshot()
-    return place ? savePlace(place) : desired.current
+    return place ? savePlace(place, intentional) : desired.current
   }
 
-  function savePlace(place: ReadingPlace) {
+  function savePlace(place: ReadingPlace, intentional = false) {
     const changed = JSON.stringify(desired.current) !== JSON.stringify(place)
     try {
       latest.current.save(place)
       desired.current = place
       if (changed)
         window.dispatchEvent(
-          new CustomEvent('skyanchor-place', {detail: {did, feed, place}}),
+          new CustomEvent('skyanchor-place', {
+            detail: {did, feed, place, intentional},
+          }),
         )
     } catch (error) {
       logger.error('SkyAnchor could not save reading place', {message: error})
@@ -224,6 +252,7 @@ export function useReadingPlace({
     const delta =
       node.getBoundingClientRect().top - visibleHeaderBottom() - offset
     if (Math.abs(delta) > 0.25) {
+      clearScrollIntent()
       correcting.current = true
       window.scrollBy({top: delta, behavior: 'instant'})
       correctedScrollY.current = window.scrollY
@@ -238,6 +267,7 @@ export function useReadingPlace({
   useLayoutEffect(() => {
     if (!enabled) {
       activated.current = false
+      clearScrollIntent()
       return
     }
     if (!did || !keys.length) return
@@ -284,7 +314,14 @@ export function useReadingPlace({
       capturePaused.current = false
       panningUntil.current = Math.max(panningUntil.current, Date.now() + 150)
       cancelAnimationFrame(frame)
-      frame = requestAnimationFrame(capture)
+      const intentional =
+        scrollContact.current !== undefined ||
+        Date.now() < userScrollUntil.current
+      if (intentional) continueScrollIntent()
+      const epoch = intentEpoch.current
+      frame = requestAnimationFrame(() =>
+        capture(intentional && epoch === intentEpoch.current),
+      )
     }
     const observer = new ResizeObserver(correct)
     getNodes().forEach(node => observer.observe(node))
@@ -297,25 +334,115 @@ export function useReadingPlace({
     }
     window.addEventListener('scroll', onScroll, {passive: true})
     const onPanStart = () => {
+      scrollContact.current = 'touch'
+      continueScrollIntent()
       leaving.current = false
       pendingTarget.current?.cancel()
       panningUntil.current = Infinity
     }
     const onPanEnd = () => {
+      if (scrollContact.current !== 'touch') return
+      scrollContact.current = undefined
+      continueScrollIntent()
       pendingTarget.current?.cancel()
       panningUntil.current = Date.now() + 150
     }
     const onWheel = () => {
+      continueScrollIntent()
       leaving.current = false
       pendingTarget.current?.cancel()
       panningUntil.current = Date.now() + 150
     }
     window.addEventListener('touchstart', onPanStart, {passive: true})
     window.addEventListener('touchend', onPanEnd, {passive: true})
-    window.addEventListener('touchcancel', onPanEnd, {passive: true})
     window.addEventListener('wheel', onWheel, {passive: true})
-    window.addEventListener('resize', correct)
+    const onKey = (event: KeyboardEvent) => {
+      if (
+        !event.defaultPrevented &&
+        !event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        (!event.shiftKey || event.key === ' ') &&
+        [
+          'ArrowUp',
+          'ArrowDown',
+          'PageUp',
+          'PageDown',
+          'Home',
+          'End',
+          ' ',
+        ].includes(event.key) &&
+        !(
+          event.target instanceof HTMLElement &&
+          (event.target.isContentEditable ||
+            event.target.closest(
+              'input, textarea, select, button, a, [role="button"], [role="textbox"], [role="combobox"], [role="slider"], [role="tab"], [role="menuitem"]',
+            ))
+        )
+      )
+        onWheel()
+    }
+    window.addEventListener('keydown', onKey)
+    const onPointerDown = (event: PointerEvent) => {
+      const root = document.documentElement
+      if (
+        event.pointerType !== 'mouse' ||
+        event.button !== 0 ||
+        !event.isPrimary ||
+        event.target !== root
+      )
+        return
+      const style = getComputedStyle(root)
+      const width = window.innerWidth - root.clientWidth
+      const height = window.innerHeight - root.clientHeight
+      const left = root.clientLeft > (parseFloat(style.borderLeftWidth) || 0)
+      // Only a measurable native gutter, never an overlay/browser-reserved edge.
+      const vertical =
+        root.scrollHeight > root.clientHeight &&
+        width > 0 &&
+        event.clientY >= 0 &&
+        event.clientY < root.clientHeight &&
+        (left
+          ? event.clientX >= 0 && event.clientX < width
+          : event.clientX >= window.innerWidth - width &&
+            event.clientX < window.innerWidth)
+      const horizontal =
+        root.scrollWidth > root.clientWidth &&
+        height > 0 &&
+        event.clientX >= (left ? width : 0) &&
+        event.clientX < (left ? window.innerWidth : root.clientWidth) &&
+        event.clientY >= window.innerHeight - height &&
+        event.clientY < window.innerHeight
+      if (!vertical && !horizontal) return
+      scrollContact.current = event.pointerId
+      onWheel()
+    }
+    const onPointerEnd = (event: PointerEvent) => {
+      if (scrollContact.current !== event.pointerId) return
+      scrollContact.current = undefined
+      continueScrollIntent()
+    }
+    const onScrollEnd = (event: Event) => {
+      if (event.target === document && scrollContact.current === undefined)
+        endScrollIntent()
+    }
+    const cancelIntent = () => {
+      clearScrollIntent()
+      panningUntil.current = 0
+    }
+    const onResize = () => {
+      cancelIntent()
+      correct()
+    }
+    window.addEventListener('pointerdown', onPointerDown, true)
+    window.addEventListener('pointerup', onPointerEnd, true)
+    window.addEventListener('pointercancel', cancelIntent, true)
+    window.addEventListener('touchcancel', cancelIntent, {passive: true})
+    window.addEventListener('blur', cancelIntent)
+    document.addEventListener('scrollend', onScrollEnd)
+    window.addEventListener('resize', onResize)
     const onPageHide = () => {
+      cancelIntent()
       pendingTarget.current?.cancel()
       capture()
     }
@@ -342,6 +469,7 @@ export function useReadingPlace({
       if (!(target instanceof Node) || !getRoot()?.contains(target)) return
       const place = snapshot()
       if (!place) return
+      cancelIntent()
       departures.delete(entry)
       departures.set(entry, {place, epoch: readingEpoch(did)})
       if (departures.size > 64)
@@ -364,6 +492,7 @@ export function useReadingPlace({
         return
       if (!desired.current || !lifetime.current.alive) return
       detail.handled = true
+      cancelIntent()
       correct()
     }
     window.addEventListener('skyanchor-restore-navigation', onRestoreEntry)
@@ -378,9 +507,15 @@ export function useReadingPlace({
       window.removeEventListener('scroll', onScroll)
       window.removeEventListener('touchstart', onPanStart)
       window.removeEventListener('touchend', onPanEnd)
-      window.removeEventListener('touchcancel', onPanEnd)
       window.removeEventListener('wheel', onWheel)
-      window.removeEventListener('resize', correct)
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('pointerdown', onPointerDown, true)
+      window.removeEventListener('pointerup', onPointerEnd, true)
+      window.removeEventListener('pointercancel', cancelIntent, true)
+      window.removeEventListener('touchcancel', cancelIntent)
+      window.removeEventListener('blur', cancelIntent)
+      document.removeEventListener('scrollend', onScrollEnd)
+      window.removeEventListener('resize', onResize)
       window.removeEventListener('pagehide', onPageHide)
       window.removeEventListener('skyanchor-save-now', saveNow)
       window.removeEventListener('skyanchor-before-navigation', onDeparture)
@@ -394,6 +529,7 @@ export function useReadingPlace({
     capture,
     snapshot,
     preserve(place: ReadingPlace, update: () => void) {
+      clearScrollIntent()
       desired.current = place
       exactTarget.current = true
       initialized.current = true
@@ -402,6 +538,7 @@ export function useReadingPlace({
       correct()
     },
     abandonTarget(update: () => void) {
+      clearScrollIntent()
       pendingTarget.current?.cancel()
       desired.current = undefined
       capturePaused.current = true
@@ -415,6 +552,7 @@ export function useReadingPlace({
     ): Promise<void> {
       pendingTarget.current?.cancel()
       panningUntil.current = 0
+      clearScrollIntent()
       capturePaused.current = false
       desired.current = place
       exactTarget.current = exact
@@ -499,6 +637,7 @@ export function useReadingPlace({
               return
             }
             pendingTarget.current = undefined
+            departures.delete(entry)
             exactTarget.current = false
             resolve()
             return

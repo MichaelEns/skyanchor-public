@@ -13,6 +13,7 @@ export function ReadingToolbar(_props: {
   onLatest: () => Promise<void>
   onReturn: () => Promise<void>
   capture: () => ReadingPlace | undefined
+  snapshot: () => ReadingPlace | undefined
   resume: (
     place: ReadingPlace | undefined,
     options: ResumeOptions,

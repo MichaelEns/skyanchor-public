@@ -11,7 +11,12 @@ import * as digest from 'multiformats/hashes/digest'
 import {workerRuntime, didA, didB} from './runtime.mjs'
 import {buildInputs} from '../scripts/skyanchor/inputs.mjs'
 import {verifyComposer} from './composer.mjs'
-import {verifyAutomaticSource, verifyHandoff} from './handoff.mjs'
+import {
+  verifyAutomaticSource,
+  verifyHandoff,
+  verifyReverseHandoff,
+  verifyScrollInput,
+} from './handoff.mjs'
 import {verifyProfileReading} from './profile-reading.mjs'
 import {verifyAuthContrast} from './auth-contrast.mjs'
 import {verifyStartup} from './startup.mjs'
@@ -23,6 +28,7 @@ import {
   verifyReadingPanel,
   verifyNewContent,
   legacyReturnFixture,
+  scrollReading,
 } from './reading-panel.mjs'
 
 const require = createRequire(import.meta.url)
@@ -86,7 +92,7 @@ let worker
 let origin
 let apiHold
 const apiHolds = new Set()
-function holdApi(method) {
+function holdApi(method, {cookie, scenario} = {}) {
   let entered, release
   const reached = new Promise(resolve => {
     entered = resolve
@@ -94,7 +100,7 @@ function holdApi(method) {
   const done = new Promise(resolve => {
     release = resolve
   })
-  const hold = {method, entered, reached, done, release}
+  const hold = {method, cookie, scenario, entered, reached, done, release}
   apiHolds.add(hold)
   apiHold = hold
   return hold
@@ -121,11 +127,20 @@ const server = https.createServer(
         const responseBytes = Buffer.from(await result.arrayBuffer())
         if (
           apiHold?.method === request.method &&
-          url.pathname === '/api/skyanchor/place'
+          url.pathname === '/api/skyanchor/place' &&
+          (!apiHold.cookie ||
+            request.headers.cookie?.split('; ').includes(apiHold.cookie))
         ) {
           const hold = apiHold
           apiHold = undefined
-          hold.entered()
+          hold.request = {
+            method: request.method,
+            path: url.pathname,
+            wallTime: Date.now(),
+            status: result.status,
+            scenario: hold.scenario,
+          }
+          hold.entered(hold.request)
           await hold.done
           apiHolds.delete(hold)
         }
@@ -1181,11 +1196,46 @@ async function runBrowserProof() {
       .waitFor({timeout: 30_000})
     await current.waitForTimeout(500)
   }
+  if (process.argv.includes('--reverse-only')) {
+    await verifyReverseHandoff({
+      desktopBrowser,
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+      holdApi,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
+  }
+  if (process.argv.includes('--scroll-input-only')) {
+    await verifyScrollInput({
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
+  }
   if (process.argv.includes('--handoff-only')) {
     await verifyAutomaticSource({
       desktopBrowser,
       phoneBrowser,
       origin,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+      holdApi,
+    })
+    await verifyReverseHandoff({
+      desktopBrowser,
+      phoneBrowser,
       mockUpstream,
       signIn,
       worker,
@@ -1211,6 +1261,50 @@ async function runBrowserProof() {
   }
   await signIn(page, 'fixture@example.test', 'open')
   await signIn(phonePage, 'reader.test')
+  if (process.argv.includes('--profile-only')) {
+    await scrollReading(page, 400)
+    const connected = page.waitForResponse(
+      response =>
+        response.url() === origin + '/api/skyanchor/session' &&
+        response.request().method() === 'POST',
+    )
+    await readingAction(page, 'Connect private sync')
+    assert.equal((await connected).status(), 200)
+    await expect
+      .poll(async () =>
+        worker.db
+          .prepare(
+            "SELECT revision FROM places WHERE did = ? AND feed = 'following'",
+          )
+          .bind(didA)
+          .first(),
+      )
+      .not.toBeNull()
+    await expect(page.getByTestId('skyanchor-source-state')).toContainText(
+      'Current local place confirmed shared',
+    )
+    await closeReadingPanel(page)
+    await readingAction(phonePage, 'Connect private sync')
+    await expect(
+      phonePage.getByRole('button', {name: 'Check other device', exact: true}),
+    ).toBeEnabled()
+    await closeReadingPanel(phonePage)
+    await verifyProfileReading({
+      page,
+      phonePage,
+      origin,
+      worker,
+      did: didA,
+      authors: [didSharon, didAnother],
+      report,
+      setConnectivity,
+      phoneService: regionalPds,
+    })
+    assert.deepEqual(errors, [])
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
+  }
   assert.ok(
     upstreamCalls.some(
       call =>
@@ -1497,7 +1591,7 @@ async function runBrowserProof() {
       .bind(didA)
       .first()
     await closeReadingPanel(page)
-    await page.evaluate(() => window.scrollBy(0, 45))
+    await scrollReading(page, 45)
     const cloudPlace = () =>
       worker.db
         .prepare('SELECT state, revision FROM places WHERE did = ?')
@@ -1591,7 +1685,7 @@ async function runBrowserProof() {
           requestAnimationFrame(() => requestAnimationFrame(resolve)),
         ),
     )
-    await phonePage.evaluate(() => window.scrollBy(0, 55))
+    await scrollReading(phonePage, 55)
     await expect
       .poll(async () => (await cloudPlace()).revision)
       .toBeGreaterThan(previousRevision)
@@ -1629,7 +1723,7 @@ async function runBrowserProof() {
     await closeReadingPanel(page)
     const pendingRevision = (await cloudPlace()).revision
     const pendingWrite = holdApi('PUT')
-    await page.evaluate(() => window.scrollBy(0, 35))
+    await scrollReading(page, 35)
     await Promise.race([
       pendingWrite.reached,
       new Promise((_, reject) =>
@@ -1639,7 +1733,7 @@ async function runBrowserProof() {
         ),
       ),
     ])
-    await page.evaluate(() => window.scrollBy(0, 45))
+    await scrollReading(page, 45)
     await new Promise(resolve => setTimeout(resolve, 900))
     pendingWrite.release()
     await expect
@@ -2141,6 +2235,16 @@ async function runBrowserProof() {
     post,
     holdApi,
   })
+  await verifyReverseHandoff({
+    desktopBrowser,
+    phoneBrowser,
+    mockUpstream,
+    signIn,
+    worker,
+    report,
+    holdApi,
+  })
+  await verifyScrollInput({phoneBrowser, mockUpstream, signIn, worker, report})
   await verifyNewContent({
     desktopBrowser,
     phoneBrowser,

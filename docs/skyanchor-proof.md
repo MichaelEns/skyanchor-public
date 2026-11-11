@@ -13,6 +13,19 @@ immediate Back, cancellation, viewport geometry, regional PDS handoff and
 contrast expectations. They do not authenticate a real account or claim
 physical-device acceptance.
 
+`pnpm skyanchor:e2e --profile-only` runs the complete profile proof against the
+existing export after establishing confirmed Following sync. Profile source
+movement uses wheel input (Chromium) or synthetic touch around real viewport
+movement (WebKit), including travel to the requested row. A wheel hint before
+Playwright's passive `scrollIntoViewIfNeeded` does not own that later movement:
+the previous fixture could exceed the 250 ms budget before centering.
+The retained contrast case deliberately centers passively, proves sharing stays
+paused even after subsequent reading input, and requires explicit Resume without
+any receiving PUT. From the confirmed baseline, owned reading must automatically
+share the exact visible occurrence/offset without Save or Keep mine. Its receipt
+records input/capture phases, source CAS revision and save time, request count
+matching the D1 clock delta, and unchanged Following local/cloud bytes.
+
 The direct first-use handoff proof has no prior destination revision or sync
 consent. Source Save is confirmed against the isolated D1 row before Connect;
 Resume is clicked directly from that offer, without Check or injected cookies.
@@ -29,6 +42,15 @@ page held) retains blue Return. Both require confirmed sharing, no sync error,
 the exact local occurrence/offset and unchanged cloud row/clock. Closing the
 panel must not silently clear the red notice.
 
+The foreground private-GET deadline case first waits for idle, installs a paused
+page clock, and triggers focus. Its response latch accepts only the phone's
+session cookie and `GET /api/skyanchor/place`, recording method, path and time
+without recording the cookie. Check must be disabled while that request is held:
+waiting to click it before advancing time would block the fixture itself.
+The owned request remains busy at 14,999 ms, aborts with the timeout notice at
+15,000 ms, and preserves saved bytes and the full D1 row/clock. Only then is the
+hold released and the clock resumed for an explicit, successful Check retry.
+
 The separate automatic-source proof uses a WebKit phone and two fresh desktop
 profiles with three distinct synthetic browser IDs. No source Save helper or
 injected reading row seeds this path. Actual scrolling before Connect must
@@ -41,6 +63,36 @@ times. Receiving offers and Resume must leave the entire cloud row and clock
 unchanged. Offline recovery without new scrolling and regional renewal preserve
 the actual source capture; captions distinguish pending, blocked and confirmed
 sharing. This proves browser-fixture behavior, not physical background delivery.
+
+The reverse-handoff proof starts with an already persisted older WebKit phone
+and a desktop scroll-only automatic source. It checks the actual visible node,
+offset, local snapshot, accepted revision, D1 row and global clock. A production
+build retaining the original offer guard reproduces the missing Resume button with an equal accepted
+revision and an older cached snapshot; that is an explicit backward-compatibility
+fixture, not evidence that a real user's cloud row was overwritten.
+The regression also covers same-browser last-writer provenance, matching-view
+captions, panel/focus/layout, post Back, profile navigation and cold reopen.
+Receivers must not PUT during those operations. Intentional rereading of older
+content can still produce a new confirmed save; no post-age ordering is used.
+Playwright wheel input owns desktop automatic-source movement. Mobile WebKit
+does not support Playwright wheel input, so its fixture dispatches a touch
+start/end around real window scrolling; this is not physical gesture acceptance.
+Programmatic restoration without reading input does not grant sharing intent.
+
+The scroll-input proof adds a controlled WebKit sequence lasting over three
+seconds after touchend, with continuing real viewport deltas and no Save. Its
+discrete JS steps would each emit native scrollend, so the fixture suppresses
+only those events to exercise the quiescence fallback of one continuous run;
+this is not physical iPhone inertia acceptance. Unit cases separately assert
+native scrollend, timeout, hidden/resize, account/feed and restore cancellation.
+An independent Chromium/Edge context removes Playwright's default
+`--hide-scrollbars` flag and uses real mouse down/move/up on the visible native
+document thumb. Trusted native pointer events, viewport motion, final D1
+state/writer/revision/server time and confirmed-shared captions are required.
+Following either input sequence, passive programmatic movement and resize must
+not PUT, and explicit Resume must still restore the confirmed shared place.
+Overlay scrollbars without a measurable DOM gutter remain a conservative
+limitation: use a reading wheel, touch, key gesture or explicit Save.
 
 The dependency policy retains raw supplier findings and verifies exact backport,
 source-map/metafile and direct-consumer inventories. A nonshipped dependency
