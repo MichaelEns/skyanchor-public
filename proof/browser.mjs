@@ -1261,6 +1261,50 @@ async function runBrowserProof() {
   }
   await signIn(page, 'fixture@example.test', 'open')
   await signIn(phonePage, 'reader.test')
+  if (process.argv.includes('--profile-only')) {
+    await scrollReading(page, 400)
+    const connected = page.waitForResponse(
+      response =>
+        response.url() === origin + '/api/skyanchor/session' &&
+        response.request().method() === 'POST',
+    )
+    await readingAction(page, 'Connect private sync')
+    assert.equal((await connected).status(), 200)
+    await expect
+      .poll(async () =>
+        worker.db
+          .prepare(
+            "SELECT revision FROM places WHERE did = ? AND feed = 'following'",
+          )
+          .bind(didA)
+          .first(),
+      )
+      .not.toBeNull()
+    await expect(page.getByTestId('skyanchor-source-state')).toContainText(
+      'Current local place confirmed shared',
+    )
+    await closeReadingPanel(page)
+    await readingAction(phonePage, 'Connect private sync')
+    await expect(
+      phonePage.getByRole('button', {name: 'Check other device', exact: true}),
+    ).toBeEnabled()
+    await closeReadingPanel(phonePage)
+    await verifyProfileReading({
+      page,
+      phonePage,
+      origin,
+      worker,
+      did: didA,
+      authors: [didSharon, didAnother],
+      report,
+      setConnectivity,
+      phoneService: regionalPds,
+    })
+    assert.deepEqual(errors, [])
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
+  }
   assert.ok(
     upstreamCalls.some(
       call =>

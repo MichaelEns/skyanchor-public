@@ -13,6 +13,19 @@ immediate Back, cancellation, viewport geometry, regional PDS handoff and
 contrast expectations. They do not authenticate a real account or claim
 physical-device acceptance.
 
+`pnpm skyanchor:e2e --profile-only` runs the complete profile proof against the
+existing export after establishing confirmed Following sync. Profile source
+movement uses wheel input (Chromium) or synthetic touch around real viewport
+movement (WebKit), including travel to the requested row. A wheel hint before
+Playwright's passive `scrollIntoViewIfNeeded` does not own that later movement:
+the previous fixture could exceed the 250 ms budget before centering.
+The retained contrast case deliberately centers passively, proves sharing stays
+paused even after subsequent reading input, and requires explicit Resume without
+any receiving PUT. From the confirmed baseline, owned reading must automatically
+share the exact visible occurrence/offset without Save or Keep mine. Its receipt
+records input/capture phases, source CAS revision and save time, request count
+matching the D1 clock delta, and unchanged Following local/cloud bytes.
+
 The direct first-use handoff proof has no prior destination revision or sync
 consent. Source Save is confirmed against the isolated D1 row before Connect;
 Resume is clicked directly from that offer, without Check or injected cookies.

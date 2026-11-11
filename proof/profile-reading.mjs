@@ -35,6 +35,7 @@ export async function verifyProfileReading({
       .bind(did, identity)
       .first()
   const originalLocal = await snapshot(page, 'following')
+  let originalPhoneLocal
   const originalCloud = await cloud('following')
   const followingUnchanged = async () => {
     assert.equal(
@@ -47,6 +48,12 @@ export async function verifyProfileReading({
       originalCloud,
       'Author-only actions must not mutate Following cloud row/revision',
     )
+    if (originalPhoneLocal !== undefined)
+      assert.equal(
+        await snapshot(phonePage, 'following'),
+        originalPhoneLocal,
+        'Author-only actions must not mutate phone Following snapshot',
+      )
   }
   const root = (current, identity) =>
     current
@@ -75,9 +82,13 @@ export async function verifyProfileReading({
   const move = async (current, identity, index, movement = 85) => {
     await closeReadingPanel(current)
     const rows = root(current, identity).locator('[data-skyanchor-key]')
-    await current.evaluate(() => dispatchEvent(new WheelEvent('wheel')))
-    await rows.nth(index).scrollIntoViewIfNeeded()
-    await current.waitForTimeout(350)
+    const distance = await rows.nth(index).evaluate(node => {
+      const tabs = document.querySelector('[data-testid="profileFeedTabs"]')
+      return (
+        node.getBoundingClientRect().top - tabs.getBoundingClientRect().height
+      )
+    })
+    await scrollReading(current, distance)
     const previous = JSON.parse(
       (await snapshot(current, identity)) ?? 'null',
     )?.place
@@ -493,6 +504,7 @@ export async function verifyProfileReading({
   const followingPlace = JSON.parse(originalLocal).place
   const followingTop = await top(page, 'following', followingPlace)
   await open(phonePage, authors[0])
+  originalPhoneLocal = await snapshot(phonePage, 'following')
   await verifyReadingPanel(phonePage, report, sharon)
   await readingAction(phonePage, 'Resume other device', sharon)
   const remoteBeforeMove = JSON.parse((await cloud(sharon)).state)
@@ -510,20 +522,238 @@ export async function verifyProfileReading({
     'Current local place confirmed shared',
   )
   await closeReadingPanel(phonePage)
-  const phonePlace = await move(phonePage, sharon, 10, 145)
-  await scrollReading(phonePage, 80)
-  await scrollReading(phonePage, -80)
-  await expect
-    .poll(async () => JSON.parse(await snapshot(phonePage, sharon)).place)
-    .toEqual(phonePlace)
-  assert.notDeepEqual(
-    phonePlace,
-    remoteBeforeMove,
-    'Phone motion must actually change the remote place',
-  )
-  await expect
-    .poll(async () => (await cloud(sharon))?.state)
-    .toBe(JSON.stringify(phonePlace))
+  await phonePage.evaluate(() => {
+    window.fixtureProfileInput = []
+    window.fixtureProfilePhase = 'passive-centering'
+    const listeners = []
+    for (const name of [
+      'wheel',
+      'touchstart',
+      'touchend',
+      'keydown',
+      'scroll',
+      'resize',
+      'scrollend',
+      'visibilitychange',
+      'skyanchor-place',
+    ]) {
+      const target = ['scrollend', 'visibilitychange'].includes(name)
+        ? document
+        : window
+      const record = event => {
+        const detail = event.detail
+        if (window.fixtureProfileInput.length >= 200) return
+        window.fixtureProfileInput.push({
+          name,
+          phase: window.fixtureProfilePhase,
+          time: performance.now(),
+          y: scrollY,
+          target:
+            event.target === document ? 'document' : event.target?.tagName,
+          ...(name === 'skyanchor-place'
+            ? {
+                intentional: detail.intentional,
+                feed: detail.feed,
+                anchor: detail.place?.anchor,
+                offset: detail.place?.offset,
+              }
+            : {}),
+        })
+      }
+      target.addEventListener(name, record, true)
+      listeners.push(() => target.removeEventListener(name, record, true))
+    }
+    window.fixtureRemoveProfileInput = () =>
+      listeners.forEach(remove => remove())
+  })
+  const authorRequests = []
+  const onAuthorRequest = request => {
+    const url = new URL(request.url())
+    if (
+      url.pathname === '/api/skyanchor/place' &&
+      url.searchParams.get('feed') === sharon
+    )
+      authorRequests.push({
+        method: request.method(),
+        time: Date.now(),
+        ...(request.method() === 'PUT'
+          ? {revision: JSON.parse(request.postData()).revision}
+          : {}),
+      })
+  }
+  phonePage.on('request', onAuthorRequest)
+  let phonePlace
+  try {
+    const beforePassive = await cloud(sharon)
+    const clockBeforePassive = await worker.db
+      .prepare('SELECT * FROM clock WHERE id = 1')
+      .first()
+    await root(phonePage, sharon)
+      .locator('[data-skyanchor-key]')
+      .nth(10)
+      .scrollIntoViewIfNeeded()
+    await expect
+      .poll(async () => JSON.parse(await snapshot(phonePage, sharon)).place)
+      .not.toEqual(remoteBeforeMove)
+    await phonePage.waitForTimeout(1100)
+    await readingPanel(phonePage, sharon)
+    await expect(phonePage.getByTestId('skyanchor-source-state')).toContainText(
+      'New scrolling is saved only on this device',
+    )
+    await expect(
+      phonePage.getByRole('button', {name: 'Resume other device', exact: true}),
+    ).toBeEnabled()
+    await closeReadingPanel(phonePage)
+    await phonePage.evaluate(() => {
+      window.fixtureProfilePhase = 'reading-while-paused'
+    })
+    await scrollReading(phonePage, 145)
+    await phonePage.waitForTimeout(1100)
+    assert.deepEqual(await cloud(sharon), beforePassive)
+    assert.deepEqual(
+      await worker.db.prepare('SELECT * FROM clock WHERE id = 1').first(),
+      clockBeforePassive,
+    )
+    assert.equal(
+      authorRequests.filter(request => request.method === 'PUT').length,
+      0,
+    )
+    await followingUnchanged()
+    await phonePage.evaluate(() => {
+      window.fixtureProfilePhase = 'explicit-resume'
+    })
+    await readingAction(phonePage, 'Resume other device', sharon)
+    await expect(
+      phonePage.getByTestId('skyanchor-resume-result'),
+    ).toContainText('Confirmed locally.')
+    await expect
+      .poll(async () => JSON.parse(await snapshot(phonePage, sharon)).place)
+      .toEqual(remoteBeforeMove)
+    await readingPanel(phonePage, sharon)
+    await expect(
+      phonePage.getByRole('button', {name: 'Check other device', exact: true}),
+    ).toBeEnabled()
+    await expect(phonePage.getByTestId('skyanchor-source-state')).toContainText(
+      'Current local place confirmed shared',
+    )
+    await closeReadingPanel(phonePage)
+    await phonePage.waitForTimeout(1000)
+    assert.deepEqual(await cloud(sharon), beforePassive)
+    assert.deepEqual(
+      await worker.db.prepare('SELECT * FROM clock WHERE id = 1').first(),
+      clockBeforePassive,
+    )
+    assert.equal(
+      authorRequests.filter(request => request.method === 'PUT').length,
+      0,
+    )
+    await phonePage.evaluate(() => {
+      window.fixtureProfilePhase = 'owned-reading'
+    })
+    phonePlace = await move(phonePage, sharon, 10, 145)
+    await scrollReading(phonePage, 80)
+    await scrollReading(phonePage, -80)
+    await expect
+      .poll(async () => JSON.parse(await snapshot(phonePage, sharon)).place)
+      .toEqual(phonePlace)
+    assert.notDeepEqual(
+      phonePlace,
+      remoteBeforeMove,
+      'Phone motion must actually change the remote place',
+    )
+    await expect
+      .poll(async () => (await cloud(sharon))?.state)
+      .toBe(JSON.stringify(phonePlace))
+    const confirmedPhone = await cloud(sharon)
+    assert.ok(confirmedPhone.revision > beforePassive.revision)
+    assert.ok(confirmedPhone.updated > beforePassive.updated)
+    const writes = authorRequests.filter(request => request.method === 'PUT')
+    const authorWrites = writes.length
+    assert.ok(authorWrites > 0)
+    assert.equal(writes[0].revision, beforePassive.revision)
+    const clockAfterReading = await worker.db
+      .prepare('SELECT * FROM clock WHERE id = 1')
+      .first()
+    assert.equal(
+      clockAfterReading.revision - clockBeforePassive.revision,
+      authorWrites,
+    )
+    const actual = await phonePage.evaluate(place => {
+      const node = [...document.querySelectorAll('[data-skyanchor-key]')].find(
+        node =>
+          node.dataset.skyanchorKey === place.anchor &&
+          node.getClientRects().length,
+      )
+      return Math.abs(
+        node.getBoundingClientRect().top -
+          document
+            .querySelector('[data-testid="profileFeedTabs"]')
+            .getBoundingClientRect().bottom -
+          place.offset,
+      )
+    }, phonePlace)
+    assert.ok(actual <= 2)
+    const captures = await phonePage.evaluate(
+      identity =>
+        window.fixtureProfileInput.filter(
+          event => event.name === 'skyanchor-place' && event.feed === identity,
+        ),
+      sharon,
+    )
+    assert.ok(
+      captures.some(
+        event =>
+          event.phase === 'passive-centering' && event.intentional === false,
+      ),
+    )
+    for (const phase of ['reading-while-paused', 'owned-reading']) {
+      const owned = captures.filter(event => event.phase === phase)
+      assert.ok(owned.length > 0)
+      assert.ok(owned.every(event => event.intentional === true))
+    }
+    report.profileAutomaticSource = {
+      passiveWrites: 0,
+      receivingWrites: 0,
+      authorWrites,
+      revision: confirmedPhone.revision,
+      updated: confirmedPhone.updated,
+      placementError: actual,
+      previousRevision: beforePassive.revision,
+      expectedRevisions: writes.map(request => request.revision),
+      clockDelta: clockAfterReading.revision - clockBeforePassive.revision,
+      followingBytesUnchanged: true,
+    }
+    await followingUnchanged()
+  } finally {
+    await readingPanel(phonePage, sharon)
+    report.profileInput = {
+      events: await phonePage.evaluate(() => window.fixtureProfileInput),
+      cloud: await cloud(sharon),
+      local: JSON.parse(await snapshot(phonePage, sharon)),
+      panel: await toolbar(phonePage, sharon).innerText(),
+      geometry: await phonePage.evaluate(() => ({
+        y: scrollY,
+        header: document
+          .querySelector('[data-testid="profileFeedTabs"]')
+          ?.getBoundingClientRect()
+          .toJSON(),
+        rows: [...document.querySelectorAll('[data-skyanchor-key]')]
+          .filter(
+            n =>
+              n.getClientRects().length && n.getBoundingClientRect().bottom > 0,
+          )
+          .slice(0, 3)
+          .map(n => ({
+            key: n.dataset.skyanchorKey,
+            top: n.getBoundingClientRect().top,
+          })),
+      })),
+      requests: authorRequests,
+    }
+    await phonePage.evaluate(() => window.fixtureRemoveProfileInput())
+    phonePage.off('request', onAuthorRequest)
+    await closeReadingPanel(phonePage)
+  }
   assert.equal(
     (await cloud(sharon)).device,
     await phonePage.evaluate(() => localStorage.getItem('skyanchor:device')),
