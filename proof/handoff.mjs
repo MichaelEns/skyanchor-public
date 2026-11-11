@@ -587,6 +587,9 @@ export async function verifyHandoff({
       privateHold.release()
     }
     await readingAction(b, 'Check other device')
+    await expect(
+      b.getByRole('button', {name: 'Reconnect private sync', exact: true}),
+    ).toBeEnabled()
     const refreshPattern = '**/xrpc/com.atproto.server.refreshSession'
     let enterRefresh, releaseRefresh
     const refreshHold = {
@@ -598,6 +601,7 @@ export async function verifyHandoff({
       releaseRefresh = resolve
     })
     const hangRefresh = async route => {
+      if (route.request().method() !== 'POST') return route.fallback()
       enterRefresh()
       await refreshDone
       await route.abort('failed')
@@ -608,7 +612,7 @@ export async function verifyHandoff({
       phone.expected.set('POST /api/skyanchor/session 401', 1)
       await readingAction(b, 'Reconnect private sync')
       await reached(refreshHold, b)
-      await b.clock.fastForward(16000)
+      await b.clock.runFor(16000)
       await expect(b.getByTestId('skyanchor-toolbar')).toContainText(
         'Bluesky session renewal did not complete',
       )
