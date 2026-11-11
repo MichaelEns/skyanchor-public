@@ -496,6 +496,20 @@ export async function verifyProfileReading({
   await verifyReadingPanel(phonePage, report, sharon)
   await readingAction(phonePage, 'Resume other device', sharon)
   const remoteBeforeMove = JSON.parse((await cloud(sharon)).state)
+  await expect(phonePage.getByTestId('skyanchor-resume-result')).toContainText(
+    'Confirmed locally.',
+  )
+  await expect
+    .poll(async () => JSON.parse(await snapshot(phonePage, sharon)).place)
+    .toEqual(remoteBeforeMove)
+  await readingPanel(phonePage, sharon)
+  await expect(
+    phonePage.getByRole('button', {name: 'Check other device', exact: true}),
+  ).toBeEnabled()
+  await expect(phonePage.getByTestId('skyanchor-source-state')).toContainText(
+    'Current local place confirmed shared',
+  )
+  await closeReadingPanel(phonePage)
   const phonePlace = await move(phonePage, sharon, 10, 145)
   await scrollReading(phonePage, 80)
   await scrollReading(phonePage, -80)
