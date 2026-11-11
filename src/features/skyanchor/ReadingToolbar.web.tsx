@@ -4,6 +4,7 @@ import {Trans, useLingui} from '@lingui/react/macro'
 import {createPortal} from 'react-dom'
 
 import {withRequestDeadline} from '#/lib/async/requestDeadline'
+import {formatDateTime} from '#/lib/strings/time'
 import {logger} from '#/logger'
 import {type SessionAccount, useSession, useSessionApi} from '#/state/session'
 import {atoms as a, useTheme} from '#/alf'
@@ -63,7 +64,7 @@ export function ReadingToolbar({
     options: ResumeOptions,
   ) => Promise<boolean>
 }) {
-  const {t: l} = useLingui()
+  const {t: l, i18n} = useLingui()
   const t = useTheme()
   const {currentAccount} = useSession()
   const {refreshSession} = useSessionApi()
@@ -77,6 +78,8 @@ export function ReadingToolbar({
   const [csrf, setCsrf] = useState('')
   const [status, setStatus] = useState('')
   const [other, setOther] = useState<Remote | undefined>()
+  const [sharedPlace, setSharedPlace] = useState<Remote | undefined>()
+  const [checking, setChecking] = useState(false)
   const [busy, setBusy] = useState(false)
   const [restoring, setRestoring] = useState(false)
   const [result, setResult] = useState<
@@ -84,6 +87,10 @@ export function ReadingToolbar({
   >()
   const resumeController = useRef<AbortController | undefined>(undefined)
   const choiceEpoch = useRef(0)
+  const checkSequence = useRef(0)
+  const activeCheck = useRef(0)
+  const scheduleSave = useRef(() => {})
+  const writeSettled = useRef<Promise<void> | undefined>(undefined)
   const lifetime = useRef(new AbortController())
   const revision = useRef(
     Number(
@@ -183,6 +190,7 @@ export function ReadingToolbar({
         throw new Error(l`Invalid private sync conflict response`)
       }
       setOther(value.current)
+      setSharedPlace(value.current)
       observedRevision.current = Math.max(
         observedRevision.current,
         value.current.revision,
@@ -209,44 +217,80 @@ export function ReadingToolbar({
     if (!session.current.csrf || !enabled) return
     if (resumeController.current && !completingResume) return
     const choice = choiceEpoch.current
+    // Only the latest check may reopen saving or replace an explicit decision.
+    const sequence = ++checkSequence.current
+    activeCheck.current = sequence
     automatic.current = false
-    const current = await request('place')
-    if (
-      choice !== choiceEpoch.current ||
-      (resumeController.current && !completingResume)
-    )
-      return
-    if (current.revision < Math.max(revision.current, observedRevision.current))
-      throw new Error(l`Stale sync completion discarded.`)
-    observedRevision.current = Math.max(
-      observedRevision.current,
-      current.revision,
-    )
-    if (
-      current.revision > revision.current &&
-      current.device !== device.current
-    ) {
-      setOther(current)
-      setAttention(false)
-      setStatus(
-        current.state
-          ? l`Another device has a saved place. Your viewport has not moved.`
-          : l`Another device cleared the shared place. There is no remote place to resume; your local place has not moved.`,
+    setChecking(true)
+    try {
+      await writeSettled.current
+      if (
+        sequence !== checkSequence.current ||
+        choice !== choiceEpoch.current ||
+        !live.current.enabled
       )
-    } else {
-      if (current.revision >= revision.current) acceptRevision(current.revision)
-      lastSaved.current = JSON.stringify(current.state)
+        return
+      const current = await request('place')
+      if (
+        sequence !== checkSequence.current ||
+        choice !== choiceEpoch.current ||
+        (resumeController.current && !completingResume)
+      )
+        return
+      if (
+        current.revision < Math.max(revision.current, observedRevision.current)
+      )
+        throw new Error(l`Stale sync completion discarded.`)
+      observedRevision.current = Math.max(
+        observedRevision.current,
+        current.revision,
+      )
+      setSharedPlace(current)
+      if (!lastCaptured.current) {
+        const place = live.current.capture()
+        if (place) lastCaptured.current = JSON.stringify(place)
+      }
       setUnsaved(
-        !!lastCaptured.current && lastCaptured.current !== lastSaved.current,
+        !!lastCaptured.current &&
+          lastCaptured.current !== JSON.stringify(current.state),
       )
-      automatic.current = true
-      setOther(undefined)
-      setAttention(false)
-      setStatus(
-        current.state
-          ? l`Connected. Last saved place checked; your viewport has not moved.`
-          : l`Connected. There is no shared saved place for this feed. Confirm Save my place on the source device before trying Resume here.`,
-      )
+      if (
+        current.revision > revision.current &&
+        current.device !== device.current
+      ) {
+        setOther(current)
+        setAttention(false)
+        setStatus(
+          current.state
+            ? l`Another device has a saved place. Your viewport has not moved.`
+            : l`Another device cleared the shared place. There is no remote place to resume; your local place has not moved.`,
+        )
+      } else {
+        if (current.revision >= revision.current)
+          acceptRevision(current.revision)
+        lastSaved.current = JSON.stringify(current.state)
+        setUnsaved(
+          !!lastCaptured.current && lastCaptured.current !== lastSaved.current,
+        )
+        automatic.current = true
+        setOther(undefined)
+        setAttention(false)
+        setStatus(
+          current.state
+            ? l`Connected. Last saved place checked; your viewport has not moved.`
+            : l`Connected. There is no shared saved place for this feed. Confirm Save my place on the source device before trying Resume here.`,
+        )
+        scheduleSave.current()
+      }
+    } catch (error) {
+      if (sequence !== checkSequence.current || choice !== choiceEpoch.current)
+        return
+      throw error
+    } finally {
+      if (sequence === checkSequence.current) {
+        activeCheck.current = 0
+        setChecking(false)
+      }
     }
   }
   async function run(action: () => Promise<void>) {
@@ -400,6 +444,10 @@ export function ReadingToolbar({
     const place = capture()
     if (!place) throw new Error(l`No visible reading place to save`)
     writing.current = true
+    let finishWrite: () => void = () => {}
+    writeSettled.current = new Promise(resolve => {
+      finishWrite = resolve
+    })
     const started = generation.current
     try {
       const current = await request('place', {
@@ -414,16 +462,21 @@ export function ReadingToolbar({
         throw new Error(l`Stale sync completion discarded.`)
       }
       acceptRevision(current.revision)
+      setSharedPlace(current)
       lastSaved.current = JSON.stringify(place)
       setUnsaved(
         !!lastCaptured.current && lastCaptured.current !== lastSaved.current,
       )
       setAttention(false)
       setOther(undefined)
-      automatic.current = true
+      automatic.current = activeCheck.current === 0
       setStatus(l`Private reading place saved.`)
     } finally {
-      if (started === generation.current) writing.current = false
+      finishWrite()
+      if (started === generation.current) {
+        writing.current = false
+        writeSettled.current = undefined
+      }
     }
   }
   const live = useRef({capture, save, run, checkRemote, enabled, csrf})
@@ -442,20 +495,35 @@ export function ReadingToolbar({
       activeRuns.current = 0
       writing.current = false
       automatic.current = false
+      checkSequence.current++
+      activeCheck.current = 0
       pending.current = false
     }
   }, [account.did, feed, enabled])
   useEffect(() => {
-    if (!csrf || !enabled) return
+    if (!enabled) return
     let timer: ReturnType<typeof setTimeout>
     const flush = (keepalive = false) => {
-      if (!automatic.current || !live.current.enabled) return
+      if (
+        !automatic.current ||
+        activeCheck.current ||
+        !live.current.enabled ||
+        !live.current.csrf
+      )
+        return
+      if (!lastCaptured.current || lastCaptured.current === lastSaved.current)
+        return
       const place = live.current.capture()
       if (!place || JSON.stringify(place) === lastSaved.current) return
       void live.current.run(() =>
         live.current.save(revision.current, keepalive),
       )
     }
+    const schedule = () => {
+      clearTimeout(timer)
+      timer = setTimeout(() => flush(), 750)
+    }
+    scheduleSave.current = schedule
     const moved = (event: Event) => {
       const detail = (
         event as CustomEvent<{
@@ -467,9 +535,10 @@ export function ReadingToolbar({
       if (detail?.did !== account.did || (detail.feed ?? 'following') !== feed)
         return
       lastCaptured.current = JSON.stringify(detail.place)
-      setUnsaved(lastCaptured.current !== lastSaved.current)
-      clearTimeout(timer)
-      timer = setTimeout(() => flush(), 750)
+      setUnsaved(
+        !!live.current.csrf && lastCaptured.current !== lastSaved.current,
+      )
+      schedule()
     }
     const hidden = () => {
       if (document.visibilityState === 'hidden') {
@@ -482,6 +551,14 @@ export function ReadingToolbar({
       flush(true)
     }
     window.addEventListener('skyanchor-place', moved)
+    const initial = live.current.capture()
+    if (initial) {
+      lastCaptured.current = JSON.stringify(initial)
+      setUnsaved(
+        !!live.current.csrf && lastCaptured.current !== lastSaved.current,
+      )
+      schedule()
+    }
     window.addEventListener('pagehide', pagehide)
     document.addEventListener('visibilitychange', hidden)
     const retryPending = setInterval(() => {
@@ -491,6 +568,7 @@ export function ReadingToolbar({
       }
     }, 1000)
     return () => {
+      if (scheduleSave.current === schedule) scheduleSave.current = () => {}
       clearTimeout(timer)
       clearInterval(retryPending)
       window.removeEventListener('skyanchor-place', moved)
@@ -498,7 +576,7 @@ export function ReadingToolbar({
       document.removeEventListener('visibilitychange', hidden)
       pending.current = false
     }
-  }, [csrf, enabled, account.did, feed])
+  }, [enabled, account.did, feed])
   const reconnecting = useRef(false)
   useEffect(() => {
     if (
@@ -596,7 +674,11 @@ export function ReadingToolbar({
   }, [enabled, feed, account.did, control])
 
   const marker = readingIndicator({
-    loading: restoring ? l`Restoring your other device's place...` : loading,
+    loading: restoring
+      ? l`Restoring your other device's place...`
+      : checking
+        ? l`Checking shared place...`
+        : loading,
     remote: !!other,
     error: attention,
     notice,
@@ -614,7 +696,11 @@ export function ReadingToolbar({
             ? l`Other device place available`
             : l`Shared place cleared on another device`
           : marker.kind === 'loading'
-            ? loading || l`Restoring your other device's place...`
+            ? restoring
+              ? l`Restoring your other device's place...`
+              : checking
+                ? l`Checking shared place...`
+                : loading
             : marker.kind === 'unsaved'
               ? l`Not yet synced`
               : marker.kind === 'new'
@@ -628,9 +714,11 @@ export function ReadingToolbar({
       ? l`Sync error`
       : other
         ? l`Other device decision needed`
-        : unsaved
-          ? l`Not yet synced`
-          : l`Connected`
+        : checking
+          ? l`Checking shared place...`
+          : unsaved
+            ? l`Not yet synced`
+            : l`Connected`
 
   function startResume() {
     if (!other || busy || resumeController.current) return
@@ -683,6 +771,7 @@ export function ReadingToolbar({
             )
           acceptRevision(offered.revision)
           lastSaved.current = JSON.stringify(offered.state)
+          lastCaptured.current = lastSaved.current
           setUnsaved(false)
           setOther(undefined)
           setAttention(false)
@@ -867,6 +956,65 @@ export function ReadingToolbar({
                   <Trans>This profile tab has its own reading place.</Trans>
                 </Text>
               )}
+              <Text testID="skyanchor-source-state" role="status">
+                {!csrf ? (
+                  <Trans>
+                    Saved only on this device. Connect to check the shared
+                    place.
+                  </Trans>
+                ) : other ? (
+                  <Trans>
+                    New scrolling is saved only on this device until you Resume
+                    or Keep mine. Choose Keep mine only on the browser whose
+                    current place you want to share.
+                  </Trans>
+                ) : attention ? (
+                  <Trans>
+                    Your current local place is not confirmed shared. Automatic
+                    saving needs attention; resolve the error and Check other
+                    device or reconnect.
+                  </Trans>
+                ) : checking ? (
+                  <Trans>
+                    Checking the shared place. Local scrolling is pending until
+                    this check completes.
+                  </Trans>
+                ) : unsaved ? (
+                  <Trans>
+                    Your current local place is not confirmed shared. Keep this
+                    browser open for automatic saving; wait for confirmation
+                    before resuming elsewhere.
+                  </Trans>
+                ) : sharedPlace?.state &&
+                  lastCaptured.current === JSON.stringify(sharedPlace.state) ? (
+                  <Trans>
+                    Current local place confirmed shared. Further scrolling
+                    saves automatically while this browser is active. Fetched
+                    posts are not marked read.
+                  </Trans>
+                ) : (
+                  <Trans>
+                    No current local place has been confirmed shared for this
+                    feed.
+                  </Trans>
+                )}
+              </Text>
+              {sharedPlace && (
+                <Text testID="skyanchor-shared-save">
+                  {sharedPlace.updated
+                    ? l`Shared checkpoint last saved` +
+                      ': ' +
+                      formatDateTime(i18n, sharedPlace.updated, {
+                        dateStyle: 'medium',
+                        timeStyle: 'medium',
+                      }) +
+                      '. ' +
+                      (sharedPlace.device === device.current
+                        ? l`This browser`
+                        : l`Another browser`)
+                    : l`No server-confirmed save time is available for this feed.`}
+                </Text>
+              )}
               <Text testID="skyanchor-connection-status" style={a.font_bold}>
                 {connectionLabel}
               </Text>
@@ -958,36 +1106,10 @@ export function ReadingToolbar({
                   Loading new posts keeps your place. Scroll up to read them.
                 </Trans>
               </Text>
-              <Text style={t.atoms.text_contrast_high}>
-                {!csrf ? (
-                  <Trans>Saved locally. Private sync is optional.</Trans>
-                ) : attention ? (
-                  <Trans>
-                    Sync needs attention. Your place is still saved locally;
-                    retry the connection or save after resolving the message
-                    below.
-                  </Trans>
-                ) : other ? (
-                  <Trans>
-                    Another device's place is available. Resume it or Keep mine;
-                    nothing moves or uploads until you choose.
-                  </Trans>
-                ) : unsaved ? (
-                  <Trans>
-                    Local changes are not yet synced. Keep this tab open or
-                    retry Save.
-                  </Trans>
-                ) : (
-                  <Trans>
-                    Connected to private sync. Save on this browser, then Check
-                    other device and Resume there. Only confirmed saves are
-                    shared; fetched posts are not marked read.
-                  </Trans>
-                )}
-              </Text>
               <Text>
                 <Trans>
-                  On the source device, use Save my place and wait for
+                  On the source device, wait for the confirmed-shared caption
+                  after scrolling, or use Save my place and wait for
                   confirmation. In this browser, open the same feed, Connect,
                   then Resume other device. Following and each profile tab keep
                   separate places.

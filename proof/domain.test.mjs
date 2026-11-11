@@ -12,9 +12,28 @@ import {
   ReadingCapacityError,
   validReadingFeed,
   readingStorageKey,
+  validSyncPlace,
 } from '../src/features/skyanchor/domain.ts'
 
 const uri = 'at://did:plc:aaaaaaaaaaaaaaaaaaaaaaaa/app.bsky.feed.post/fixture'
+test('Shared checkpoint time accepts server milliseconds and legacy absence, never invalid dates', () => {
+  const did = 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa'
+  const remote = {did, revision: 1, device: 'synthetic-browser', state: null}
+  for (const updated of [undefined, null, 1794373200000]) {
+    assert.equal(validSyncPlace({...remote, updated}, did), true)
+  }
+  for (const updated of [
+    '2026-11-11',
+    NaN,
+    Infinity,
+    -1,
+    0,
+    1.5,
+    8_640_000_000_000_001,
+  ]) {
+    assert.equal(validSyncPlace({...remote, updated}, did), false)
+  }
+})
 test('Local author capacity is explicit and never evicts Following or previously saved places', () => {
   const values = new Map()
   const storage = {

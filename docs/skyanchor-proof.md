@@ -23,6 +23,19 @@ cloud state. Focus/online events and a newer third-device Save during a held
 history request must not overwrite the source. Cancel/pan and unavailable
 history must preserve local saved bytes, Return, URL, rows and revision.
 
+The separate automatic-source proof uses a WebKit phone and two fresh desktop
+profiles with three distinct synthetic browser IDs. No source Save helper or
+injected reading row seeds this path. Actual scrolling before Connect must
+become a confirmed automatic checkpoint without another scroll; desktop B
+Connect/direct Resume receives that exact checkpoint. Further source scrolling,
+concurrent foreground checks and explicit conflict recovery must produce newer
+server-confirmed revisions before desktop C first connects and directly resumes.
+The receipt records synthetic writer IDs, revisions, anchors and server save
+times. Receiving offers and Resume must leave the entire cloud row and clock
+unchanged. Offline recovery without new scrolling and regional renewal preserve
+the actual source capture; captions distinguish pending, blocked and confirmed
+sharing. This proves browser-fixture behavior, not physical background delivery.
+
 The dependency policy retains raw supplier findings and verifies exact backport,
 source-map/metafile and direct-consumer inventories. A nonshipped dependency
 alone is not sufficient justification. Unknown advisory/config/source drift

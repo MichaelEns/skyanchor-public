@@ -31,13 +31,20 @@ acceptance are separate owner responsibilities and are not claimed.
 
 First-use reading-place acceptance must use a fresh destination browser and
 the literal sign-in -> Reading place -> Connect -> Resume path, without an
-intervening Check. Confirm the source Save first and use the same Following
+intervening Check. Wait for the source's confirmed-shared caption and use the same Following
 feed or profile/filter. The production fixture now uses occurrence 470 with
 repost/reply context, beyond the former 360-entry cutoff, in desktop Chromium
 and phone-sized WebKit. It also checks a newer source revision arriving during
 Resume, foreground checks, cancellation, visible errors and unchanged saved
 bytes. These synthetic proofs cannot establish whether a real service still
 retains a user's historical occurrence.
+An additional two-epoch proof starts with actual phone scrolling before Connect,
+then uses only automatic source saves to hand off to two fresh desktop profiles.
+It covers pending scrolling across foreground checks, an intentional remote
+conflict that visibly pauses the phone, an explicit source-phone Keep mine,
+offline recovery without another scroll, and regional session renewal.
+The panel's last-shared time is the server save time, not post creation time;
+Connected alone does not establish that the current phone position was shared.
 
 The compact reading icon is not the Bluesky stored-bookmarks feature. Its
 panel labels connection, remote decisions, unsynced progress and errors

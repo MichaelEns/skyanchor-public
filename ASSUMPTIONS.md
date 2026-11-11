@@ -15,6 +15,15 @@ Private sync uses same-origin secure cookies, server-verified provider identity,
 CSRF checks and D1 compare-and-swap revisions. Remote offers do not move the
 viewport automatically. Profile places are bounded to 64 per owner, in addition
 to Following; tombstones count toward the bound.
+Local captures are tracked before connection. After a successful initial check
+with no shared place, the current capture is automatically saved even without
+another scroll. Checks suspend writes, retain pending captures and reschedule
+the 750 ms debounce only after reconciliation; superseded read completions
+cannot clear a newer offer or re-enable saving. Checks wait for an in-flight
+write before observing its revision. New remote revisions still require an
+explicit decision. Errors and paused source sharing are visible separately
+from connection status. Shared timestamps come only from the server's `updated`
+value; browser origin labels do not identify a physical device.
 
 Explicit remote Resume searches current Following/profile API history rather
 than reconstructing a repost from its URI. Recovery permits 296 history pages

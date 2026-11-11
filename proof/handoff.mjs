@@ -6,6 +6,310 @@ import {
   readingPanel,
 } from './reading-panel.mjs'
 
+export async function verifyAutomaticSource({
+  desktopBrowser,
+  phoneBrowser,
+  origin,
+  mockUpstream,
+  signIn,
+  worker,
+  report,
+  holdApi,
+}) {
+  const did = 'did:plc:hhhhhhhhhhhhhhhhhhhhhhhh'
+  const key = 'skyanchor:following:v1:' + did
+  const contexts = []
+  const errors = []
+  const writes = []
+  const cloud = () =>
+    worker.db
+      .prepare(
+        "SELECT *, (SELECT revision FROM clock WHERE id = 1) AS clockRevision FROM places WHERE did = ? AND feed = 'following'",
+      )
+      .bind(did)
+      .first()
+  const local = page =>
+    page.evaluate(key => JSON.parse(localStorage.getItem(key))?.place, key)
+  async function reached(hold) {
+    let timer
+    try {
+      await Promise.race([
+        hold.reached,
+        new Promise((_, reject) => {
+          timer = setTimeout(
+            () =>
+              reject(
+                new Error('Source request did not reach its fixture hold'),
+              ),
+            10000,
+          )
+        }),
+      ])
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+  async function fresh(browser, phone = false) {
+    const context = await browser.newContext({
+      ...(phone
+        ? browserDevices['iPhone 13']
+        : {viewport: {width: 1280, height: 900}}),
+      ignoreHTTPSErrors: true,
+      serviceWorkers: 'block',
+    })
+    contexts.push(context)
+    await context.addInitScript(() => {
+      window.fixtureAutomaticInitialKeys = Object.keys(localStorage).filter(
+        key =>
+          key.startsWith('skyanchor:following:') ||
+          key.startsWith('skyanchor:revision:') ||
+          key.startsWith('skyanchor:sync-enabled:'),
+      )
+    })
+    const controls = await mockUpstream(context, did)
+    const page = await context.newPage()
+    page.on('pageerror', error => errors.push(error.message))
+    const expected = new Map()
+    page.on('response', response => {
+      if (
+        response.status() < 400 ||
+        response.url().includes('com.atproto.repo.getRecord')
+      )
+        return
+      const id =
+        response.request().method() +
+        ' ' +
+        new URL(response.url()).pathname +
+        ' ' +
+        response.status()
+      if (expected.get(id)) expected.set(id, expected.get(id) - 1)
+      else errors.push(id)
+    })
+    await signIn(page, 'reader.test')
+    assert.deepEqual(
+      await page.evaluate(() => window.fixtureAutomaticInitialKeys),
+      [],
+    )
+    return {page, context, controls, expected}
+  }
+  async function confirmed(page, device, previous = 0) {
+    try {
+      await expect
+        .poll(
+          async () => {
+            const row = await cloud()
+            return (
+              !!row &&
+              row.revision > previous &&
+              row.device === device &&
+              row.state === JSON.stringify(await local(page))
+            )
+          },
+          {timeout: 10000},
+        )
+        .toBe(true)
+    } catch (error) {
+      report.automaticSourceFailure = {
+        cloud: await cloud(),
+        local: await local(page),
+        ui: (await page.locator('body').innerText()).slice(-6000),
+        label: await page
+          .getByTestId('skyanchor-reading-button')
+          .getAttribute('aria-label'),
+      }
+      throw error
+    }
+    const row = await cloud()
+    writes.push({
+      writer: device,
+      revision: row.revision,
+      anchor: JSON.parse(row.state).anchor,
+      offset: JSON.parse(row.state).offset,
+      updated: row.updated,
+    })
+    await readingPanel(page)
+    await expect(page.getByTestId('skyanchor-source-state')).toContainText(
+      'Current local place confirmed shared',
+    )
+    await expect(page.getByTestId('skyanchor-shared-save')).toContainText(
+      'This browser',
+    )
+    await closeReadingPanel(page)
+    const sourceError = await page.evaluate(place => {
+      const row = [...document.querySelectorAll('[data-skyanchor-key]')].find(
+        node => node.dataset.skyanchorKey === place.anchor,
+      )
+      const header = document.querySelector('[data-testid="mobileHomeHeader"]')
+      return row
+        ? Math.abs(
+            row.getBoundingClientRect().top -
+              (header?.getBoundingClientRect().bottom ?? 0) -
+              place.offset,
+          )
+        : Infinity
+    }, JSON.parse(row.state))
+    assert.ok(
+      sourceError <= 2,
+      'Source shared checkpoint matches the actual visible phone position',
+    )
+    return row
+  }
+  async function direct(destination, expected) {
+    const page = destination.page
+    const before = await page.evaluate(() => scrollY)
+    await readingAction(page, 'Connect private sync')
+    await expect(
+      page.getByRole('button', {name: 'Resume other device', exact: true}),
+    ).toBeEnabled()
+    assert.equal(await page.evaluate(() => scrollY), before)
+    assert.deepEqual(await cloud(), expected)
+    await expect(page.getByTestId('skyanchor-shared-save')).toContainText(
+      'Another browser',
+    )
+    await readingAction(page, 'Resume other device')
+    await expect
+      .poll(async () => JSON.stringify(await local(page)))
+      .toBe(expected.state)
+    await expect(page.getByTestId('skyanchor-resume-result')).toContainText(
+      'Resumed the other device',
+    )
+    assert.deepEqual(await cloud(), expected)
+    const error = await page.evaluate(place => {
+      const row = [...document.querySelectorAll('[data-skyanchor-key]')].find(
+        node => node.dataset.skyanchorKey === place.anchor,
+      )
+      const header = document.querySelector('[data-testid="mobileHomeHeader"]')
+      return Math.abs(
+        row.getBoundingClientRect().top -
+          (header?.getBoundingClientRect().bottom ?? 0) -
+          place.offset,
+      )
+    }, JSON.parse(expected.state))
+    assert.ok(error <= 2)
+    return error
+  }
+  try {
+    assert.equal(await cloud(), null)
+    const phone = await fresh(phoneBrowser, true)
+    const a = phone.page
+    const device = await a.evaluate(() =>
+      localStorage.getItem('skyanchor:device'),
+    )
+    await a.evaluate(() => scrollBy(0, 900))
+    await expect.poll(async () => (await local(a))?.offset).not.toBe(0)
+    await readingAction(a, 'Connect private sync')
+    // Connecting after a capture must not require another scroll event.
+    const first = await confirmed(a, device)
+    const b = await fresh(desktopBrowser)
+    const firstError = await direct(b, first)
+    const bY = await b.page.evaluate(() => scrollY)
+    const held = holdApi('GET')
+    try {
+      await a.evaluate(() => {
+        dispatchEvent(new Event('focus'))
+      })
+      await reached(held)
+      await a.evaluate(() => scrollBy(0, 350))
+      await a.waitForTimeout(900)
+    } finally {
+      held.release()
+    }
+    const second = await confirmed(a, device, first.revision)
+    await a.evaluate(() => {
+      dispatchEvent(new Event('focus'))
+      dispatchEvent(new Event('online'))
+    })
+    assert.equal(await b.page.evaluate(() => scrollY), bY)
+    await readingAction(b.page, 'Check other device')
+    await expect(b.page.getByTestId('skyanchor-source-state')).toContainText(
+      'saved only on this device',
+    )
+    assert.deepEqual(await cloud(), second)
+    // A real explicit decision on another browser makes the source pause.
+    await readingAction(b.page, 'Keep mine')
+    await expect(
+      b.page.getByText('Private reading place saved.', {exact: true}),
+    ).toBeVisible()
+    const conflict = await cloud()
+    await a.evaluate(() => dispatchEvent(new Event('focus')))
+    await readingPanel(a)
+    await expect(a.getByTestId('skyanchor-source-state')).toContainText(
+      'saved only on this device',
+    )
+    await closeReadingPanel(a)
+    await a.evaluate(() => scrollBy(0, 220))
+    await a.waitForTimeout(1100)
+    assert.deepEqual(await cloud(), conflict)
+    await readingAction(a, 'Keep mine')
+    await expect(
+      a.getByText('Private reading place saved.', {exact: true}),
+    ).toBeVisible()
+    await closeReadingPanel(a)
+    const heldWrite = holdApi('PUT')
+    try {
+      await a.evaluate(() => scrollBy(0, 85))
+      await reached(heldWrite)
+      await a.evaluate(() => {
+        scrollBy(0, 55)
+        dispatchEvent(new Event('focus'))
+        dispatchEvent(new Event('online'))
+      })
+      await a.waitForTimeout(900)
+    } finally {
+      heldWrite.release()
+    }
+    const recovered = await confirmed(a, device, conflict.revision)
+    await phone.context.setOffline(true)
+    await a.evaluate(() => scrollBy(0, 95))
+    await readingPanel(a)
+    await expect(a.getByTestId('skyanchor-source-state')).toContainText(
+      'not confirmed shared',
+    )
+    await expect(a.getByText(/Offline: no write sent/)).toBeVisible()
+    assert.deepEqual(await cloud(), recovered)
+    await phone.context.setOffline(false)
+    await a.evaluate(() => dispatchEvent(new Event('online')))
+    const online = await confirmed(a, device, recovered.revision)
+    phone.controls.expireAccess()
+    phone.expected.set('POST /api/skyanchor/session 401', 1)
+    await readingAction(a, 'Reconnect private sync')
+    await expect(
+      a.getByRole('button', {name: 'Reconnect private sync', exact: true}),
+    ).toBeEnabled()
+    assert.equal(phone.expected.get('POST /api/skyanchor/session 401'), 0)
+    await closeReadingPanel(a)
+    await a.evaluate(() => scrollBy(0, 65))
+    const latest = await confirmed(a, device, online.revision)
+    const c = await fresh(desktopBrowser)
+    const secondError = await direct(c, latest)
+    const devices = await Promise.all(
+      [a, b.page, c.page].map(page =>
+        page.evaluate(() => localStorage.getItem('skyanchor:device')),
+      ),
+    )
+    assert.equal(new Set(devices).size, 3)
+    assert.deepEqual(errors, [])
+    report.automaticSource = {
+      devices: 3,
+      writes,
+      placements: [firstError, secondError],
+      preconnectCapture: true,
+      concurrentCheck: true,
+      concurrentWriteAndCheck: true,
+      blockedRevision: conflict.revision,
+      explicitConflictPause: true,
+      offlineRecoveryWithoutNewScroll: true,
+      regionalRenewal: true,
+      errors,
+    }
+    report.checks.push(
+      'Actual WebKit phone scroll-only automatic checkpoints reach two fresh desktop Connect/direct Resume epochs; no source Save helper, no receiving writes, concurrent foreground checks drain pending movement, explicit conflicts pause visibly, offline and regional renewal recover with server-confirmed captions and timestamps.',
+    )
+  } finally {
+    for (const context of contexts) await context.close()
+  }
+}
+
 export async function verifyHandoff({
   desktopBrowser,
   phoneBrowser,

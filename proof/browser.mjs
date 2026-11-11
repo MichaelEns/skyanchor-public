@@ -11,7 +11,7 @@ import * as digest from 'multiformats/hashes/digest'
 import {workerRuntime, didA, didB} from './runtime.mjs'
 import {buildInputs} from '../scripts/skyanchor/inputs.mjs'
 import {verifyComposer} from './composer.mjs'
-import {verifyHandoff} from './handoff.mjs'
+import {verifyAutomaticSource, verifyHandoff} from './handoff.mjs'
 import {verifyProfileReading} from './profile-reading.mjs'
 import {verifyAuthContrast} from './auth-contrast.mjs'
 import {verifyStartup} from './startup.mjs'
@@ -1179,6 +1179,16 @@ async function runBrowserProof() {
     await current.waitForTimeout(500)
   }
   if (process.argv.includes('--handoff-only')) {
+    await verifyAutomaticSource({
+      desktopBrowser,
+      phoneBrowser,
+      origin,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+      holdApi,
+    })
     await verifyHandoff({
       desktopBrowser,
       phoneBrowser,
@@ -1477,6 +1487,12 @@ async function runBrowserProof() {
       page.getByRole('button', {name: 'Save my place', exact: true}),
     ).toBeVisible()
     await readingAction(page, 'Check other device')
+    const initialCloud = await worker.db
+      .prepare(
+        "SELECT revision FROM places WHERE did = ? AND feed = 'following'",
+      )
+      .bind(didA)
+      .first()
     await closeReadingPanel(page)
     await page.evaluate(() => window.scrollBy(0, 45))
     const cloudPlace = () =>
@@ -1486,7 +1502,8 @@ async function runBrowserProof() {
         .first()
     await expect
       .poll(async () => {
-        const cloud = (await cloudPlace())?.state
+        const row = await cloudPlace()
+        const cloud = row?.state
         const local = await page.evaluate(
           did =>
             JSON.stringify(
@@ -1495,7 +1512,11 @@ async function runBrowserProof() {
             ),
           didA,
         )
-        return !!cloud && cloud === local
+        return (
+          !!cloud &&
+          row.revision > (initialCloud?.revision ?? 0) &&
+          cloud === local
+        )
       })
       .toBe(true)
     const automaticallySaved = JSON.parse((await cloudPlace()).state)
@@ -1657,8 +1678,11 @@ async function runBrowserProof() {
     ).toBeVisible()
     staleRead.release()
     await expect(
-      page.getByText('Stale sync completion discarded.', {exact: true}),
-    ).toBeVisible()
+      page.getByRole('button', {name: 'Keep mine', exact: true}),
+    ).toBeEnabled()
+    await expect(page.getByTestId('skyanchor-connection-status')).toHaveText(
+      'Other device decision needed',
+    )
     assert.ok(
       Math.abs((await top()) - staleTop) <= 2,
       'Delayed older response cannot move the viewport or erase a newer remote offer',
@@ -2091,6 +2115,16 @@ async function runBrowserProof() {
     await closeReadingPanel(page)
     await closeReadingPanel(phonePage)
   }
+  await verifyAutomaticSource({
+    desktopBrowser,
+    phoneBrowser,
+    origin,
+    mockUpstream,
+    signIn,
+    worker,
+    report,
+    holdApi,
+  })
   await verifyHandoff({
     desktopBrowser,
     phoneBrowser,
