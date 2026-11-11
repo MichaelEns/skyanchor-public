@@ -82,7 +82,7 @@ export async function verifyHandoff({
   const cloud = () =>
     worker.db
       .prepare(
-        "SELECT state, revision, device FROM places WHERE did = ? AND feed = 'following'",
+        "SELECT *, (SELECT revision FROM clock WHERE id = 1) AS clockRevision, (SELECT nonce FROM clock WHERE id = 1) AS clockNonce FROM places WHERE did = ? AND feed = 'following'",
       )
       .bind(did)
       .first()

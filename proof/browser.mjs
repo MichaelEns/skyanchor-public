@@ -1535,12 +1535,17 @@ async function runBrowserProof() {
       .poll(() =>
         phonePage.evaluate(
           did =>
-            JSON.parse(localStorage.getItem('skyanchor:following:v1:' + did))
-              .place.anchor,
+            JSON.stringify(
+              JSON.parse(localStorage.getItem('skyanchor:following:v1:' + did))
+                .place,
+            ),
           didA,
         ),
       )
-      .toBe(automaticallySaved.anchor)
+      .toBe(JSON.stringify(automaticallySaved))
+    await expect(
+      phonePage.getByTestId('skyanchor-resume-result'),
+    ).toContainText('Resumed the other device')
     await expect
       .poll(async () => {
         const top = await phonePage.evaluate(
