@@ -57,6 +57,21 @@ does not support Playwright wheel input, so its fixture dispatches a touch
 start/end around real window scrolling; this is not physical gesture acceptance.
 Programmatic restoration without reading input does not grant sharing intent.
 
+The scroll-input proof adds a controlled WebKit sequence lasting over three
+seconds after touchend, with continuing real viewport deltas and no Save. Its
+discrete JS steps would each emit native scrollend, so the fixture suppresses
+only those events to exercise the quiescence fallback of one continuous run;
+this is not physical iPhone inertia acceptance. Unit cases separately assert
+native scrollend, timeout, hidden/resize, account/feed and restore cancellation.
+An independent Chromium/Edge context removes Playwright's default
+`--hide-scrollbars` flag and uses real mouse down/move/up on the visible native
+document thumb. Trusted native pointer events, viewport motion, final D1
+state/writer/revision/server time and confirmed-shared captions are required.
+Following either input sequence, passive programmatic movement and resize must
+not PUT, and explicit Resume must still restore the confirmed shared place.
+Overlay scrollbars without a measurable DOM gutter remain a conservative
+limitation: use a reading wheel, touch, key gesture or explicit Save.
+
 The dependency policy retains raw supplier findings and verifies exact backport,
 source-map/metafile and direct-consumer inventories. A nonshipped dependency
 alone is not sufficient justification. Unknown advisory/config/source drift

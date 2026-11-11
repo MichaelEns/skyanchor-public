@@ -8,6 +8,9 @@ function readingFixture({
   naturalHeader = false,
   missing = false,
   saveFailure = false,
+  scrollbarLeft = false,
+  horizontalScrollbar = false,
+  overlayScrollbar = false,
 } = {}) {
   const frames = []
   const events = new Map()
@@ -21,9 +24,40 @@ function readingFixture({
   let headerBottom = naturalHeader ? 347 : 143
   const owner = 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa'
   let renderedOwner = owner
+  let now = 10000
+  let nextTimer = 0
+  const timers = new Map()
+  const documentRoot = {
+    scrollHeight: 10000,
+    clientHeight: horizontalScrollbar ? 829 : 844,
+    scrollWidth: 2000,
+    clientWidth: overlayScrollbar ? 1280 : 1265,
+    clientLeft: scrollbarLeft ? 15 : 0,
+  }
+  const document = {
+    documentElement: documentRoot,
+    visibilityState: 'visible',
+    querySelector(selector) {
+      return selector.includes('mobileHomeHeader')
+        ? {
+            getClientRects: () => [{}],
+            getBoundingClientRect: () => ({bottom: headerBottom}),
+          }
+        : {
+            querySelectorAll: () => (missing ? [] : [node]),
+            contains: target => target === node,
+          }
+    },
+    fonts: {ready: {then() {}}},
+    addEventListener(name, callback) {
+      events.set(name, callback)
+    },
+    removeEventListener() {},
+  }
   const window = {
     scrollY: 1000,
     innerHeight: 844,
+    innerWidth: 1280,
     visualViewport: {offsetTop: 0, height: 844},
     scrollBy({top}) {
       this.scrollY += top
@@ -52,6 +86,15 @@ function readingFixture({
   }
   const exports = {}
   const noop = () => {}
+  class FixtureElement {
+    constructor(interactive = false, editable = false) {
+      this.interactive = interactive
+      this.isContentEditable = editable
+    }
+    closest() {
+      return this.interactive ? this : null
+    }
+  }
   class FixtureEvent {
     constructor(name, options) {
       this.detail = options ? options.detail : name
@@ -67,23 +110,25 @@ function readingFixture({
       window,
       localStorage: {},
       CSS: {escape: value => value},
-      document: {
-        documentElement: {scrollHeight: 10000, clientHeight: 844},
-        querySelector(selector) {
-          return selector.includes('mobileHomeHeader')
-            ? {
-                getClientRects: () => [{}],
-                getBoundingClientRect: () => ({bottom: headerBottom}),
-              }
-            : {
-                querySelectorAll: () => (missing ? [] : [node]),
-                contains: target => target === node,
-              }
-        },
-        fonts: {ready: {then: noop}},
-        addEventListener: noop,
-        removeEventListener: noop,
+      document,
+      Date: class extends Date {
+        static now() {
+          return now
+        }
       },
+      setTimeout(callback, delay) {
+        const id = ++nextTimer
+        timers.set(id, {at: now + delay, callback})
+        return id
+      },
+      clearTimeout: id => timers.delete(id),
+      getComputedStyle: () => ({
+        borderLeftWidth: '0px',
+        borderRightWidth: '0px',
+        borderTopWidth: '0px',
+        borderBottomWidth: '0px',
+      }),
+      HTMLElement: FixtureElement,
       requestAnimationFrame(callback) {
         frames.push(callback)
         return frames.length
@@ -146,6 +191,41 @@ function readingFixture({
     frames,
     saved,
     dispatched,
+    keyTarget: (interactive, editable) =>
+      new FixtureElement(interactive, editable),
+    advance(milliseconds) {
+      const end = now + milliseconds
+      while (true) {
+        const next = [...timers]
+          .filter(([, timer]) => timer.at <= end)
+          .sort((a, b) => a[1].at - b[1].at)[0]
+        if (!next) break
+        const [id, timer] = next
+        timers.delete(id)
+        now = timer.at
+        timer.callback()
+      }
+      now = end
+    },
+    pointer(x, y, overrides = {}) {
+      events.get('pointerdown')({
+        pointerType: 'mouse',
+        button: 0,
+        isPrimary: true,
+        pointerId: 7,
+        clientX: x,
+        clientY: y,
+        target: documentRoot,
+        ...overrides,
+      })
+    },
+    hidden() {
+      document.visibilityState = 'hidden'
+      events.get('visibilitychange')()
+    },
+    scrollEnd(nested = false) {
+      events.get('scrollend')({target: nested ? {} : document})
+    },
     get rowTop() {
       return rowTop
     },
@@ -214,6 +294,144 @@ test('Passive captures stay local; a wheel-owned reading scroll carries sharing 
   fixture.events.get('scroll')()
   fixture.flush()
   assert.equal(fixture.dispatched.at(-1).intentional, true)
+})
+
+test('Touch momentum remains owned beyond three seconds, but quiescence and scrollend cannot authorize a later passive scroll', () => {
+  for (const end of ['quiescence', 'scrollend']) {
+    const fixture = readingFixture()
+    fixture.events.get('touchstart')()
+    fixture.events.get('touchend')()
+    for (let step = 0; step < 32; step++) {
+      fixture.advance(100)
+      fixture.move(45 - step)
+      fixture.events.get('scroll')()
+      fixture.flush()
+      assert.equal(fixture.dispatched.at(-1).intentional, true)
+    }
+    if (end === 'scrollend') fixture.scrollEnd()
+    else fixture.advance(251)
+    fixture.move(30)
+    fixture.events.get('scroll')()
+    fixture.flush()
+    assert.equal(fixture.dispatched.at(-1).intentional, false)
+    fixture.cleanup()
+  }
+})
+
+test('Nested scrollend cannot terminate document momentum; lost contacts have a finite lifetime', () => {
+  const fixture = readingFixture()
+  fixture.events.get('touchstart')()
+  fixture.events.get('touchend')()
+  fixture.scrollEnd(true)
+  fixture.move(45)
+  fixture.events.get('scroll')()
+  fixture.flush()
+  assert.equal(fixture.dispatched.at(-1).intentional, true)
+  fixture.events.get('touchstart')()
+  fixture.advance(30001)
+  fixture.move(30)
+  fixture.events.get('scroll')()
+  fixture.flush()
+  assert.equal(fixture.dispatched.at(-1).intentional, false)
+})
+
+test('Only a primary mouse press in the measured document scrollbar owns a drag, including left and horizontal gutters', () => {
+  for (const {left, x, y} of [
+    {left: false, x: 1272, y: 120},
+    {left: true, x: 7, y: 120},
+    {left: false, x: 600, y: 840},
+  ]) {
+    const fixture = readingFixture({
+      scrollbarLeft: left,
+      horizontalScrollbar: y === 840,
+    })
+    fixture.pointer(x, y)
+    fixture.advance(2500)
+    fixture.move(45)
+    fixture.events.get('scroll')()
+    fixture.flush()
+    assert.equal(fixture.dispatched.at(-1).intentional, true)
+    fixture.events.get('pointerup')({pointerId: 7})
+    fixture.advance(251)
+    fixture.move(30)
+    fixture.events.get('scroll')()
+    fixture.flush()
+    assert.equal(fixture.dispatched.at(-1).intentional, false)
+    fixture.cleanup()
+  }
+  const overlay = readingFixture({overlayScrollbar: true})
+  overlay.pointer(1279, 120)
+  overlay.move(45)
+  overlay.events.get('scroll')()
+  overlay.flush()
+  assert.equal(overlay.dispatched.at(-1).intentional, false)
+  for (const down of [
+    fixture => fixture.pointer(600, 120),
+    fixture => fixture.pointer(7, 120), // Empty mirrored LTR gutter.
+    fixture => fixture.pointer(1272, 120, {target: {tagName: 'BUTTON'}}),
+    fixture => fixture.pointer(1272, 120, {button: 2}),
+    fixture => fixture.pointer(1272, 120, {pointerType: 'touch'}),
+    fixture => fixture.pointer(1280, 120),
+  ]) {
+    const fixture = readingFixture()
+    down(fixture)
+    fixture.move(45)
+    fixture.events.get('scroll')()
+    fixture.flush()
+    assert.equal(fixture.dispatched.at(-1).intentional, false)
+  }
+})
+
+test('Lifecycle and programmatic boundaries cancel gesture ownership and queued captures', () => {
+  for (const cancel of [
+    fixture => fixture.hidden(),
+    fixture => fixture.events.get('resize')(),
+    fixture => fixture.events.get('blur')(),
+    fixture => fixture.events.get('touchcancel')(),
+    fixture => fixture.events.get('pointercancel')(),
+    fixture => fixture.hook.preserve(targetPlace, () => {}),
+    fixture => fixture.hook.abandonTarget(() => {}),
+    fixture => fixture.focusAgain(),
+    fixture => fixture.switchOwner('did:plc:bbbbbbbbbbbbbbbbbbbbbbbb'),
+  ]) {
+    const fixture = readingFixture()
+    fixture.events.get('wheel')()
+    fixture.move(45)
+    fixture.events.get('scroll')()
+    cancel(fixture)
+    fixture.flush()
+    assert.ok(fixture.dispatched.every(event => !event.intentional))
+    fixture.cleanup()
+  }
+})
+
+test('Modified or consumed reading keys do not authorize a scroll', () => {
+  for (const overrides of [
+    {ctrlKey: true},
+    {metaKey: true},
+    {altKey: true},
+    {shiftKey: true},
+    {defaultPrevented: true},
+    {key: 'Enter'},
+  ]) {
+    const fixture = readingFixture()
+    fixture.events.get('keydown')({key: 'PageDown', ...overrides})
+    fixture.move(45)
+    fixture.events.get('scroll')()
+    fixture.flush()
+    assert.equal(fixture.dispatched.at(-1).intentional, false)
+  }
+  for (const editable of [false, true]) {
+    const fixture = readingFixture()
+    fixture.events.get('keydown')({
+      key: ' ',
+      target: fixture.keyTarget(!editable, editable),
+    })
+    fixture.move(45)
+    fixture.events.get('scroll')()
+    fixture.flush()
+    assert.equal(fixture.dispatched.at(-1).intentional, false)
+  }
 })
 
 test('Successful explicit adoption invalidates an older departure for this entry', async () => {

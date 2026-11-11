@@ -1,11 +1,283 @@
 import assert from 'node:assert/strict'
-import {devices as browserDevices, expect} from '@playwright/test'
+import {chromium, devices as browserDevices, expect} from '@playwright/test'
 import {
   readingAction,
   closeReadingPanel,
   readingPanel,
   scrollReading,
 } from './reading-panel.mjs'
+
+export async function verifyScrollInput({
+  phoneBrowser,
+  mockUpstream,
+  signIn,
+  worker,
+  report,
+}) {
+  const did = 'did:plc:jjjjjjjjjjjjjjjjjjjjjjjj'
+  const key = 'skyanchor:following:v1:' + did
+  const contexts = []
+  const errors = []
+  const puts = []
+  const cloud = () =>
+    worker.db
+      .prepare(
+        "SELECT *, (SELECT revision FROM clock WHERE id = 1) AS clockRevision FROM places WHERE did = ? AND feed = 'following'",
+      )
+      .bind(did)
+      .first()
+  const local = page =>
+    page.evaluate(key => JSON.parse(localStorage.getItem(key))?.place, key)
+  const browser = await chromium.launch({
+    ...(process.env.SKYANCHOR_BROWSER_CHANNEL
+      ? {channel: process.env.SKYANCHOR_BROWSER_CHANNEL}
+      : {}),
+    ignoreDefaultArgs: ['--hide-scrollbars'],
+  })
+  async function fresh(owner, phone = false) {
+    const context = await owner.newContext({
+      ...(phone
+        ? browserDevices['iPhone 13']
+        : {viewport: {width: 1280, height: 900}}),
+      ignoreHTTPSErrors: true,
+      serviceWorkers: 'block',
+    })
+    contexts.push(context)
+    await mockUpstream(context, did)
+    const page = await context.newPage()
+    page.on('pageerror', error => errors.push(error.message))
+    page.on('request', request => {
+      if (
+        request.method() === 'PUT' &&
+        new URL(request.url()).pathname === '/api/skyanchor/place'
+      )
+        puts.push({phone, state: JSON.parse(request.postData()).state})
+    })
+    await signIn(page, 'reader.test')
+    return page
+  }
+  async function confirmed(page, previous) {
+    await expect
+      .poll(
+        async () => {
+          const row = await cloud()
+          return (
+            row?.revision > previous &&
+            row.state === JSON.stringify(await local(page))
+          )
+        },
+        {timeout: 10000},
+      )
+      .toBe(true)
+    const row = await cloud()
+    assert.ok(row.updated > 0)
+    assert.equal(
+      row.device,
+      await page.evaluate(() => localStorage.getItem('skyanchor:device')),
+    )
+    await readingPanel(page)
+    await expect(page.getByTestId('skyanchor-source-state')).toContainText(
+      'Current local place confirmed shared',
+    )
+    await closeReadingPanel(page)
+    return row
+  }
+  async function receive(page, row) {
+    await readingAction(page, 'Resume other device')
+    await expect
+      .poll(async () => JSON.stringify(await local(page)))
+      .toBe(row.state)
+    await readingPanel(page)
+    await expect(
+      page.getByRole('button', {name: 'Check other device', exact: true}),
+    ).toBeEnabled()
+    await expect(page.getByTestId('skyanchor-source-state')).toContainText(
+      'Current local place confirmed shared',
+    )
+    await closeReadingPanel(page)
+    const error = await page.evaluate(place => {
+      const node = [...document.querySelectorAll('[data-skyanchor-key]')].find(
+        node => node.dataset.skyanchorKey === place.anchor,
+      )
+      const header = document.querySelector('[data-testid="mobileHomeHeader"]')
+      return Math.abs(
+        node.getBoundingClientRect().top -
+          (header?.getBoundingClientRect().bottom ?? 0) -
+          place.offset,
+      )
+    }, JSON.parse(row.state))
+    assert.ok(error <= 2)
+    assert.deepEqual(await cloud(), row)
+    return error
+  }
+  async function passiveAfter(page, row) {
+    const before = puts.length
+    await page.waitForTimeout(350)
+    await page.evaluate(() => scrollBy(0, 57))
+    await expect
+      .poll(async () => JSON.stringify(await local(page)))
+      .not.toBe(row.state)
+    await page.evaluate(() => dispatchEvent(new Event('resize')))
+    await page.waitForTimeout(1100)
+    await readingAction(page, 'Check other device')
+    await expect(
+      page.getByRole('button', {name: 'Resume other device', exact: true}),
+    ).toBeEnabled()
+    assert.equal(
+      puts.length,
+      before,
+      'Settled input cannot authorize a passive restore',
+    )
+    assert.deepEqual(await cloud(), row)
+    return receive(page, row)
+  }
+  try {
+    const phone = await fresh(phoneBrowser, true)
+    await scrollReading(phone, 500)
+    await readingAction(phone, 'Connect private sync')
+    const first = await confirmed(phone, 0)
+    // Discrete JS steps have separate native scrollend events. Suppress only
+    // those ends to exercise the bounded fallback of a continuous inertial run.
+    const momentum = await phone.evaluate(async () => {
+      const suppressEnd = event => event.stopImmediatePropagation()
+      document.addEventListener('scrollend', suppressEnd, true)
+      const samples = []
+      const observe = event =>
+        samples.push({
+          at: performance.now(),
+          intentional: event.detail.intentional,
+          y: scrollY,
+        })
+      window.addEventListener('skyanchor-place', observe)
+      dispatchEvent(new Event('touchstart'))
+      scrollBy(0, 25)
+      dispatchEvent(new Event('touchend'))
+      const released = performance.now()
+      try {
+        for (let step = 0; step < 38; step++) {
+          await new Promise(resolve => setTimeout(resolve, 80))
+          scrollBy(0, 14)
+        }
+        await new Promise(resolve =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        )
+        return {released, ended: performance.now(), samples, y: scrollY}
+      } finally {
+        window.removeEventListener('skyanchor-place', observe)
+        document.removeEventListener('scrollend', suppressEnd, true)
+      }
+    })
+    assert.ok(momentum.ended - momentum.released >= 3000)
+    const late = momentum.samples.filter(
+      sample => sample.at - momentum.released > 1500,
+    )
+    report.scrollInput = {momentum, late}
+    assert.ok(late.length > 10)
+    assert.ok(late.every(sample => sample.intentional))
+    const phoneFinal = await confirmed(phone, first.revision)
+    const phonePassiveError = await passiveAfter(phone, phoneFinal)
+    const desktop = await fresh(browser)
+    await readingAction(desktop, 'Connect private sync')
+    const desktopReceiveError = await receive(desktop, phoneFinal)
+    const native = await desktop.evaluate(() => {
+      const root = document.documentElement
+      window.fixtureNativeInput = []
+      for (const name of ['pointerdown', 'pointerup', 'scrollend'])
+        window.addEventListener(
+          name,
+          event => {
+            window.fixtureNativeInput.push({
+              name,
+              x: event.clientX,
+              y: event.clientY,
+              trusted: event.isTrusted,
+              target: event.target.tagName,
+            })
+          },
+          true,
+        )
+      const gutter = innerWidth - root.clientWidth
+      const track = innerHeight - 34
+      const thumb = Math.max(17, (track * innerHeight) / root.scrollHeight)
+      return {
+        gutter,
+        x: innerWidth - gutter / 2,
+        y:
+          17 +
+          ((track - thumb) * scrollY) / (root.scrollHeight - innerHeight) +
+          thumb / 2,
+        before: scrollY,
+        height: root.scrollHeight,
+        viewport: innerHeight,
+      }
+    })
+    report.scrollInput.native = native
+    assert.ok(
+      native.gutter > 0,
+      'Native proof must have a real non-overlay gutter',
+    )
+    await desktop.mouse.move(native.x, native.y)
+    await desktop.mouse.down()
+    await desktop.mouse.move(native.x, native.y + 38, {steps: 12})
+    await desktop.mouse.up()
+    await expect
+      .poll(() => desktop.evaluate(() => scrollY))
+      .not.toBe(native.before)
+    const desktopFinal = await confirmed(desktop, phoneFinal.revision)
+    const nativeEvents = await desktop.evaluate(() => window.fixtureNativeInput)
+    assert.ok(
+      nativeEvents.some(
+        event =>
+          event.name === 'pointerdown' &&
+          event.trusted &&
+          event.target === 'HTML',
+      ),
+    )
+    const desktopPassiveError = await passiveAfter(desktop, desktopFinal)
+    await readingAction(phone, 'Check other device')
+    const phoneReceiveError = await receive(phone, desktopFinal)
+    assert.deepEqual(errors, [])
+    report.scrollInput = {
+      passed: true,
+      desktop: {
+        channel: process.env.SKYANCHOR_BROWSER_CHANNEL ?? 'chromium',
+        version: browser.version(),
+        native,
+        nativeEvents,
+      },
+      phone: {
+        controlledTouchSequence: true,
+        physicalInertia: false,
+        fallbackWithoutScrollend: true,
+        duration: momentum.ended - momentum.released,
+        lateIntentionalCaptures: late.length,
+        final: JSON.parse(phoneFinal.state),
+        revision: phoneFinal.revision,
+        updated: phoneFinal.updated,
+      },
+      desktopFinal: {
+        state: JSON.parse(desktopFinal.state),
+        revision: desktopFinal.revision,
+        updated: desktopFinal.updated,
+      },
+      placements: [
+        phonePassiveError,
+        desktopReceiveError,
+        desktopPassiveError,
+        phoneReceiveError,
+      ],
+      passiveReceivingWrites: 0,
+      puts,
+      errors,
+    }
+    report.checks.push(
+      'Controlled WebKit touch momentum beyond three seconds and a real native Chromium/Edge scrollbar thumb drag confirm their final checkpoints without Save; settled passive movement and resize do not PUT and offer explicit Resume.',
+    )
+  } finally {
+    for (const context of contexts) await context.close()
+    await browser.close()
+  }
+}
 
 export async function verifyReverseHandoff({
   desktopBrowser,

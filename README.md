@@ -43,6 +43,10 @@ check time. Passive reload, layout correction and navigation restoration do not
 authorize sharing an old local view. Deliberate reading scrolls after an accepted
 baseline can still share older posts; there is no newest-post filter.
 A cleared shared place preserves local progress and requires an explicit save.
+Continuing reading gestures retain sharing intent until scrollend or brief
+quiescence. Native scrollbar mouse input requires a measurable document gutter;
+for an overlay scrollbar without one, use **Save my place** and wait for
+confirmation instead of assuming that drag was shared.
 If the desktop's current view is not confirmed shared, it cannot be resumed on
 the phone yet: resolve the desktop's displayed decision there, using **Keep mine**
 only if that is the view to share.

@@ -27,6 +27,12 @@ unless deliberate movement is pending against the unchanged accepted baseline.
 Revision is a CAS base, not evidence that a restored local viewport matches.
 Only actual occurrence/offset agreement permits the already-here caption.
 Passive captures, cold restores, layout and navigation do not authorize writes.
+Reading-input ownership continues while scroll events remain contiguous, ending
+at native scrollend or 250 ms quiescence. Held touch/native scrollbar contacts
+have a 30-second inactivity bound. Hidden/blurred views, account/feed changes,
+explicit preservation and restoration cancel ownership. Native scrollbar mouse
+input is recognized only in measurable document gutters, including left-side
+and horizontal gutters; overlay/browser-reserved edges are not guessed.
 Tombstones preserve the local place and require explicit Save/Keep mine.
 Confirmed adoption discards only this route entry's obsolete departure, not
 the intentional Return checkpoint. Errors and paused source sharing are visible separately
