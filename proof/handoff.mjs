@@ -1153,6 +1153,22 @@ export async function verifyHandoff({
     }
     const samePlaceSave = await confirmation(a)
     assert.equal(samePlaceSave.state, first.state)
+    await readingAction(b, 'Check other device')
+    assert.ok((await placementError(b, JSON.parse(samePlaceSave.state))) <= 2)
+    assert.deepEqual(await local(b), JSON.parse(samePlaceSave.state))
+    await expect(b.getByTestId('skyanchor-source-state')).toContainText(
+      'Current local place confirmed shared',
+    )
+    await expect(b.getByTestId('skyanchor-last-verified')).toBeVisible()
+    await expect(
+      b.getByRole('button', {name: 'Resume other device', exact: true}),
+    ).toHaveCount(0)
+    assert.deepEqual(await cloud(), samePlaceSave)
+    await closeReadingPanel(b)
+    await b.evaluate(() => window.scrollBy(0, 19))
+    await expect
+      .poll(async () => (await local(b))?.offset)
+      .not.toBe(JSON.parse(samePlaceSave.state).offset)
     await offer(b)
     const starts = contexts[1].fixture.controls.timelineRequests.filter(
       request => request.limit === 30 && request.index === 0,
@@ -1165,7 +1181,7 @@ export async function verifyHandoff({
         button.click()
       })
     await expect(b.getByTestId('skyanchor-resume-result')).toContainText(
-      "Already at the other device's saved place",
+      "Resumed the other device's saved place",
     )
     assert.deepEqual(await cloud(), samePlaceSave)
     assert.equal(
@@ -1306,7 +1322,7 @@ export async function verifyHandoff({
       .not.toBe(cookieBeforeRenewal)
     await expect(
       b.getByText(
-        'Another device has a saved place. Your viewport has not moved.',
+        'The shared place differs from this device. Choose Resume other device to resume the shared place, or Keep mine to share this view. Your viewport has not moved.',
         {exact: true},
       ),
     ).toBeVisible()

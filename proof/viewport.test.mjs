@@ -20,6 +20,7 @@ function readingFixture({
   let epoch = 0
   let headerBottom = naturalHeader ? 347 : 143
   const owner = 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa'
+  let renderedOwner = owner
   const window = {
     scrollY: 1000,
     innerHeight: 844,
@@ -43,7 +44,7 @@ function readingFixture({
     getAttribute: () => 'target',
     closest(selector) {
       if (selector === '[data-skyanchor-account]')
-        return {getAttribute: () => owner}
+        return {getAttribute: () => renderedOwner}
       if (selector === '[data-skyanchor-feed]')
         return {getAttribute: () => 'following', closest: () => null}
       return null
@@ -175,6 +176,11 @@ function readingFixture({
       refIndex = 0
       return exports.useReadingPlace({...options, ...overrides})
     },
+    switchOwner(did) {
+      renderedOwner = did
+      refIndex = 0
+      return exports.useReadingPlace({...options, did})
+    },
     restoreEntry(routeKey = 'home-entry') {
       const detail = {routeKey, handled: false}
       events.get('skyanchor-restore-navigation')(new FixtureEvent(detail))
@@ -223,6 +229,20 @@ test('Successful explicit adoption invalidates an older departure for this entry
   fixture.move(500)
   fixture.focusAgain()
   assert.equal(fixture.rowTop, 101)
+})
+
+test('Reading input from the previous account cannot authorize the next account capture', () => {
+  const fixture = readingFixture()
+  fixture.events.get('wheel')()
+  fixture.switchOwner('did:plc:bbbbbbbbbbbbbbbbbbbbbbbb')
+  fixture.move(45)
+  fixture.events.get('scroll')()
+  fixture.flush()
+  assert.equal(
+    fixture.dispatched.at(-1).did,
+    'did:plc:bbbbbbbbbbbbbbbbbbbbbbbb',
+  )
+  assert.equal(fixture.dispatched.at(-1).intentional, false)
 })
 
 test('Actual source activation freezes capture until route-entry focus restores its immediate anchor; unrelated targets and owners cannot adopt it', () => {

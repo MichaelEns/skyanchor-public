@@ -68,6 +68,7 @@ export function useReadingPlace({
     initialized.current = false
     activated.current = false
     leaving.current = false
+    userScrollUntil.current = 0
   }
   useEffect(() => {
     const active = lifetime.current
