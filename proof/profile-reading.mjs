@@ -7,6 +7,7 @@ import {
   closeReadingPanel,
   verifyReadingPanel,
   legacyReturnFixture,
+  scrollReading,
 } from './reading-panel.mjs'
 
 export async function verifyProfileReading({
@@ -74,12 +75,13 @@ export async function verifyProfileReading({
   const move = async (current, identity, index, movement = 85) => {
     await closeReadingPanel(current)
     const rows = root(current, identity).locator('[data-skyanchor-key]')
+    await current.evaluate(() => dispatchEvent(new WheelEvent('wheel')))
     await rows.nth(index).scrollIntoViewIfNeeded()
     await current.waitForTimeout(350)
     const previous = JSON.parse(
       (await snapshot(current, identity)) ?? 'null',
     )?.place
-    await current.evaluate(movement => window.scrollBy(0, movement), movement)
+    await scrollReading(current, movement)
     await expect
       .poll(
         async () =>
@@ -495,9 +497,8 @@ export async function verifyProfileReading({
   await readingAction(phonePage, 'Resume other device', sharon)
   const remoteBeforeMove = JSON.parse((await cloud(sharon)).state)
   const phonePlace = await move(phonePage, sharon, 10, 145)
-  await phonePage.evaluate(() => window.scrollBy(0, 80))
-  await phonePage.waitForTimeout(200)
-  await phonePage.evaluate(() => window.scrollBy(0, -80))
+  await scrollReading(phonePage, 80)
+  await scrollReading(phonePage, -80)
   await expect
     .poll(async () => JSON.parse(await snapshot(phonePage, sharon)).place)
     .toEqual(phonePlace)

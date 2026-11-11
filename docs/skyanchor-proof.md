@@ -42,6 +42,21 @@ unchanged. Offline recovery without new scrolling and regional renewal preserve
 the actual source capture; captions distinguish pending, blocked and confirmed
 sharing. This proves browser-fixture behavior, not physical background delivery.
 
+The reverse-handoff proof starts with an already persisted older WebKit phone
+and a desktop scroll-only automatic source. It checks the actual visible node,
+offset, local snapshot, accepted revision, D1 row and global clock. A production
+build retaining the original offer guard reproduces the missing Resume button with an equal accepted
+revision and an older cached snapshot; that is an explicit backward-compatibility
+fixture, not evidence that a real user's cloud row was overwritten.
+The regression also covers same-browser last-writer provenance, matching-view
+captions, panel/focus/layout, post Back, profile navigation and cold reopen.
+Receivers must not PUT during those operations. Intentional rereading of older
+content can still produce a new confirmed save; no post-age ordering is used.
+Playwright wheel input owns desktop automatic-source movement. Mobile WebKit
+does not support Playwright wheel input, so its fixture dispatches a touch
+start/end around real window scrolling; this is not physical gesture acceptance.
+Programmatic restoration without reading input does not grant sharing intent.
+
 The dependency policy retains raw supplier findings and verifies exact backport,
 source-map/metafile and direct-consumer inventories. A nonshipped dependency
 alone is not sufficient justification. Unknown advisory/config/source drift

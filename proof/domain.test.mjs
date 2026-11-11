@@ -13,9 +13,29 @@ import {
   validReadingFeed,
   readingStorageKey,
   validSyncPlace,
+  sameReadingPlace,
 } from '../src/features/skyanchor/domain.ts'
 
 const uri = 'at://did:plc:aaaaaaaaaaaaaaaaaaaaaaaa/app.bsky.feed.post/fixture'
+test('Shared-place agreement requires the actual occurrence and offset, not matching neighbor metadata', () => {
+  const place = {
+    version: 1,
+    anchor: occurrenceKey(uri),
+    offset: -24,
+    neighbors: [],
+  }
+  assert.equal(
+    sameReadingPlace(place, {...place, neighbors: [occurrenceKey(uri + '2')]}),
+    true,
+  )
+  assert.equal(sameReadingPlace(place, {...place, offset: -27}), false)
+  assert.equal(
+    sameReadingPlace(place, {...place, anchor: occurrenceKey(uri + '2')}),
+    false,
+  )
+  assert.equal(sameReadingPlace(undefined, place), false)
+  assert.equal(sameReadingPlace(null, null), false)
+})
 test('Shared checkpoint time accepts server milliseconds and legacy absence, never invalid dates', () => {
   const did = 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa'
   const remote = {did, revision: 1, device: 'synthetic-browser', state: null}

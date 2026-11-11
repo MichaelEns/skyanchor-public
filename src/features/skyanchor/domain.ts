@@ -5,6 +5,18 @@ export type ReadingPlace = {
   neighbors: string[]
 }
 
+export function sameReadingPlace(
+  left: ReadingPlace | null | undefined,
+  right: ReadingPlace | null | undefined,
+) {
+  return (
+    !!left &&
+    !!right &&
+    left.anchor === right.anchor &&
+    Math.abs(left.offset - right.offset) <= 0.25
+  )
+}
+
 export type ResumeOptions = {
   signal: AbortSignal
   progress: (

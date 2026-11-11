@@ -11,7 +11,11 @@ import * as digest from 'multiformats/hashes/digest'
 import {workerRuntime, didA, didB} from './runtime.mjs'
 import {buildInputs} from '../scripts/skyanchor/inputs.mjs'
 import {verifyComposer} from './composer.mjs'
-import {verifyAutomaticSource, verifyHandoff} from './handoff.mjs'
+import {
+  verifyAutomaticSource,
+  verifyHandoff,
+  verifyReverseHandoff,
+} from './handoff.mjs'
 import {verifyProfileReading} from './profile-reading.mjs'
 import {verifyAuthContrast} from './auth-contrast.mjs'
 import {verifyStartup} from './startup.mjs'
@@ -23,6 +27,7 @@ import {
   verifyReadingPanel,
   verifyNewContent,
   legacyReturnFixture,
+  scrollReading,
 } from './reading-panel.mjs'
 
 const require = createRequire(import.meta.url)
@@ -1181,11 +1186,34 @@ async function runBrowserProof() {
       .waitFor({timeout: 30_000})
     await current.waitForTimeout(500)
   }
+  if (process.argv.includes('--reverse-only')) {
+    await verifyReverseHandoff({
+      desktopBrowser,
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+      holdApi,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
+  }
   if (process.argv.includes('--handoff-only')) {
     await verifyAutomaticSource({
       desktopBrowser,
       phoneBrowser,
       origin,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+      holdApi,
+    })
+    await verifyReverseHandoff({
+      desktopBrowser,
+      phoneBrowser,
       mockUpstream,
       signIn,
       worker,
@@ -1497,7 +1525,7 @@ async function runBrowserProof() {
       .bind(didA)
       .first()
     await closeReadingPanel(page)
-    await page.evaluate(() => window.scrollBy(0, 45))
+    await scrollReading(page, 45)
     const cloudPlace = () =>
       worker.db
         .prepare('SELECT state, revision FROM places WHERE did = ?')
@@ -1591,7 +1619,7 @@ async function runBrowserProof() {
           requestAnimationFrame(() => requestAnimationFrame(resolve)),
         ),
     )
-    await phonePage.evaluate(() => window.scrollBy(0, 55))
+    await scrollReading(phonePage, 55)
     await expect
       .poll(async () => (await cloudPlace()).revision)
       .toBeGreaterThan(previousRevision)
@@ -1629,7 +1657,7 @@ async function runBrowserProof() {
     await closeReadingPanel(page)
     const pendingRevision = (await cloudPlace()).revision
     const pendingWrite = holdApi('PUT')
-    await page.evaluate(() => window.scrollBy(0, 35))
+    await scrollReading(page, 35)
     await Promise.race([
       pendingWrite.reached,
       new Promise((_, reject) =>
@@ -1639,7 +1667,7 @@ async function runBrowserProof() {
         ),
       ),
     ])
-    await page.evaluate(() => window.scrollBy(0, 45))
+    await scrollReading(page, 45)
     await new Promise(resolve => setTimeout(resolve, 900))
     pendingWrite.release()
     await expect
@@ -2139,6 +2167,15 @@ async function runBrowserProof() {
     deleted,
     entries,
     post,
+    holdApi,
+  })
+  await verifyReverseHandoff({
+    desktopBrowser,
+    phoneBrowser,
+    mockUpstream,
+    signIn,
+    worker,
+    report,
     holdApi,
   })
   await verifyNewContent({

@@ -15,13 +15,21 @@ Private sync uses same-origin secure cookies, server-verified provider identity,
 CSRF checks and D1 compare-and-swap revisions. Remote offers do not move the
 viewport automatically. Profile places are bounded to 64 per owner, in addition
 to Following; tombstones count toward the bound.
-Local captures are tracked before connection. After a successful initial check
-with no shared place, the current capture is automatically saved even without
-another scroll. Checks suspend writes, retain pending captures and reschedule
+Local captures and deliberate reading scrolls are tracked before connection.
+After a successful initial check with no shared place, a pending deliberate
+scroll is automatically saved even without another scroll. Checks suspend
+writes, retain pending captures and reschedule
 the 750 ms debounce only after reconciliation; superseded read completions
 cannot clear a newer offer or re-enable saving. Checks wait for an in-flight
-write before observing its revision. New remote revisions still require an
-explicit decision. Errors and paused source sharing are visible separately
+write before observing its revision. A differing shared place requires an
+explicit decision regardless of accepted revision or last-writer browser,
+unless deliberate movement is pending against the unchanged accepted baseline.
+Revision is a CAS base, not evidence that a restored local viewport matches.
+Only actual occurrence/offset agreement permits the already-here caption.
+Passive captures, cold restores, layout and navigation do not authorize writes.
+Tombstones preserve the local place and require explicit Save/Keep mine.
+Confirmed adoption discards only this route entry's obsolete departure, not
+the intentional Return checkpoint. Errors and paused source sharing are visible separately
 from connection status. Shared timestamps come only from the server's `updated`
 value; browser origin labels do not identify a physical device.
 

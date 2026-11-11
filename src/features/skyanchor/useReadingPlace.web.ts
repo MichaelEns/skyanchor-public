@@ -44,6 +44,7 @@ export function useReadingPlace({
   const correctionFrame = useRef(0)
   const switching = useRef(false)
   const panningUntil = useRef(0)
+  const userScrollUntil = useRef(0)
   const correctedScrollY = useRef<number | undefined>(undefined)
   const capturePaused = useRef(false)
   const pendingTarget = useRef<{cancel: () => void; frame: number} | undefined>(
@@ -163,22 +164,24 @@ export function useReadingPlace({
     return place
   }
 
-  function capture() {
+  function capture(intentional = false) {
     if (leaving.current || switching.current || capturePaused.current)
       return undefined
     if (correcting.current || !initialized.current) return desired.current
     const place = snapshot()
-    return place ? savePlace(place) : desired.current
+    return place ? savePlace(place, intentional) : desired.current
   }
 
-  function savePlace(place: ReadingPlace) {
+  function savePlace(place: ReadingPlace, intentional = false) {
     const changed = JSON.stringify(desired.current) !== JSON.stringify(place)
     try {
       latest.current.save(place)
       desired.current = place
       if (changed)
         window.dispatchEvent(
-          new CustomEvent('skyanchor-place', {detail: {did, feed, place}}),
+          new CustomEvent('skyanchor-place', {
+            detail: {did, feed, place, intentional},
+          }),
         )
     } catch (error) {
       logger.error('SkyAnchor could not save reading place', {message: error})
@@ -238,6 +241,7 @@ export function useReadingPlace({
   useLayoutEffect(() => {
     if (!enabled) {
       activated.current = false
+      userScrollUntil.current = 0
       return
     }
     if (!did || !keys.length) return
@@ -284,7 +288,8 @@ export function useReadingPlace({
       capturePaused.current = false
       panningUntil.current = Math.max(panningUntil.current, Date.now() + 150)
       cancelAnimationFrame(frame)
-      frame = requestAnimationFrame(capture)
+      const intentional = Date.now() < userScrollUntil.current
+      frame = requestAnimationFrame(() => capture(intentional))
     }
     const observer = new ResizeObserver(correct)
     getNodes().forEach(node => observer.observe(node))
@@ -297,15 +302,18 @@ export function useReadingPlace({
     }
     window.addEventListener('scroll', onScroll, {passive: true})
     const onPanStart = () => {
+      userScrollUntil.current = Infinity
       leaving.current = false
       pendingTarget.current?.cancel()
       panningUntil.current = Infinity
     }
     const onPanEnd = () => {
+      userScrollUntil.current = Date.now() + 1500
       pendingTarget.current?.cancel()
       panningUntil.current = Date.now() + 150
     }
     const onWheel = () => {
+      userScrollUntil.current = Date.now() + 1500
       leaving.current = false
       pendingTarget.current?.cancel()
       panningUntil.current = Date.now() + 150
@@ -314,6 +322,26 @@ export function useReadingPlace({
     window.addEventListener('touchend', onPanEnd, {passive: true})
     window.addEventListener('touchcancel', onPanEnd, {passive: true})
     window.addEventListener('wheel', onWheel, {passive: true})
+    const onKey = (event: KeyboardEvent) => {
+      if (
+        [
+          'ArrowUp',
+          'ArrowDown',
+          'PageUp',
+          'PageDown',
+          'Home',
+          'End',
+          ' ',
+        ].includes(event.key) &&
+        !(
+          event.target instanceof HTMLElement &&
+          (event.target.isContentEditable ||
+            ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName))
+        )
+      )
+        onWheel()
+    }
+    window.addEventListener('keydown', onKey)
     window.addEventListener('resize', correct)
     const onPageHide = () => {
       pendingTarget.current?.cancel()
@@ -380,6 +408,7 @@ export function useReadingPlace({
       window.removeEventListener('touchend', onPanEnd)
       window.removeEventListener('touchcancel', onPanEnd)
       window.removeEventListener('wheel', onWheel)
+      window.removeEventListener('keydown', onKey)
       window.removeEventListener('resize', correct)
       window.removeEventListener('pagehide', onPageHide)
       window.removeEventListener('skyanchor-save-now', saveNow)
@@ -415,6 +444,7 @@ export function useReadingPlace({
     ): Promise<void> {
       pendingTarget.current?.cancel()
       panningUntil.current = 0
+      userScrollUntil.current = 0
       capturePaused.current = false
       desired.current = place
       exactTarget.current = exact
@@ -499,6 +529,7 @@ export function useReadingPlace({
               return
             }
             pendingTarget.current = undefined
+            departures.delete(entry)
             exactTarget.current = false
             resolve()
             return

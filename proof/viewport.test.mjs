@@ -12,6 +12,7 @@ function readingFixture({
   const frames = []
   const events = new Map()
   const saved = []
+  const dispatched = []
   const cleanups = []
   const refs = []
   let refIndex = 0
@@ -32,7 +33,9 @@ function readingFixture({
       events.set(name, callback)
     },
     removeEventListener() {},
-    dispatchEvent() {},
+    dispatchEvent(event) {
+      dispatched.push(event.detail)
+    },
   }
   const node = {
     getClientRects: () => [{}],
@@ -49,8 +52,8 @@ function readingFixture({
   const exports = {}
   const noop = () => {}
   class FixtureEvent {
-    constructor(detail) {
-      this.detail = detail
+    constructor(name, options) {
+      this.detail = options ? options.detail : name
     }
   }
   runInNewContext(
@@ -141,6 +144,7 @@ function readingFixture({
     events,
     frames,
     saved,
+    dispatched,
     get rowTop() {
       return rowTop
     },
@@ -192,6 +196,33 @@ test('Immediate departure snapshot observes the current DOM before queued scroll
   const immediate = fixture.hook.snapshot()
   assert.equal(immediate.offset, -98)
   assert.deepEqual(fixture.saved, [])
+})
+
+test('Passive captures stay local; a wheel-owned reading scroll carries sharing intent', () => {
+  const fixture = readingFixture()
+  fixture.move(45)
+  fixture.hook.capture()
+  assert.equal(fixture.dispatched.at(-1).intentional, false)
+  fixture.move(20)
+  fixture.events.get('wheel')()
+  fixture.events.get('scroll')()
+  fixture.flush()
+  assert.equal(fixture.dispatched.at(-1).intentional, true)
+})
+
+test('Successful explicit adoption invalidates an older departure for this entry', async () => {
+  const fixture = readingFixture()
+  fixture.depart()
+  // Re-enter before adopting, then leave a stale departure in the route cache.
+  fixture.focusAgain()
+  fixture.depart()
+  fixture.events.get('wheel')()
+  const completion = fixture.hook.setTarget(targetPlace, true)
+  fixture.flush()
+  await completion
+  fixture.move(500)
+  fixture.focusAgain()
+  assert.equal(fixture.rowTop, 101)
 })
 
 test('Actual source activation freezes capture until route-entry focus restores its immediate anchor; unrelated targets and owners cannot adopt it', () => {

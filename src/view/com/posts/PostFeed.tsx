@@ -1681,6 +1681,7 @@ let PostFeed = ({
           loading={newerStatus}
           onReturn={returnToPlace}
           capture={reading.capture}
+          snapshot={reading.snapshot}
           resume={resumeRemotePlace}
         />
       )}

@@ -4,7 +4,408 @@ import {
   readingAction,
   closeReadingPanel,
   readingPanel,
+  scrollReading,
 } from './reading-panel.mjs'
+
+export async function verifyReverseHandoff({
+  desktopBrowser,
+  phoneBrowser,
+  mockUpstream,
+  signIn,
+  worker,
+  report,
+}) {
+  const did = 'did:plc:iiiiiiiiiiiiiiiiiiiiiiii'
+  const key = 'skyanchor:following:v1:' + did
+  const contexts = []
+  const errors = []
+  const puts = []
+  const placements = []
+  const legacyViews = []
+  const cloud = () =>
+    worker.db
+      .prepare(
+        "SELECT *, (SELECT revision FROM clock WHERE id = 1) AS clockRevision, (SELECT nonce FROM clock WHERE id = 1) AS clockNonce FROM places WHERE did = ? AND feed = 'following'",
+      )
+      .bind(did)
+      .first()
+  const local = page =>
+    page.evaluate(key => JSON.parse(localStorage.getItem(key))?.place, key)
+  async function fresh(browser, phone = false) {
+    const context = await browser.newContext({
+      ...(phone
+        ? browserDevices['iPhone 13']
+        : {viewport: {width: 1280, height: 900}}),
+      ignoreHTTPSErrors: true,
+      serviceWorkers: 'block',
+    })
+    contexts.push(context)
+    await mockUpstream(context, did)
+    const page = await context.newPage()
+    page.on('pageerror', error => errors.push(error.message))
+    page.on('request', request => {
+      if (
+        request.method() === 'PUT' &&
+        new URL(request.url()).pathname === '/api/skyanchor/place'
+      )
+        puts.push({phone, body: JSON.parse(request.postData())})
+    })
+    await signIn(page, 'reader.test')
+    return page
+  }
+  async function confirmed(page, previous = 0) {
+    await expect
+      .poll(
+        async () => {
+          const row = await cloud()
+          return (
+            row?.revision > previous &&
+            row.state === JSON.stringify(await local(page))
+          )
+        },
+        {timeout: 10000},
+      )
+      .toBe(true)
+    const row = await cloud()
+    assert.ok(row.updated > 0)
+    assert.equal(
+      row.device,
+      await page.evaluate(() => localStorage.getItem('skyanchor:device')),
+    )
+    return row
+  }
+  async function exact(page, row) {
+    await expect
+      .poll(async () => JSON.stringify(await local(page)))
+      .toBe(row.state)
+    const error = await page.evaluate(place => {
+      const node = [...document.querySelectorAll('[data-skyanchor-key]')].find(
+        node => node.dataset.skyanchorKey === place.anchor,
+      )
+      const header = document.querySelector('[data-testid="mobileHomeHeader"]')
+      return node
+        ? Math.abs(
+            node.getBoundingClientRect().top -
+              (header?.getBoundingClientRect().bottom ?? 0) -
+              place.offset,
+          )
+        : Infinity
+    }, JSON.parse(row.state))
+    assert.ok(error <= 2, `Actual reverse-handoff placement error: ${error}`)
+    placements.push(error)
+    await expect
+      .poll(() =>
+        page.evaluate(
+          did => Number(localStorage.getItem('skyanchor:revision:' + did)),
+          did,
+        ),
+      )
+      .toBe(row.revision)
+    await readingPanel(page)
+    await expect(
+      page.getByRole('button', {name: 'Check other device', exact: true}),
+    ).toBeEnabled()
+    await expect(page.getByTestId('skyanchor-source-state')).toContainText(
+      'Current local place confirmed shared',
+    )
+    await closeReadingPanel(page)
+  }
+  async function choice(page, row) {
+    const before = await page.evaluate(() => scrollY)
+    const count = puts.length
+    await readingAction(page, 'Check other device')
+    await expect(
+      page.getByRole('button', {name: 'Resume other device', exact: true}),
+    ).toBeEnabled()
+    assert.equal(await page.evaluate(() => scrollY), before)
+    await page.waitForTimeout(1000)
+    assert.equal(puts.length, count, 'Checking a stale local view must not PUT')
+    assert.deepEqual(await cloud(), row)
+  }
+  try {
+    assert.equal(
+      await cloud(),
+      null,
+      'Reverse fixture requires a fresh synthetic account',
+    )
+    const phone = await fresh(phoneBrowser, true)
+    await scrollReading(phone, 1700)
+    await readingAction(phone, 'Connect private sync')
+    const old = await confirmed(phone)
+    const oldSnapshot = await phone.evaluate(
+      key => localStorage.getItem(key),
+      key,
+    )
+    await phone.addInitScript(
+      ({key, oldSnapshot}) => {
+        if (sessionStorage.getItem('fixture:stale-reading-snapshot') === '1') {
+          localStorage.setItem(key, oldSnapshot)
+          sessionStorage.removeItem('fixture:stale-reading-snapshot')
+        }
+      },
+      {key, oldSnapshot},
+    )
+    const coldOldView = async () => {
+      await closeReadingPanel(phone)
+      await phone.evaluate(() =>
+        sessionStorage.setItem('fixture:stale-reading-snapshot', '1'),
+      )
+      await phone.reload()
+      await phone.getByTestId('skyanchor-reading-button').waitFor()
+      await phone.waitForTimeout(1100)
+      const state = JSON.parse(oldSnapshot).place
+      await expect
+        .poll(async () => (await local(phone))?.anchor)
+        .toBe(state.anchor)
+      const actual = await phone.evaluate(() => {
+        const bottom = document
+          .querySelector('[data-testid="mobileHomeHeader"]')
+          .getBoundingClientRect().bottom
+        const node = [
+          ...document.querySelectorAll('[data-skyanchor-key]'),
+        ].find(
+          node =>
+            node.getClientRects().length &&
+            node.getBoundingClientRect().bottom > bottom + 1,
+        )
+        return {
+          anchor: node?.dataset.skyanchorKey,
+          offset: node?.getBoundingClientRect().top - bottom,
+        }
+      })
+      assert.equal(
+        actual.anchor,
+        state.anchor,
+        'Legacy fixture must actually show the old phone occurrence',
+      )
+      assert.ok(Math.abs(actual.offset - state.offset) <= 2)
+      legacyViews.push({
+        actual,
+        acceptedRevision: await phone.evaluate(
+          did => Number(localStorage.getItem('skyanchor:revision:' + did)),
+          did,
+        ),
+        cloud: await cloud(),
+      })
+    }
+    await closeReadingPanel(phone)
+    const desktop = await fresh(desktopBrowser)
+    await readingAction(desktop, 'Connect private sync')
+    await readingAction(desktop, 'Resume other device')
+    await exact(desktop, old)
+    await scrollReading(desktop, -900)
+    let recent = await confirmed(desktop, old.revision)
+    assert.notEqual(recent.state, old.state)
+    await phone.evaluate(() => dispatchEvent(new Event('focus')))
+    await choice(phone, recent)
+    const awaitingChoiceY = await phone.evaluate(() => scrollY)
+    await scrollReading(desktop, -110)
+    recent = await confirmed(desktop, recent.revision)
+    assert.equal(await phone.evaluate(() => scrollY), awaitingChoiceY)
+    await choice(phone, recent)
+    await readingAction(phone, 'Resume other device')
+    await exact(phone, recent)
+    assert.deepEqual(await cloud(), recent)
+    // Backward-compatible revision/snapshot mismatch, without altering D1.
+    await coldOldView()
+    await choice(phone, recent)
+    await readingAction(phone, 'Resume other device')
+    await exact(phone, recent)
+    assert.deepEqual(await cloud(), recent)
+    const receivingWrites = puts.length
+    for (const action of [
+      async () => {
+        await readingPanel(phone)
+        await closeReadingPanel(phone)
+        await phone.evaluate(() => {
+          dispatchEvent(new Event('focus'))
+          document.dispatchEvent(new Event('visibilitychange'))
+          dispatchEvent(new Event('resize'))
+        })
+      },
+      async () => {
+        await phone.setViewportSize({width: 414, height: 896})
+        await phone.waitForTimeout(300)
+        await phone.setViewportSize({width: 390, height: 844})
+      },
+      async () => {
+        await phone.evaluate(place => {
+          const node = [
+            ...document.querySelectorAll('[data-skyanchor-key]'),
+          ].find(node => node.dataset.skyanchorKey === place.anchor)
+          node.querySelector('a[href*="/post/"]').click()
+        }, JSON.parse(recent.state))
+        await phone.waitForURL(/\/post\//)
+        await phone
+          .getByTestId(/^postThreadItem-by-/)
+          .filter({visible: true})
+          .first()
+          .waitFor()
+        await phone.goBack()
+        await phone.getByTestId('skyanchor-reading-button').waitFor()
+      },
+      async () => {
+        const origin = new URL(phone.url()).origin
+        await phone.goto(origin + '/profile/sharon-fixture.test')
+        await phone.getByTestId('profileFeedTabs').waitFor()
+        await readingAction(phone, 'Check other device')
+        await expect(
+          phone.getByRole('button', {name: 'Check other device', exact: true}),
+        ).toBeEnabled()
+        await closeReadingPanel(phone)
+        await phone.goto(origin)
+        await phone.getByTestId('skyanchor-reading-button').waitFor()
+      },
+      async () => {
+        await phone.reload()
+        await phone.getByTestId('skyanchor-reading-button').waitFor()
+      },
+    ]) {
+      await closeReadingPanel(phone)
+      await action()
+      await phone.waitForTimeout(1100)
+      await exact(phone, recent)
+      assert.equal(
+        puts.length,
+        receivingWrites,
+        'Passive re-entry must not share',
+      )
+      assert.deepEqual(await cloud(), recent)
+    }
+
+    await readingAction(phone, 'Check other device')
+    await expect(
+      phone.getByText('Already at the shared place.', {exact: false}),
+    ).toBeVisible()
+    await expect(phone.getByTestId('skyanchor-source-state')).toContainText(
+      'Current local place confirmed shared',
+    )
+    await expect(phone.getByTestId('skyanchor-last-verified')).toBeVisible()
+    await expect(
+      phone.getByRole('button', {name: 'Resume other device', exact: true}),
+    ).toHaveCount(0)
+    await closeReadingPanel(phone)
+
+    await readingAction(phone, 'Return to my place')
+    await expect
+      .poll(async () => (await local(phone))?.anchor)
+      .toBe(JSON.parse(oldSnapshot).place.anchor)
+    await phone.waitForTimeout(1100)
+    assert.equal(
+      puts.length,
+      receivingWrites,
+      'Intentional local Return alone must not replace the shared place',
+    )
+    assert.deepEqual(await cloud(), recent)
+    await choice(phone, recent)
+    await readingAction(phone, 'Resume other device')
+    await exact(phone, recent)
+    assert.deepEqual(await cloud(), recent)
+
+    const secondDesktop = await fresh(desktopBrowser)
+    await readingAction(secondDesktop, 'Connect private sync')
+    await readingAction(secondDesktop, 'Resume other device')
+    await exact(secondDesktop, recent)
+    assert.deepEqual(await cloud(), recent)
+
+    // Same browser provenance is not proof that its cached view matches.
+    await readingAction(phone, 'Save my place')
+    const owned = await confirmed(phone, recent.revision)
+    await closeReadingPanel(phone)
+    await coldOldView()
+    await choice(phone, owned)
+    await expect(phone.getByTestId('skyanchor-shared-save')).toContainText(
+      'This browser',
+    )
+    await readingAction(phone, 'Resume other device')
+    await exact(phone, owned)
+    assert.deepEqual(await cloud(), owned)
+
+    // Intentionally rereading older content remains shareable after adoption.
+    await scrollReading(phone, 650)
+    const reread = await confirmed(phone, owned.revision)
+    assert.notEqual(reread.state, owned.state)
+    await readingPanel(phone)
+    await expect(phone.getByTestId('skyanchor-source-state')).toContainText(
+      'Current local place confirmed shared',
+    )
+    await closeReadingPanel(phone)
+    assert.deepEqual(await cloud(), reread)
+
+    const desktopLocal = await local(secondDesktop)
+    await readingAction(phone, 'Delete cloud progress and disconnect')
+    await expect(
+      phone.getByText(
+        'Cloud progress deleted and sync disconnected. Your local reading place is unchanged.',
+        {exact: true},
+      ),
+    ).toBeVisible()
+    const cleared = await cloud()
+    assert.ok(cleared.revision > reread.revision)
+    assert.equal(cleared.state, null)
+    const beforeNone = puts.length
+    await readingAction(secondDesktop, 'Check other device')
+    await expect(
+      secondDesktop.getByTestId('skyanchor-source-state'),
+    ).toContainText('There is no shared place to resume')
+    await expect(
+      secondDesktop.getByRole('button', {
+        name: 'Resume other device',
+        exact: true,
+      }),
+    ).toHaveCount(0)
+    await closeReadingPanel(secondDesktop)
+    await secondDesktop.reload()
+    await secondDesktop.getByTestId('skyanchor-reading-button').waitFor()
+    await secondDesktop.waitForTimeout(1100)
+    assert.deepEqual(await local(secondDesktop), desktopLocal)
+    assert.deepEqual(await local(phone), JSON.parse(reread.state))
+    assert.equal(puts.length, beforeNone)
+    assert.deepEqual(await cloud(), cleared)
+
+    assert.deepEqual(errors, [])
+    report.reverseHandoff = {
+      devices: contexts.length,
+      placements,
+      legacyViews,
+      puts,
+      equalRevisionMismatch: true,
+      sameWriterMismatch: true,
+      passiveReentries: 5,
+      matchingViewVerified: true,
+      sourceAdvancedDuringChoice: true,
+      intentionalOlderRead: true,
+      tombstonePreserved: true,
+      tombstoneRevision: cleared.revision,
+      errors,
+      passed: true,
+    }
+    report.checks.push(
+      'Previously persisted WebKit phone resumes a desktop scroll-only confirmed checkpoint, including an equal-accepted-revision/stale-snapshot cold reopen, with no receiving PUT.',
+    )
+  } catch (error) {
+    report.reverseHandoff = {
+      placements,
+      legacyViews,
+      puts,
+      cloud: await cloud(),
+      localViews: await Promise.all(
+        contexts.map(async context => {
+          const page = context.pages()[0]
+          return {
+            local: await local(page),
+            ui: (await page.locator('body').innerText()).slice(-7000),
+          }
+        }),
+      ),
+      errors,
+      passed: false,
+    }
+    throw error
+  } finally {
+    for (const context of contexts) await context.close()
+  }
+}
 
 export async function verifyAutomaticSource({
   desktopBrowser,
@@ -195,7 +596,7 @@ export async function verifyAutomaticSource({
     const device = await a.evaluate(() =>
       localStorage.getItem('skyanchor:device'),
     )
-    await a.evaluate(() => scrollBy(0, 900))
+    await scrollReading(a, 900)
     await expect.poll(async () => (await local(a))?.offset).not.toBe(0)
     await readingAction(a, 'Connect private sync')
     // Connecting after a capture must not require another scroll event.
@@ -209,7 +610,7 @@ export async function verifyAutomaticSource({
         dispatchEvent(new Event('focus'))
       })
       await reached(held)
-      await a.evaluate(() => scrollBy(0, 350))
+      await scrollReading(a, 350)
       await a.waitForTimeout(900)
     } finally {
       held.release()
@@ -237,7 +638,7 @@ export async function verifyAutomaticSource({
       'saved only on this device',
     )
     await closeReadingPanel(a)
-    await a.evaluate(() => scrollBy(0, 220))
+    await scrollReading(a, 220)
     await a.waitForTimeout(1100)
     assert.deepEqual(await cloud(), conflict)
     await readingAction(a, 'Keep mine')
@@ -247,9 +648,10 @@ export async function verifyAutomaticSource({
     await closeReadingPanel(a)
     const heldWrite = holdApi('PUT')
     try {
-      await a.evaluate(() => scrollBy(0, 85))
+      await scrollReading(a, 85)
       await reached(heldWrite)
       await a.evaluate(() => {
+        dispatchEvent(new WheelEvent('wheel', {deltaY: 55}))
         scrollBy(0, 55)
         dispatchEvent(new Event('focus'))
         dispatchEvent(new Event('online'))
@@ -260,7 +662,7 @@ export async function verifyAutomaticSource({
     }
     const recovered = await confirmed(a, device, conflict.revision)
     await phone.context.setOffline(true)
-    await a.evaluate(() => scrollBy(0, 95))
+    await scrollReading(a, 95)
     await readingPanel(a)
     await expect(a.getByTestId('skyanchor-source-state')).toContainText(
       'not confirmed shared',
@@ -278,7 +680,7 @@ export async function verifyAutomaticSource({
     ).toBeEnabled()
     assert.equal(phone.expected.get('POST /api/skyanchor/session 401'), 0)
     await closeReadingPanel(a)
-    await a.evaluate(() => scrollBy(0, 65))
+    await scrollReading(a, 65)
     const latest = await confirmed(a, device, online.revision)
     const c = await fresh(desktopBrowser)
     const secondError = await direct(c, latest)

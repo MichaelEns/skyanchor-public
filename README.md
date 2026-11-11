@@ -34,6 +34,19 @@ Choose Keep mine only on the browser whose current place you intend to share,
 not an old destination merely to clear its red dot. Background saves are best
 effort, not a guarantee.
 
+When returning to an older phone view, **Check other device** compares the
+visible occurrence and offset with the confirmed shared place, not just the
+accepted revision or browser label. A difference offers **Resume other device**
+(resume the shared place), even at the same revision or when this browser last
+saved it. An actual match says **Already at the shared place** and shows the
+check time. Passive reload, layout correction and navigation restoration do not
+authorize sharing an old local view. Deliberate reading scrolls after an accepted
+baseline can still share older posts; there is no newest-post filter.
+A cleared shared place preserves local progress and requires an explicit save.
+If the desktop's current view is not confirmed shared, it cannot be resumed on
+the phone yet: resolve the desktop's displayed decision there, using **Keep mine**
+only if that is the view to share.
+
 The reading icon's red dot means an error, reading notice, or other-device
 decision (in that priority); blue means loading, unsynced local progress, new
 posts above, or Return available. The panel explains the reason and connection

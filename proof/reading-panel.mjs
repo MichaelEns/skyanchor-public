@@ -1,6 +1,21 @@
 import assert from 'node:assert/strict'
 import {devices, expect} from '@playwright/test'
 
+export async function scrollReading(page, top) {
+  if (page.context().browser().browserType().name() === 'webkit') {
+    await page.evaluate(top => {
+      dispatchEvent(new Event('touchstart'))
+      scrollBy(0, top)
+      dispatchEvent(new Event('touchend'))
+    }, top)
+  } else {
+    const viewport = page.viewportSize()
+    await page.mouse.move(viewport.width / 2, viewport.height / 2)
+    await page.mouse.wheel(0, top)
+  }
+  await page.waitForTimeout(200)
+}
+
 export async function readingPanel(page, feed) {
   const panel = feed
     ? page.locator(`[data-skyanchor-toolbar-feed="${feed}"]`)
