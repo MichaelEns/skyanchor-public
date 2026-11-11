@@ -5,6 +5,14 @@ export type ReadingPlace = {
   neighbors: string[]
 }
 
+export type ResumeOptions = {
+  signal: AbortSignal
+  progress: (
+    pages: number,
+    phase?: 'history' | 'revalidate' | 'placement',
+  ) => void
+}
+
 export type ReadingFeed =
   | 'following'
   | `author|${string}|posts_and_author_threads`

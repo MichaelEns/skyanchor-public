@@ -120,6 +120,58 @@ import {
 describe('bounded web startup', () => {
   afterEach(() => jest.useRealTimers())
 
+  it('bounds a foreground regional refresh without a startup signal and preserves tokens on timeout', async () => {
+    jest.useFakeTimers()
+    jest.doMock('#/env', () => ({
+      ...jest.requireActual<object>('#/env'),
+      IS_WEB: true,
+    }))
+    const stored = makeAccount({service: PDS_URL, pdsUrl: PDS_URL})
+    let aborted = false
+    const fetch = makeMockFetch({
+      'com.atproto.server.refreshSession': (_url, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener(
+            'abort',
+            () => {
+              aborted = true
+              const reason: unknown = init.signal?.reason
+              reject(
+                reason instanceof Error
+                  ? reason
+                  : new Error('Refresh cancelled'),
+              )
+            },
+            {once: true},
+          )
+        }),
+    })
+    try {
+      await withFreshFactory(asFetch(fetch), async core => {
+        const change = jest.fn()
+        const result = core.createSessionBundleFromStoredAccount(stored, change)
+        if (!result) throw new Error('Expected a live regional fixture')
+        const before = result.bundle.session.session
+        const task = result.bundle.session.refresh()
+        await jest.advanceTimersByTimeAsync(15000)
+        expect(await task).toBe(before)
+        expect(aborted).toBe(true)
+        expect(result.bundle.session.session.refreshJwt).toBe(stored.refreshJwt)
+        expect(change).toHaveBeenCalledTimes(1)
+        expect(change).toHaveBeenCalledWith(
+          result.bundle,
+          stored.did,
+          'network-error',
+          undefined,
+        )
+        expect(jest.getTimerCount()).toBe(0)
+        core.disposeBundle(result.bundle)
+      })
+    } finally {
+      jest.dontMock('#/env')
+    }
+  })
+
   it.each(['InvalidToken', 'ExpiredToken'])(
     'classifies a real SDK refresh %s without changing stored credentials',
     async code => {

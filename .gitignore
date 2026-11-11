@@ -121,6 +121,7 @@ google-services.json
 /proof-worker-dry-run.json
 /proof-zod-security-report.json
 /proof-browser-report.json
+/proof-handoff-report.json
 /proof-browser-artifacts.json
 /proof-security-report.json
 /proof-release-report.json

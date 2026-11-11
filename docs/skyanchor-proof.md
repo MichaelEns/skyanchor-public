@@ -13,6 +13,16 @@ immediate Back, cancellation, viewport geometry, regional PDS handoff and
 contrast expectations. They do not authenticate a real account or claim
 physical-device acceptance.
 
+The direct first-use handoff proof has no prior destination revision or sync
+consent. Source Save is confirmed against the isolated D1 row before Connect;
+Resume is clicked directly from that offer, without Check or injected cookies.
+The source anchor is the exact repost/reply occurrence at history position 470.
+The unchanged baseline failed that path with the destination still at post 1.
+Success requires <=2 px placement, exact persisted local place and unchanged
+cloud state. Focus/online events and a newer third-device Save during a held
+history request must not overwrite the source. Cancel/pan and unavailable
+history must preserve local saved bytes, Return, URL, rows and revision.
+
 The dependency policy retains raw supplier findings and verifies exact backport,
 source-map/metafile and direct-consumer inventories. A nonshipped dependency
 alone is not sufficient justification. Unknown advisory/config/source drift

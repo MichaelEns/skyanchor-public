@@ -1,5 +1,5 @@
 import {type SessionAccount} from '#/state/session'
-import {type ReadingFeed, type ReadingPlace} from './domain'
+import {type ReadingFeed, type ReadingPlace, type ResumeOptions} from './domain'
 
 export function ReadingToolbar(_props: {
   enabled: boolean
@@ -13,7 +13,10 @@ export function ReadingToolbar(_props: {
   onLatest: () => Promise<void>
   onReturn: () => Promise<void>
   capture: () => ReadingPlace | undefined
-  resume: (place: ReadingPlace | undefined) => Promise<void>
+  resume: (
+    place: ReadingPlace | undefined,
+    options: ResumeOptions,
+  ) => Promise<boolean>
 }) {
   return null
 }

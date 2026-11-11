@@ -29,6 +29,26 @@ license checks, strict dependency-use evidence and a fresh raw audit.
 Generated reports are local only. Physical iPhone, installed-browser and hosted
 acceptance are separate owner responsibilities and are not claimed.
 
+First-use reading-place acceptance must use a fresh destination browser and
+the literal sign-in -> Reading place -> Connect -> Resume path, without an
+intervening Check. Confirm the source Save first and use the same Following
+feed or profile/filter. The production fixture now uses occurrence 470 with
+repost/reply context, beyond the former 360-entry cutoff, in desktop Chromium
+and phone-sized WebKit. It also checks a newer source revision arriving during
+Resume, foreground checks, cancellation, visible errors and unchanged saved
+bytes. These synthetic proofs cannot establish whether a real service still
+retains a user's historical occurrence.
+
+The compact reading icon is not the Bluesky stored-bookmarks feature. Its
+panel labels connection, remote decisions, unsynced progress and errors
+separately. Red prioritizes errors, reading notices, then remote decisions;
+blue prioritizes loading, unsynced progress, new posts, then Return. A quiet
+connected or disconnected browser can have no dot. Resume progress and its
+result remain visible outside the closed panel; errors persist with a retry
+entrypoint. Scrolling starts only in the dialog's completed close callback.
+Recovery limits and exact-identity failure behavior are documented in
+`ASSUMPTIONS.md`; private sync being connected is not itself a confirmed save.
+
 Web startup bounds uncached geolocation to 3 seconds and session resume to
 10 seconds. A failed resume offers Retry without clearing credentials or the
 saved window.

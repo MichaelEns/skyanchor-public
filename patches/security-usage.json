@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "scope": "Reviewed personal static-web release commands only, not general Expo/native/Atlas tooling safety. No exemption may apply to a bundled browser or Worker package.",
   "lockSha256": "a34079622ae1cb80267738d9bfc3766b21ee17f3e97d0881ba52ea9b92563edc",
-  "boundarySha256": "fc5cff19a4810b6965fb29cfe72adbc866c0a2fb22eebd67e5f6557b4fbeda8f",
+  "boundarySha256": "6552aca8c31907817b16c0ab849b1a0cc91768229698d0003aba1b9d6c8acf60",
   "boundaryFiles": [
     ".gitattributes",
     "worker/index.ts",
@@ -67,7 +67,10 @@
           "title": "uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided",
           "vulnerable": "<11.1.1",
           "patched": ">=11.1.1",
-          "versions": ["7.0.3", "8.3.2"]
+          "versions": [
+            "7.0.3",
+            "8.3.2"
+          ]
         }
       ]
     },
@@ -85,7 +88,9 @@
           "title": "sharp inherited vulnerabilities in libvips: CVE-2026-33327, CVE-2026-33328, CVE-2026-35590, CVE-2026-35591",
           "vulnerable": "<0.35.0",
           "patched": ">=0.35.0",
-          "versions": ["0.33.5"]
+          "versions": [
+            "0.33.5"
+          ]
         },
         {
           "id": "GHSA-rgj7-g3m4-5g8c",
@@ -97,7 +102,9 @@
           "title": "sharp: Vulnerabilities in libheif: GHSA-g89c-p67h-r497 and GHSA-2jg2-4ch7-h545",
           "vulnerable": "<0.35.4",
           "patched": ">=0.35.4",
-          "versions": ["0.33.5"]
+          "versions": [
+            "0.33.5"
+          ]
         },
         {
           "id": "GHSA-wq5f-xc86-pv6w",
@@ -109,7 +116,9 @@
           "title": "sharp : Vulnerability in librsvg dependency CVE-2026-96889",
           "vulnerable": "<0.35.5",
           "patched": ">=0.35.5",
-          "versions": ["0.33.5"]
+          "versions": [
+            "0.33.5"
+          ]
         }
       ]
     },
@@ -127,7 +136,9 @@
           "title": "stream-json: pick/ignore/filter/replace filters are O(depth²) on nested input — small crafted JSON blocks the event loop for seconds→minutes (DoS)",
           "vulnerable": "<=3.4.0",
           "patched": ">=3.5.0",
-          "versions": ["1.9.1"]
+          "versions": [
+            "1.9.1"
+          ]
         },
         {
           "id": "GHSA-hqr4-qq8f-hg3x",
@@ -139,7 +150,9 @@
           "title": "stream-json: JSONC parser and verifier re-scan the whole accumulated comment on every input chunk",
           "vulnerable": "<=3.5.0",
           "patched": ">=3.6.0",
-          "versions": ["1.9.1"]
+          "versions": [
+            "1.9.1"
+          ]
         },
         {
           "id": "GHSA-mjw6-4jj6-33hc",
@@ -151,7 +164,9 @@
           "title": "stream-json has a prototype pollution issue: Assembler writes this.current[this.key] on plain objects",
           "vulnerable": "<3.6.0",
           "patched": ">=3.6.0",
-          "versions": ["1.9.1"]
+          "versions": [
+            "1.9.1"
+          ]
         }
       ]
     },
@@ -170,7 +185,9 @@
           "title": "deepmerge mergeObject() allows prototype poisoning of returned objects",
           "vulnerable": ">=4.2.0 <=4.3.1",
           "patched": null,
-          "versions": ["4.3.1"]
+          "versions": [
+            "4.3.1"
+          ]
         }
       ]
     },
@@ -188,7 +205,12 @@
           "title": "Glob: AbortSignal cancellation bypass allows post-timeout filesystem traversal",
           "vulnerable": ">=9.0.0 <=14.0.1",
           "patched": ">=14.0.2",
-          "versions": ["10.5.0", "11.1.0", "13.0.6", "9.3.5"]
+          "versions": [
+            "10.5.0",
+            "11.1.0",
+            "13.0.6",
+            "9.3.5"
+          ]
         }
       ]
     },
@@ -206,7 +228,11 @@
           "title": "minimatch has potential denial of service via globparts amplification",
           "vulnerable": ">=7.0.0 <11.0.1",
           "patched": ">=11.0.1",
-          "versions": ["10.2.5", "8.0.7", "9.0.9"]
+          "versions": [
+            "10.2.5",
+            "8.0.7",
+            "9.0.9"
+          ]
         }
       ]
     }

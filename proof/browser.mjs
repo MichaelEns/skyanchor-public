@@ -658,6 +658,10 @@ async function mockUpstream(context, owner = didA) {
       const uris = url.searchParams.getAll('uris')
       const all = [
         ...(timeline ?? feed).map(item => item.post),
+        ...(timeline ?? feed).flatMap(item => [
+          ...(item.reply?.root?.record ? [item.reply.root] : []),
+          ...(item.reply?.parent?.record ? [item.reply.parent] : []),
+        ]),
         ...[...authorFeeds.values()].flat().map(item => item.post),
         rootPost,
         parentPost,
@@ -680,7 +684,7 @@ async function mockUpstream(context, owner = didA) {
                             cts: new Date().toISOString(),
                           },
                         ]
-                      : [],
+                      : (value.labels ?? []),
                 },
               ]
         }),
@@ -895,7 +899,7 @@ let desktopBrowser,
   page,
   pwaContext,
   freshPhoneContext
-try {
+async function runBrowserProof() {
   desktopBrowser = await chromium.launch({
     ...(process.env.SKYANCHOR_BROWSER_CHANNEL
       ? {channel: process.env.SKYANCHOR_BROWSER_CHANNEL}
@@ -1173,6 +1177,24 @@ try {
       .first()
       .waitFor({timeout: 30_000})
     await current.waitForTimeout(500)
+  }
+  if (process.argv.includes('--handoff-only')) {
+    await verifyHandoff({
+      desktopBrowser,
+      phoneBrowser,
+      origin,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+      deleted,
+      entries,
+      post,
+      holdApi,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
   }
   await signIn(page, 'fixture@example.test', 'open')
   await signIn(phonePage, 'reader.test')
@@ -1490,7 +1512,7 @@ try {
     await closeReadingPanel(phonePage)
     await expect(
       phonePage.getByTestId('skyanchor-reading-button'),
-    ).toHaveAccessibleName(/Needs attention/)
+    ).toHaveAccessibleName(/Reading place: Other device place available/)
     await readingAction(phonePage, 'Resume other device')
     report.remoteResumeGeometry = await phonePage.evaluate(
       ({did, target}) => ({
@@ -2073,6 +2095,9 @@ try {
     worker,
     report,
     deleted,
+    entries,
+    post,
+    holdApi,
   })
   await verifyNewContent({
     desktopBrowser,
@@ -2270,6 +2295,9 @@ try {
   report.fixtureTrust =
     'Chromium trusts only the ephemeral fixture key SPKI; no global certificate bypass, persisted key or system trust-store change. Does not prove production certificate installation.'
   report.passed = true
+}
+try {
+  await runBrowserProof()
 } catch (error) {
   report.passed = false
   report.failure = error.stack
@@ -2284,7 +2312,9 @@ try {
   report.upstreamCalls = upstreamCalls
   report.networkEvents = networkEvents
   fs.writeFileSync(
-    'proof-browser-report.json',
+    process.argv.includes('--handoff-only')
+      ? 'proof-handoff-report.json'
+      : 'proof-browser-report.json',
     JSON.stringify(report, null, 2) + '\n',
   )
   await Promise.all([

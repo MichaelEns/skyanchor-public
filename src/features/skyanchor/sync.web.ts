@@ -1,3 +1,4 @@
+import {withRequestDeadline} from '#/lib/async/requestDeadline'
 import {type SessionAccount} from '#/state/session'
 import {invalidateReadingAccount, RETURN_PREFIX, STORAGE_PREFIX} from './domain'
 
@@ -34,18 +35,60 @@ export function syncSessionRequest(
   init: RequestInit,
   active: () => boolean = () => true,
 ): Promise<Response> {
-  const operation = sessionQueue.then(() => {
-    if (!active()) throw new Error('Private sync account changed')
-    return fetch('/api/skyanchor/session', {
-      ...init,
-      credentials: 'same-origin',
-    })
-  })
-  sessionQueue = operation.then(
-    () => undefined,
-    () => undefined,
+  return withRequestDeadline(
+    'Private sync session',
+    15_000,
+    signal => {
+      const operation = sessionQueue.then(async () => {
+        signal.throwIfAborted()
+        if (!active()) throw new Error('Private sync account changed')
+        const response = await fetch('/api/skyanchor/session', {
+          ...init,
+          signal,
+          credentials: 'same-origin',
+        })
+        const body = await response.arrayBuffer()
+        if (body.byteLength > 64 * 1024)
+          throw new Error('Invalid private sync session response size')
+        return new Response(body.byteLength ? body : null, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+        })
+      })
+      sessionQueue = operation.then(
+        () => undefined,
+        () => undefined,
+      )
+      return new Promise<Response>((resolve, reject) => {
+        const abort = () => {
+          const reason: unknown = signal.reason
+          reject(
+            reason instanceof Error
+              ? reason
+              : new Error('Private sync session cancelled'),
+          )
+        }
+        signal.addEventListener('abort', abort, {once: true})
+        if (signal.aborted) abort()
+        void operation.then(
+          response => {
+            signal.removeEventListener('abort', abort)
+            resolve(response)
+          },
+          error => {
+            signal.removeEventListener('abort', abort)
+            reject(
+              error instanceof Error
+                ? error
+                : new Error('Private sync session request failed'),
+            )
+          },
+        )
+      })
+    },
+    [init.signal],
   )
-  return operation
 }
 export function setSyncCsrf(did: string, csrf: string) {
   csrfByDid.set(did, csrf)

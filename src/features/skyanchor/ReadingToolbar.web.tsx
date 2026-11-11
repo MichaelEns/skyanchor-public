@@ -3,6 +3,7 @@ import {View} from 'react-native'
 import {Trans, useLingui} from '@lingui/react/macro'
 import {createPortal} from 'react-dom'
 
+import {withRequestDeadline} from '#/lib/async/requestDeadline'
 import {logger} from '#/logger'
 import {type SessionAccount, useSession, useSessionApi} from '#/state/session'
 import {atoms as a, useTheme} from '#/alf'
@@ -19,9 +20,11 @@ import {
   type ReadingFeed,
   type ReadingPlace,
   readingStorageKey,
+  type ResumeOptions,
   type SyncPlace,
   validSyncPlace,
 } from './domain'
+import {readingIndicator} from './readingStatus'
 import {
   getSyncSession,
   refreshSyncAccount,
@@ -55,7 +58,10 @@ export function ReadingToolbar({
   onLatest: () => Promise<void>
   onReturn: () => Promise<void>
   capture: () => ReadingPlace | undefined
-  resume: (place: ReadingPlace | undefined) => Promise<void>
+  resume: (
+    place: ReadingPlace | undefined,
+    options: ResumeOptions,
+  ) => Promise<boolean>
 }) {
   const {t: l} = useLingui()
   const t = useTheme()
@@ -72,6 +78,13 @@ export function ReadingToolbar({
   const [status, setStatus] = useState('')
   const [other, setOther] = useState<Remote | undefined>()
   const [busy, setBusy] = useState(false)
+  const [restoring, setRestoring] = useState(false)
+  const [result, setResult] = useState<
+    {message: string; error: boolean} | undefined
+  >()
+  const resumeController = useRef<AbortController | undefined>(undefined)
+  const choiceEpoch = useRef(0)
+  const lifetime = useRef(new AbortController())
   const revision = useRef(
     Number(
       localStorage.getItem(
@@ -109,6 +122,18 @@ export function ReadingToolbar({
     path: string,
     init: RequestInit = {},
     retry = true,
+  ): Promise<Remote> {
+    return withRequestDeadline(
+      l`Private sync request`,
+      15_000,
+      signal => requestWithinDeadline(path, {...init, signal}, retry),
+      [init.signal, lifetime.current.signal],
+    )
+  }
+  async function requestWithinDeadline(
+    path: string,
+    init: RequestInit,
+    retry: boolean,
   ): Promise<Remote> {
     const started = generation.current
     const shared = getSyncSession(account.did)
@@ -180,10 +205,17 @@ export function ReadingToolbar({
     }
     return value
   }
-  async function checkRemote() {
+  async function checkRemote(completingResume = false) {
     if (!session.current.csrf || !enabled) return
+    if (resumeController.current && !completingResume) return
+    const choice = choiceEpoch.current
     automatic.current = false
     const current = await request('place')
+    if (
+      choice !== choiceEpoch.current ||
+      (resumeController.current && !completingResume)
+    )
+      return
     if (current.revision < Math.max(revision.current, observedRevision.current))
       throw new Error(l`Stale sync completion discarded.`)
     observedRevision.current = Math.max(
@@ -197,7 +229,9 @@ export function ReadingToolbar({
       setOther(current)
       setAttention(false)
       setStatus(
-        l`Another device has a saved place. Your viewport has not moved.`,
+        current.state
+          ? l`Another device has a saved place. Your viewport has not moved.`
+          : l`Another device cleared the shared place. There is no remote place to resume; your local place has not moved.`,
       )
     } else {
       if (current.revision >= revision.current) acceptRevision(current.revision)
@@ -206,9 +240,12 @@ export function ReadingToolbar({
         !!lastCaptured.current && lastCaptured.current !== lastSaved.current,
       )
       automatic.current = true
+      setOther(undefined)
       setAttention(false)
       setStatus(
-        l`Connected. Last saved place checked; your viewport has not moved.`,
+        current.state
+          ? l`Connected. Last saved place checked; your viewport has not moved.`
+          : l`Connected. There is no shared saved place for this feed. Confirm Save my place on the source device before trying Resume here.`,
       )
     }
   }
@@ -231,9 +268,18 @@ export function ReadingToolbar({
     }
   }
   async function connect(reuse = true) {
+    return withRequestDeadline(
+      l`Private sync connection`,
+      20_000,
+      signal => connectWithinDeadline(reuse, signal),
+      [lifetime.current.signal],
+    )
+  }
+  async function connectWithinDeadline(reuse: boolean, signal: AbortSignal) {
     const started = generation.current
     const active = () =>
       started === generation.current &&
+      !signal.aborted &&
       liveAccount.current?.did === account.did &&
       live.current.enabled
     const credentials = liveAccount.current
@@ -274,6 +320,7 @@ export function ReadingToolbar({
           syncSessionRequest(
             {
               method: 'POST',
+              signal,
               headers: {
                 'content-type': 'application/json',
                 authorization: `Bearer ${fresh.accessJwt}`,
@@ -340,6 +387,8 @@ export function ReadingToolbar({
     await renewing.current
   }
   async function save(expectedRevision = revision.current, keepalive = false) {
+    if (resumeController.current)
+      throw new Error(l`Wait for Resume to finish or cancel it before saving.`)
     if (writing.current) {
       pending.current = true
       return
@@ -379,6 +428,23 @@ export function ReadingToolbar({
   }
   const live = useRef({capture, save, run, checkRemote, enabled, csrf})
   live.current = {capture, save, run, checkRemote, enabled, csrf}
+  useEffect(() => {
+    if (lifetime.current.signal.aborted)
+      lifetime.current = new AbortController()
+    setBusy(false)
+    return () => {
+      lifetime.current.abort()
+      resumeController.current?.abort()
+      resumeController.current = undefined
+      setRestoring(false)
+      setResult(undefined)
+      generation.current++
+      activeRuns.current = 0
+      writing.current = false
+      automatic.current = false
+      pending.current = false
+    }
+  }, [account.did, feed, enabled])
   useEffect(() => {
     if (!csrf || !enabled) return
     let timer: ReturnType<typeof setTimeout>
@@ -490,9 +556,6 @@ export function ReadingToolbar({
   }, [csrf, enabled])
   useEffect(() => {
     return () => {
-      generation.current++
-      automatic.current = false
-      pending.current = false
       session.current = {csrf: '', expires: 0}
       setSyncSession(account.did, session.current)
     }
@@ -532,17 +595,136 @@ export function ReadingToolbar({
     return () => observer.disconnect()
   }, [enabled, feed, account.did, control])
 
+  const marker = readingIndicator({
+    loading: restoring ? l`Restoring your other device's place...` : loading,
+    remote: !!other,
+    error: attention,
+    notice,
+    unsaved,
+    hasNew,
+    canReturn,
+  })
   const indicator =
-    loading ||
-    (other || attention || notice
-      ? l`Needs attention`
-      : unsaved
-        ? l`Not yet synced`
-        : hasNew
-          ? l`New posts above`
-          : canReturn
-            ? l`Return available`
-            : '')
+    marker.kind === 'error'
+      ? l`Sync error` + ': ' + status
+      : marker.kind === 'notice'
+        ? notice
+        : marker.kind === 'remote'
+          ? other?.state
+            ? l`Other device place available`
+            : l`Shared place cleared on another device`
+          : marker.kind === 'loading'
+            ? loading || l`Restoring your other device's place...`
+            : marker.kind === 'unsaved'
+              ? l`Not yet synced`
+              : marker.kind === 'new'
+                ? l`New posts above`
+                : marker.kind === 'return'
+                  ? l`Return available`
+                  : ''
+  const connectionLabel = !csrf
+    ? l`Not connected`
+    : attention
+      ? l`Sync error`
+      : other
+        ? l`Other device decision needed`
+        : unsaved
+          ? l`Not yet synced`
+          : l`Connected`
+
+  function startResume() {
+    if (!other || busy || resumeController.current) return
+    const offered = other
+    const controller = new AbortController()
+    resumeController.current = controller
+    choiceEpoch.current++
+    automatic.current = false
+    pending.current = false
+    setAttention(false)
+    setStatus(l`Restoring your other device's place...`)
+    setRestoring(true)
+    setBusy(true)
+    setResult({
+      message: l`Restoring your other device's place...`,
+      error: false,
+    })
+    const started = generation.current
+    control.close(() => {
+      if (started !== generation.current || !live.current.enabled) return
+      void run(async () => {
+        try {
+          if (controller.signal.aborted)
+            throw new Error(
+              l`Resume cancelled. Your original saved place and Return were kept. Retry when ready.`,
+            )
+          const same = await resume(offered.state ?? undefined, {
+            signal: controller.signal,
+            progress: (pages, phase) => {
+              if (started === generation.current)
+                setResult({
+                  message:
+                    phase === 'placement'
+                      ? l`Placing and saving your exact reading position locally...`
+                      : phase === 'revalidate'
+                        ? l`Checking the saved post and reply context against current records...`
+                        : l`Restoring your other device's place...` +
+                          ' ' +
+                          l`History pages checked` +
+                          ': ' +
+                          pages,
+                  error: false,
+                })
+            },
+          })
+          controller.signal.throwIfAborted()
+          if (started !== generation.current || !live.current.enabled)
+            throw new Error(
+              l`Account changed; restored sync response discarded.`,
+            )
+          acceptRevision(offered.revision)
+          lastSaved.current = JSON.stringify(offered.state)
+          setUnsaved(false)
+          setOther(undefined)
+          setAttention(false)
+          const message = same
+            ? l`Already at the other device's saved place. Confirmed locally.`
+            : l`Resumed the other device's saved place. Confirmed locally.`
+          setStatus(message)
+          setResult({message, error: false})
+          try {
+            await checkRemote(true)
+          } catch (error) {
+            throw new Error(
+              l`Your place was restored locally, but the latest cloud revision could not be checked. Automatic sync is paused; open Reading place and retry Check other device.` +
+                (error instanceof Error ? ' ' + error.message : ''),
+            )
+          }
+        } catch (error) {
+          if (started === generation.current) {
+            automatic.current = false
+            setResult({
+              message:
+                error instanceof Error
+                  ? error.message
+                  : l`Resume failed. Open Reading place to retry.`,
+              error: true,
+            })
+          }
+          throw error
+        } finally {
+          if (resumeController.current === controller) {
+            resumeController.current = undefined
+            setRestoring(false)
+          }
+        }
+      })
+    })
+  }
+  useEffect(() => {
+    if (!result || result.error || restoring) return
+    const timer = setTimeout(() => setResult(undefined), 6000)
+    return () => clearTimeout(timer)
+  }, [result, restoring])
   function navigateFromPanel(action: () => void | Promise<void>) {
     const started = generation.current
     control.close(() => {
@@ -557,13 +739,13 @@ export function ReadingToolbar({
   return (
     <>
       {createPortal(
-        <View>
+        <div title={l`Reading place` + ': ' + (indicator || connectionLabel)}>
           <Button
             testID="skyanchor-reading-button"
             label={
               (indicator
                 ? l`Reading place` + ': ' + indicator
-                : l`Reading place`) +
+                : l`Reading place` + ': ' + connectionLabel) +
               (hasNew && indicator !== l`New posts above`
                 ? '. ' + l`New posts above`
                 : '')
@@ -590,17 +772,82 @@ export function ReadingToolbar({
                   right: 7,
                   width: 8,
                   height: 8,
-                  backgroundColor:
-                    other || attention || notice
-                      ? t.palette.negative_500
-                      : t.palette.primary_500,
+                  backgroundColor: marker.red
+                    ? t.palette.negative_500
+                    : t.palette.primary_500,
                 },
               ]}
             />
           )}
-        </View>,
+        </div>,
         slot,
       )}
+      {result &&
+        !expanded &&
+        createPortal(
+          <div
+            data-testid="skyanchor-resume-result"
+            style={{
+              position: 'fixed',
+              bottom: 76,
+              right: 12,
+              left: 12,
+              margin: '0 auto',
+              maxWidth: 480,
+              zIndex: 100,
+            }}>
+            <View
+              style={[
+                a.p_md,
+                a.gap_sm,
+                a.border,
+                a.rounded_md,
+                t.atoms.bg,
+                t.atoms.border_contrast_medium,
+              ]}>
+              <Text role={result.error ? 'alert' : 'status'} aria-live="polite">
+                {result.message}
+              </Text>
+              <View style={[a.flex_row, a.gap_sm]}>
+                {restoring ? (
+                  <Button
+                    label={l`Cancel Resume`}
+                    size="large"
+                    color="secondary"
+                    onPress={() => resumeController.current?.abort()}>
+                    <ButtonText>
+                      <Trans>Cancel Resume</Trans>
+                    </ButtonText>
+                  </Button>
+                ) : (
+                  <>
+                    {result.error && (
+                      <Button
+                        label={l`Open Reading place to retry`}
+                        size="large"
+                        color="secondary"
+                        onPress={() => control.open()}>
+                        <ButtonText>
+                          <Trans>Open Reading place to retry</Trans>
+                        </ButtonText>
+                      </Button>
+                    )}
+                    <Button
+                      label={l`Dismiss reading-place result`}
+                      size="large"
+                      color="secondary"
+                      onPress={() => setResult(undefined)}>
+                      <ButtonText>
+                        <Trans>Dismiss</Trans>
+                      </ButtonText>
+                    </Button>
+                  </>
+                )}
+              </View>
+            </View>
+          </div>,
+          document.body,
+        )}
       <Dialog.Outer
         control={control}
         onOpen={() => setExpanded(true)}
@@ -620,6 +867,9 @@ export function ReadingToolbar({
                   <Trans>This profile tab has its own reading place.</Trans>
                 </Text>
               )}
+              <Text testID="skyanchor-connection-status" style={a.font_bold}>
+                {connectionLabel}
+              </Text>
               <Text>
                 <Trans>Account</Trans>: @{account.handle}.{' '}
                 <Trans>
@@ -717,6 +967,11 @@ export function ReadingToolbar({
                     retry the connection or save after resolving the message
                     below.
                   </Trans>
+                ) : other ? (
+                  <Trans>
+                    Another device's place is available. Resume it or Keep mine;
+                    nothing moves or uploads until you choose.
+                  </Trans>
                 ) : unsaved ? (
                   <Trans>
                     Local changes are not yet synced. Keep this tab open or
@@ -729,6 +984,24 @@ export function ReadingToolbar({
                     shared; fetched posts are not marked read.
                   </Trans>
                 )}
+              </Text>
+              <Text>
+                <Trans>
+                  On the source device, use Save my place and wait for
+                  confirmation. In this browser, open the same feed, Connect,
+                  then Resume other device. Following and each profile tab keep
+                  separate places.
+                </Trans>
+              </Text>
+              <Text>
+                <Trans>
+                  Dot legend: red means an error, reading notice, or
+                  other-device decision; open this panel for the reason. Blue
+                  means loading, not yet synced, new posts above, or Return
+                  available, in that order. Errors and notices take priority
+                  over other-device offers. No dot only means none of these
+                  applies: it does not prove a connection or a confirmed save.
+                </Trans>
               </Text>
               {hasNew && (
                 <View role="status" testID="skyanchor-new">
@@ -745,7 +1018,25 @@ export function ReadingToolbar({
                   {notice}
                 </Text>
               )}
-              {status && <Text role="status">{status}</Text>}
+              {status && status !== result?.message && (
+                <Text role="status">{status}</Text>
+              )}
+              {result && (
+                <Text role={result.error ? 'alert' : 'status'}>
+                  {result.message}
+                </Text>
+              )}
+              {restoring && (
+                <Button
+                  label={l`Cancel Resume`}
+                  size="large"
+                  color="secondary"
+                  onPress={() => resumeController.current?.abort()}>
+                  <ButtonText>
+                    <Trans>Cancel Resume</Trans>
+                  </ButtonText>
+                </Button>
+              )}
               {csrf && (
                 <View style={a.gap_sm}>
                   <Button
@@ -810,37 +1101,25 @@ export function ReadingToolbar({
               {other && (
                 <View testID="skyanchor-conflict" style={a.gap_sm}>
                   <Text role="alert">
-                    <Trans>
-                      Another device has a saved place. Choose explicitly; your
-                      feed has not moved.
-                    </Trans>
+                    {other.state ? (
+                      <Trans>
+                        Another device has a saved place. Choose explicitly;
+                        your feed has not moved.
+                      </Trans>
+                    ) : (
+                      <Trans>
+                        Another device cleared the shared place. There is no
+                        remote place to resume. Your local place is unchanged;
+                        Keep mine shares it explicitly.
+                      </Trans>
+                    )}
                   </Text>
                   <Button
                     label={l`Resume other device`}
                     size="large"
                     color="primary"
-                    onPress={() =>
-                      navigateFromPanel(async () => {
-                        const started = generation.current
-                        await resume(other.state ?? undefined)
-                        if (
-                          started !== generation.current ||
-                          !live.current.enabled
-                        )
-                          throw new Error(
-                            l`Account changed; restored sync response discarded.`,
-                          )
-                        acceptRevision(other.revision)
-                        automatic.current = true
-                        lastSaved.current = JSON.stringify(other.state)
-                        setUnsaved(false)
-                        setOther(undefined)
-                        setAttention(false)
-                        setStatus(
-                          l`Other device's saved place restored. Only viewed posts update your place.`,
-                        )
-                      })
-                    }>
+                    disabled={busy || restoring}
+                    onPress={startResume}>
                     <ButtonText>
                       <Trans>Resume other device</Trans>
                     </ButtonText>

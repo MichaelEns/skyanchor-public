@@ -25,6 +25,7 @@ import {useLingui} from '@lingui/react/macro'
 import {useIsFocused} from '@react-navigation/native'
 import {useQueryClient} from '@tanstack/react-query'
 
+import {RequestTimeoutError} from '#/lib/async/requestDeadline'
 import {DISCOVER_FEED_URI, KNOWN_SHUTDOWN_FEEDS} from '#/lib/constants'
 import {useBottomBarOffset} from '#/lib/hooks/useBottomBarOffset'
 import {useInitialNumToRender} from '#/lib/hooks/useInitialNumToRender'
@@ -87,6 +88,7 @@ import {
   readingStorageKey,
   readReturnCheckpoint,
   readSnapshot,
+  type ResumeOptions,
   RETURN_PREFIX,
   saveReturnCheckpoint,
   validReadingFeed,
@@ -97,7 +99,9 @@ import {
   persistWindow,
   readingFeedAPI,
   recoverRemoteWindow,
+  RemoteRecoveryError,
   restoreWindow,
+  snapshotWindow,
 } from '#/features/skyanchor/feed'
 import {ReadingToolbar} from '#/features/skyanchor/ReadingToolbar'
 import {useReadingPlace} from '#/features/skyanchor/useReadingPlace'
@@ -363,9 +367,13 @@ let PostFeed = ({
     }
   }, [])
   const newerRequest = useRef<AbortController | undefined>(undefined)
+  const resumeRequest = useRef<AbortController | undefined>(undefined)
   const [newerStatus, setNewerStatus] = useState('')
   useEffect(() => {
-    return () => newerRequest.current?.abort()
+    return () => {
+      newerRequest.current?.abort()
+      resumeRequest.current?.abort()
+    }
   }, [feed, currentAccount?.did, active])
   const [newContent, setNewContent] = useState<{
     feed: FeedDescriptor
@@ -1059,7 +1067,10 @@ let PostFeed = ({
       )
     }
   }
-  const resumeRemotePlace = async (place: ReadingPlace | undefined) => {
+  const resumeRemotePlace = async (
+    place: ReadingPlace | undefined,
+    options: ResumeOptions,
+  ) => {
     if (!place)
       throw new Error(
         l`The other device has no saved place. Your local place is unchanged.`,
@@ -1069,41 +1080,57 @@ let PostFeed = ({
     const started = readingScope.current
     const did = currentAccount.did
     const epoch = readingEpoch(did)
-    let cancelled = false
+    if (resumeRequest.current)
+      throw new Error(l`A reading-place restore is already running.`)
+    const controller = new AbortController()
+    resumeRequest.current = controller
+    const abort = () => controller.abort()
+    options.signal.addEventListener('abort', abort, {once: true})
+    if (options.signal.aborted) abort()
     let retrieving = true
     const scrollBeforeRetrieval = window.scrollY
     const cancel = () => {
-      cancelled = true
+      controller.abort()
     }
     const active = () =>
-      !cancelled &&
+      !controller.signal.aborted &&
       (!retrieving || window.scrollY === scrollBeforeRetrieval) &&
       readingEpoch(did) === epoch &&
+      readingScope.current === started &&
       readingScope.current.active &&
       readingScope.current.did === did &&
       readingScope.current.feed === started.feed
     window.addEventListener('wheel', cancel, {passive: true})
     window.addEventListener('touchstart', cancel, {passive: true})
+    const raw = queryClient.getQueryData<{
+      pages: FeedPageUnselected[]
+      pageParams: unknown[]
+    }>(RQKEY(feed, feedParams))
+    const storedBefore = localStorage.getItem(
+      readingStorageKey('skyanchor:following:v1:', did, readingFeed),
+    )
+    let integrated:
+      {pages: FeedPageUnselected[]; pageParams: unknown[]} | undefined
     try {
-      const local = reading.capture()
-      const raw = queryClient.getQueryData<{
-        pages: FeedPageUnselected[]
-        pageParams: unknown[]
-      }>(RQKEY(feed, feedParams))
-      if (local && raw && !canReturn) {
-        persistWindow(did, local, raw.pages, readingFeed)
-        const checkpoint = readSnapshot(localStorage, did, readingFeed)
-        if (!checkpoint)
-          throw new Error(l`Local Return checkpoint could not be saved.`)
-        saveReturnCheckpoint(localStorage, did, checkpoint, readingFeed)
-        setCanReturn(true)
-      }
+      const local = reading.snapshot()
+      if (!local || !raw)
+        throw new Error(
+          l`The current reading window is not ready. Retry Resume when the feed is visible.`,
+        )
+      const checkpoint = !readReturnCheckpoint(localStorage, did, readingFeed)
+        ? snapshotWindow(local, raw.pages)
+        : undefined
+      const same =
+        local.anchor === place.anchor &&
+        Math.abs(local.offset - place.offset) <= 0.25
       const page = await recoverRemoteWindow(
         did,
         appviewClient,
         place,
         readingFeed,
         active,
+        controller.signal,
+        options.progress,
       )
       if (!active()) throw new Error(l`Remote Resume cancelled.`)
       if (!readingModerationOpts)
@@ -1125,20 +1152,89 @@ let PostFeed = ({
           l`Saved occurrence is missing or excluded by current moderation. Your local place and Return are preserved.`,
         )
       retrieving = false
-      const placement = reading.setTarget(place, true)
-      queryClient.setQueryData(RQKEY(feed, feedParams), {
+      if (queryClient.getQueryData(RQKEY(feed, feedParams)) !== raw)
+        throw new Error(
+          l`The reading window changed during Resume. Retry without loading or moving the feed.`,
+        )
+      const placement = reading.setTarget(place, true, controller.signal)
+      options.progress(0, 'placement')
+      integrated = {
         pages: [page],
         pageParams: [undefined],
-      })
+      }
+      queryClient.setQueryData(RQKEY(feed, feedParams), integrated)
+      integrated = queryClient.getQueryData(RQKEY(feed, feedParams))
       await placement
       if (!active()) throw new Error(l`Remote Resume cancelled.`)
+      const stored = readSnapshot(localStorage, did, readingFeed)
+      if (JSON.stringify(stored?.place) !== JSON.stringify(place))
+        throw new Error(
+          l`The restored place could not be confirmed in local storage.`,
+        )
+      if (checkpoint) {
+        saveReturnCheckpoint(localStorage, did, checkpoint, readingFeed)
+        setCanReturn(true)
+      }
       setReadingError('')
+      return same
     } catch (error) {
+      if (
+        integrated &&
+        readingScope.current === started &&
+        started.active &&
+        readingEpoch(did) === epoch &&
+        queryClient.getQueryData(RQKEY(feed, feedParams)) === integrated
+      ) {
+        reading.abandonTarget(() =>
+          queryClient.setQueryData(RQKEY(feed, feedParams), raw),
+        )
+        const key = readingStorageKey(
+          'skyanchor:following:v1:',
+          did,
+          readingFeed,
+        )
+        if (storedBefore === null) localStorage.removeItem(key)
+        else localStorage.setItem(key, storedBefore)
+      }
       logger.warn('SkyAnchor remote Resume did not complete', {message: error})
+      if (controller.signal.aborted)
+        throw new Error(
+          l`Resume cancelled by movement, Cancel, or a changed account/feed. Your original saved place and Return were kept. Retry when ready.`,
+        )
+      const reason =
+        error instanceof RemoteRecoveryError
+          ? error.reason === 'unavailable'
+            ? l`The exact occurrence is unavailable in this feed's current history or post/reply records.`
+            : error.reason === 'cursor-loop'
+              ? l`The service repeated a history cursor. Recovery stopped without skipping history.`
+              : error.reason === 'response-limit'
+                ? l`The service response exceeded the safe recovery size.`
+                : error.reason === 'history-limit'
+                  ? l`The exact occurrence was not found within the safe history retrieval limit.`
+                  : error.reason === 'history-request'
+                    ? l`The current feed history request failed or returned an invalid response.`
+                    : l`The current post and reply revalidation request failed or returned an invalid response.`
+          : error instanceof RequestTimeoutError
+            ? l`Current history recovery timed out. No remote place was accepted.`
+            : error instanceof Error
+              ? error.message
+              : l`History retrieval failed.`
       throw new Error(
-        l`Could not restore the exact saved occurrence. Retrieval is bounded to 360 current feed entries and respects moderation; your local place and Return are preserved. Retry or Keep mine.`,
+        [
+          l`Could not restore the exact saved occurrence.`,
+          reason,
+          error instanceof RemoteRecoveryError && error.status
+            ? l`HTTP status` + ': ' + error.status
+            : '',
+          l`Your original saved place and Return were kept. Confirm Save on the source and open the same feed here, then retry or Keep mine.`,
+        ]
+          .filter(Boolean)
+          .join(' '),
       )
     } finally {
+      options.signal.removeEventListener('abort', abort)
+      if (resumeRequest.current === controller)
+        resumeRequest.current = undefined
       window.removeEventListener('wheel', cancel)
       window.removeEventListener('touchstart', cancel)
     }
@@ -1178,6 +1274,7 @@ let PostFeed = ({
   }))
 
   const onEndReached = useCallback(async () => {
+    if (resumeRequest.current) return
     if (isFetching || !hasNextPage || isError) return
 
     ax.metric('feed:endReached', {
