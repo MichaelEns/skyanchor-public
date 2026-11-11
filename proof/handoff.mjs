@@ -327,6 +327,9 @@ export async function verifyHandoff({
   const contexts = []
   const failures = []
   const records = []
+  const boundedNotice =
+    'This is a bounded reading window. Older contiguous history may be unavailable.'
+  const indicatorCases = []
   const markerColor = page =>
     page
       .getByTestId('skyanchor-reading-indicator')
@@ -587,81 +590,164 @@ export async function verifyHandoff({
     assert.ok(place.anchor.includes('/post470|repost:did:'))
     assert.ok(place.anchor.includes('|reply:at://'))
     for (const page of [b, c]) {
-      assert.equal(
-        await page.evaluate(
-          did => localStorage.getItem('skyanchor:revision:' + did),
-          did,
-        ),
-        null,
-      )
-      assert.equal(
-        await page.evaluate(
-          did => localStorage.getItem('skyanchor:sync-enabled:' + did),
-          did,
-        ),
-        null,
-      )
-      assert.equal(
-        await page.evaluate(
-          anchor =>
-            [...document.querySelectorAll('[data-skyanchor-key]')].some(
-              node => node.dataset.skyanchorKey === anchor,
-            ),
-          place.anchor,
-        ),
-        false,
-      )
-      const y = await page.evaluate(() => window.scrollY)
-      if (page === b) {
-        contexts[1].fixture.controls.expireAccess()
-        contexts[1].fixture.expected.set('POST /api/skyanchor/session 401', 1)
-      }
-      await readingAction(page, 'Connect private sync')
-      await expect(
-        page.getByRole('button', {name: 'Resume other device', exact: true}),
-      ).toBeVisible()
-      await expect(
-        page.getByTestId('skyanchor-reading-button'),
-      ).toHaveAccessibleName(/Other device place available/)
-      const red = await markerColor(page)
-      assert.equal(await page.evaluate(() => window.scrollY), y)
-      await readingAction(page, 'Resume other device')
-      await expect
-        .poll(async () => JSON.stringify(await local(page)), {timeout: 20000})
-        .toBe(JSON.stringify(place))
-      await expect(page.getByTestId('skyanchor-resume-result')).toContainText(
-        'Resumed the other device',
-      )
-      await expect(
-        page.getByTestId('skyanchor-reading-button'),
-      ).toHaveAccessibleName(
-        /Reading place: (Return available|New posts above)/,
-      )
-      assert.notEqual(
-        await markerColor(page),
-        red,
-        'Remote offer red and Return blue use distinct computed theme colors',
-      )
-      const error = await placementError(page, place)
-      assert.ok(error <= 2, `Direct first-use placement error ${error}`)
-      records.push({
-        step: 'direct-first-use',
-        browser: page === b ? 'WebKit phone' : 'Chromium desktop',
-        depth: 470,
-        error,
-      })
-      assert.ok(
-        contexts
-          .find(context => context.fixture.page === page)
-          .fixture.controls.timelineRequests.some(
-            request => request.index >= 450 && request.limit === 30,
+      const controls = contexts.find(context => context.fixture.page === page)
+        .fixture.controls
+      // Exercise both legitimate outcomes, independent of list pagination timing.
+      if (page === b) controls.setTimeline(history.slice(0, 480))
+      const olderPage = page === c ? controls.holdTimeline(30, 480) : undefined
+      try {
+        assert.equal(
+          await page.evaluate(
+            did => localStorage.getItem('skyanchor:revision:' + did),
+            did,
           ),
-      )
-      assert.deepEqual(
-        await cloud(),
-        first,
-        'Direct first-use Resume never writes cloud progress',
-      )
+          null,
+        )
+        assert.equal(
+          await page.evaluate(
+            did => localStorage.getItem('skyanchor:sync-enabled:' + did),
+            did,
+          ),
+          null,
+        )
+        assert.equal(
+          await page.evaluate(
+            anchor =>
+              [...document.querySelectorAll('[data-skyanchor-key]')].some(
+                node => node.dataset.skyanchorKey === anchor,
+              ),
+            place.anchor,
+          ),
+          false,
+        )
+        const y = await page.evaluate(() => window.scrollY)
+        if (page === b) {
+          contexts[1].fixture.controls.expireAccess()
+          contexts[1].fixture.expected.set('POST /api/skyanchor/session 401', 1)
+        }
+        await readingAction(page, 'Connect private sync')
+        await expect(
+          page.getByRole('button', {name: 'Resume other device', exact: true}),
+        ).toBeVisible()
+        await expect(
+          page.getByTestId('skyanchor-reading-button'),
+        ).toHaveAccessibleName(/Other device place available/)
+        const red = await markerColor(page)
+        assert.equal(await page.evaluate(() => window.scrollY), y)
+        await readingAction(page, 'Resume other device')
+        await expect
+          .poll(async () => JSON.stringify(await local(page)), {timeout: 20000})
+          .toBe(JSON.stringify(place))
+        await expect(page.getByTestId('skyanchor-resume-result')).toContainText(
+          'Resumed the other device',
+        )
+        const eof = page === b
+        await expect
+          .poll(() =>
+            controls.timelineResponses.some(
+              response =>
+                response.index === 450 &&
+                response.limit === 30 &&
+                response.hasOlder === !eof,
+            ),
+          )
+          .toBe(true)
+        const button = page.getByTestId('skyanchor-reading-button')
+        if (eof) {
+          await expect(button).toHaveAccessibleName(
+            'Reading place: ' + boundedNotice,
+          )
+          assert.equal(
+            await markerColor(page),
+            red,
+            'Known EOF notice retains the remote-offer red theme palette',
+          )
+        } else {
+          await expect(button).toHaveAccessibleName(
+            'Reading place: Return available',
+          )
+          assert.notEqual(
+            await markerColor(page),
+            red,
+            'Return with an available older cursor uses the blue theme palette',
+          )
+        }
+        const color = await markerColor(page)
+        await readingPanel(page)
+        await expect(
+          page.getByRole('button', {name: 'Return to my place', exact: true}),
+        ).toBeEnabled()
+        const primary = await page
+          .getByRole('button', {name: 'Return to my place', exact: true})
+          .evaluate(node => getComputedStyle(node).backgroundColor)
+        if (!eof)
+          assert.equal(
+            color,
+            primary,
+            'Blue Return dot matches the enabled primary Return control palette',
+          )
+        else
+          assert.notEqual(
+            color,
+            primary,
+            'Known red EOF notice takes priority over the blue Return control',
+          )
+        await expect(page.getByTestId('skyanchor-source-state')).toContainText(
+          'Current local place confirmed shared',
+        )
+        await expect(
+          page.getByTestId('skyanchor-connection-status'),
+        ).toHaveText('Connected')
+        await expect(page.getByText('Sync error', {exact: true})).toHaveCount(0)
+        if (eof) {
+          await expect(page.getByTestId('skyanchor-fallback')).toHaveText(
+            boundedNotice,
+          )
+        } else {
+          await expect(page.getByTestId('skyanchor-fallback')).toHaveCount(0)
+        }
+        await closeReadingPanel(page)
+        await expect(button).toHaveAccessibleName(
+          'Reading place: ' + (eof ? boundedNotice : 'Return available'),
+        )
+        assert.equal(
+          await markerColor(page),
+          color,
+          'Closing the panel does not clear or reclassify the indicator',
+        )
+        indicatorCases.push({
+          browser: page === b ? 'WebKit phone' : 'Chromium desktop',
+          kind: eof
+            ? 'red-known-eof-notice-with-Return'
+            : 'blue-Return-with-older-cursor',
+          confirmedShared: true,
+          color,
+          primary,
+        })
+        const error = await placementError(page, place)
+        assert.ok(error <= 2, `Direct first-use placement error ${error}`)
+        records.push({
+          step: 'direct-first-use',
+          browser: page === b ? 'WebKit phone' : 'Chromium desktop',
+          depth: 470,
+          error,
+        })
+        assert.ok(
+          contexts
+            .find(context => context.fixture.page === page)
+            .fixture.controls.timelineRequests.some(
+              request => request.index >= 450 && request.limit === 30,
+            ),
+        )
+        assert.deepEqual(
+          await cloud(),
+          first,
+          'Direct first-use Resume never writes cloud progress',
+        )
+      } finally {
+        olderPage?.release()
+        controls.setTimeline(history)
+      }
     }
     const samePlaceSave = await confirmation(a)
     assert.equal(samePlaceSave.state, first.state)
@@ -1038,6 +1124,7 @@ export async function verifyHandoff({
       devices: devices.length,
       revisions: [first.revision, second.revision, third.revision],
       placements: records,
+      indicatorCases,
       regionalRefresh: true,
       directFirstUseDepth: 470,
       frozenOfferAndSourceRace: true,

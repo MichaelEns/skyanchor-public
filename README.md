@@ -38,6 +38,9 @@ The reading icon's red dot means an error, reading notice, or other-device
 decision (in that priority); blue means loading, unsynced local progress, new
 posts above, or Return available. The panel explains the reason and connection
 state. No dot does **not** prove connection or a confirmed cloud save.
+A successful Resume can still show the red bounded-history notice when current
+pagination reaches its end. The panel can truthfully show both a confirmed
+shared place and Return available; that notice is not a sync failure.
 
 Install a separately deployed instance through Edge/Chrome's app menu or
 Safari's Share > Add to Home Screen. There is no native distribution, web push,

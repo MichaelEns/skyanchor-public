@@ -22,6 +22,12 @@ Success requires <=2 px placement, exact persisted local place and unchanged
 cloud state. Focus/online events and a newer third-device Save during a held
 history request must not overwrite the source. Cancel/pan and unavailable
 history must preserve local saved bytes, Return, URL, rows and revision.
+The handoff fixture deterministically exercises both post-success indicators:
+a real terminal history response yields the exact red bounded-window notice
+ahead of an available Return, while an available older cursor (with its next
+page held) retains blue Return. Both require confirmed sharing, no sync error,
+the exact local occurrence/offset and unchanged cloud row/clock. Closing the
+panel must not silently clear the red notice.
 
 The separate automatic-source proof uses a WebKit phone and two fresh desktop
 profiles with three distinct synthetic browser IDs. No source Save helper or
