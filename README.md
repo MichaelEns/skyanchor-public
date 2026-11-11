@@ -38,6 +38,9 @@ The reading icon's red dot means an error, reading notice, or other-device
 decision (in that priority); blue means loading, unsynced local progress, new
 posts above, or Return available. The panel explains the reason and connection
 state. No dot does **not** prove connection or a confirmed cloud save.
+A successful Resume can still show the red bounded-history notice when current
+pagination reaches its end. The panel can truthfully show both a confirmed
+shared place and Return available; that notice is not a sync failure.
 
 Install a separately deployed instance through Edge/Chrome's app menu or
 Safari's Share > Add to Home Screen. There is no native distribution, web push,
@@ -65,5 +68,11 @@ guarded upstream maintenance is active. Its automatic scope is only verified
 small punctuation/whitespace edits in two existing upstream documentation files,
 not application, dependency or security updates. The first maintenance run found
 no new stable upstream release; no upstream update has been automatically landed.
+
+`skyanchor-owner-merge.yml` adds a separate owner-dispatched attempt for an
+already-reviewed fix PR and exact head, using only the native Actions App token.
+It is not automatic review or broader upstream eligibility. Bootstrap and a real
+protected-PR acceptance run are required before treating this helper as enabled;
+see [publication](docs/skyanchor-publication.md).
 Neither app use nor local development invokes GitHub Actions. Publishing this
 source did not redeploy the live application.

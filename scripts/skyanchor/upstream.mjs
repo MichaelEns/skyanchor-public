@@ -472,7 +472,7 @@ export async function verifyRuntimePolicy(request, variables, main) {
     throw new Error('Main advanced')
 }
 
-async function api(endpoint, options = {}) {
+export async function api(endpoint, options = {}) {
   if (!process.env.GH_TOKEN) throw new Error('Scoped workflow token required')
   const response = await fetch(
     endpoint === '/user'
@@ -632,13 +632,20 @@ async function publish(plan) {
     })
 }
 
-export function requireExactCheck(plan, pr, checks, run, jobs) {
+export function requireExactCheck(
+  plan,
+  pr,
+  checks,
+  run,
+  jobs,
+  {ownerReviewed = false} = {},
+) {
   const matching = checks.filter(check => check.name === context)
   if (
     pr.head.sha !== plan.head ||
     pr.base.sha !== plan.base ||
     pr.base.ref !== 'main' ||
-    pr.head.ref !== `skyanchor/upstream-${plan.upstream}` ||
+    (!ownerReviewed && pr.head.ref !== `skyanchor/upstream-${plan.upstream}`) ||
     pr.head.repo.full_name !== repository ||
     pr.base.repo.full_name !== repository ||
     pr.draft !== false ||
@@ -653,7 +660,7 @@ export function requireExactCheck(plan, pr, checks, run, jobs) {
     run.head_repository?.full_name !== repository ||
     run.head_branch !== pr.head.ref ||
     run.path !== '.github/workflows/skyanchor-candidate.yml' ||
-    run.event !== 'workflow_dispatch' ||
+    run.event !== (ownerReviewed ? 'pull_request' : 'workflow_dispatch') ||
     run.status !== 'completed' ||
     run.conclusion !== 'success' ||
     jobs.length !== 1 ||

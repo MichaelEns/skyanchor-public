@@ -171,6 +171,7 @@ test('Every active candidate-policy caller receives the complete trusted policy 
       )
   }
   let count = 0
+  const callerFiles = []
   for (const file of fs
     .readdirSync('.github/workflows')
     .filter(file => /\.ya?ml$/.test(file))) {
@@ -179,6 +180,7 @@ test('Every active candidate-policy caller receives the complete trusted policy 
     )
     for (const caller of callers(workflow)) {
       count++
+      callerFiles.push(file)
       verify(caller, file)
       for (const key of Object.keys(required)) {
         const changed = structuredClone(workflow)
@@ -213,6 +215,7 @@ test('Every active candidate-policy caller receives the complete trusted policy 
     count > 0,
     'At least one actual trusted policy caller must be checked',
   )
+  assert.ok(callerFiles.includes('skyanchor-owner-merge.yml'))
   const inherited = {
     env: {GH_TOKEN: required.GH_TOKEN},
     jobs: {
@@ -225,6 +228,78 @@ test('Every active candidate-policy caller receives the complete trusted policy 
     },
   }
   verify(callers(inherited)[0], 'synthetic-inheritance')
+})
+
+test('Owner merge dispatch is main-pinned, native-token-only and executes no candidate or dependency code', () => {
+  const file = '.github/workflows/skyanchor-owner-merge.yml'
+  const text = fs.readFileSync(file, 'utf8')
+  const workflow = parse(text)
+  assert.deepEqual(Object.keys(workflow.on), ['workflow_dispatch'])
+  assert.deepEqual(Object.keys(workflow.on.workflow_dispatch.inputs).sort(), [
+    'expected_head',
+    'pr_number',
+  ])
+  assert.deepEqual(workflow.permissions, {contents: 'read'})
+  assert.deepEqual(Object.keys(workflow.jobs), ['merge'])
+  const job = workflow.jobs.merge
+  assert.deepEqual(job.permissions, {
+    contents: 'write',
+    'pull-requests': 'write',
+    actions: 'read',
+    checks: 'read',
+  })
+  assert.equal(job['runs-on'], 'ubuntu-latest')
+  assert.equal(job['timeout-minutes'], 5)
+  const checkout = job.steps.filter(step =>
+    step.uses?.startsWith('actions/checkout@'),
+  )
+  assert.equal(checkout.length, 1)
+  assert.equal(
+    checkout[0].uses,
+    'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+  )
+  assert.deepEqual(checkout[0].with, {
+    ref: '${{ github.sha }}',
+    'persist-credentials': false,
+  })
+  const run = job.steps.at(-1)
+  assert.equal(run.run, 'node scripts/skyanchor/owner-merge.mjs')
+  assert.deepEqual(run.env, {
+    GH_TOKEN: '${{ github.token }}',
+    REVIEWED_PR: '${{ inputs.pr_number }}',
+    EXPECTED_HEAD: '${{ inputs.expected_head }}',
+  })
+  assert.ok(
+    job.steps.every(
+      step =>
+        !step.run?.includes('${{') && !step['continue-on-error'] && !step.if,
+    ),
+  )
+  const setup = job.steps.find(step =>
+    step.uses?.startsWith('actions/setup-node@'),
+  )
+  assert.equal(
+    setup.uses,
+    'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1',
+  )
+  assert.deepEqual(setup.with, {
+    'node-version': '24.22.1',
+    'package-manager-cache': false,
+  })
+  assert.ok(
+    !/npm install|pnpm|actions\/cache|cache:\s*(true|npm|pnpm)|artifact|secrets\.|deploy|approve|--admin/.test(
+      text,
+    ),
+  )
+  assert.equal(job.steps[1].name, 'Require fresh owner dispatch on main')
+  assert.ok(job.steps[1].run.includes('test "$GITHUB_REF" = refs/heads/main'))
+  assert.ok(job.steps[1].run.includes('test "$DISPATCH_ID" = 44419611'))
+  assert.ok(job.steps[1].run.includes('test "$GITHUB_RUN_ATTEMPT" = 1'))
+  for (const changed of [
+    text.replace("$env:ZERO_SPEND -ne 'true'", '$false'),
+    text.replace('shell: pwsh', 'continue-on-error: true\n        shell: pwsh'),
+  ])
+    assert.throws(() => inspectWorkflow(file, changed))
 })
 
 test('Required candidate cannot skip disabled activation or continue after a failed trusted guard', () => {

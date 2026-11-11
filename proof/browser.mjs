@@ -353,6 +353,7 @@ async function mockUpstream(context, owner = didA) {
   let timeline
   let timelineHold
   const timelineRequests = []
+  const timelineResponses = []
   await context.route('**/*', async route => {
     const request = route.request()
     const url = new URL(request.url())
@@ -594,6 +595,7 @@ async function mockUpstream(context, owner = didA) {
         hold.entered()
         await hold.done
       }
+      timelineResponses.push({index, limit, hasOlder: !!result.cursor})
     } else if (
       nsid === 'app.bsky.feed.getFeed' &&
       url.searchParams.get('feed') ===
@@ -869,6 +871,7 @@ async function mockUpstream(context, owner = didA) {
       timeline = value
     },
     timelineRequests,
+    timelineResponses,
     holdTimeline: (limit = 1, index) => {
       let entered, release
       const reached = new Promise(resolve => {
