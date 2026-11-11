@@ -1663,24 +1663,121 @@ export async function verifyHandoff({
       b.getByText(/Bluesky session renewal did not complete/),
     ).toHaveCount(0)
     await closeReadingPanel(b)
-    // Exercise the real foreground SDK renewal and private GET deadlines.
+    // Install the clock only after renewal and its foreground checks are idle.
+    await readingPanel(b)
+    const checkButton = b.getByRole('button', {
+      name: 'Check other device',
+      exact: true,
+    })
+    await expect(checkButton).toBeEnabled()
     await b.clock.install()
+    await b.clock.pauseAt(new Date((await b.evaluate(() => Date.now())) + 1000))
     const beforeHang = await savedBytes(b)
     const cloudBeforeHang = await cloud()
-    const privateHold = holdApi('GET')
+    const privateCookie = (await contexts[1].cookies()).find(
+      value => value.name === '__Host-skyanchor',
+    )
+    assert.ok(privateCookie)
+    const privateEvents = []
+    let phase = 'armed'
+    const privateRequest = request =>
+      request.method() === 'GET' &&
+      request.url() === origin + '/api/skyanchor/place'
+    const onPrivateRequest = request => {
+      if (privateRequest(request))
+        privateEvents.push({event: 'request', phase, wallTime: Date.now()})
+    }
+    const onPrivateFailed = request => {
+      if (privateRequest(request))
+        privateEvents.push({
+          event: 'failed',
+          phase,
+          wallTime: Date.now(),
+          error: request.failure()?.errorText,
+        })
+    }
+    b.on('request', onPrivateRequest)
+    b.on('requestfailed', onPrivateFailed)
+    const deadline = (report.foregroundDeadline = {events: privateEvents})
+    const privateHold = holdApi('GET', {
+      cookie: privateCookie.name + '=' + privateCookie.value,
+      scenario: 'foreground-private-get-deadline',
+    })
     try {
-      await readingAction(b, 'Check other device')
+      phase = 'focus'
+      deadline.startedPageTime = await b.evaluate(() => {
+        if (document.visibilityState !== 'visible')
+          throw new Error('Foreground deadline requires a visible phone')
+        dispatchEvent(new Event('focus'))
+        return Date.now()
+      })
       await reached(privateHold, b)
-      await b.clock.fastForward(16000)
+      deadline.held = privateHold.request
+      assert.equal(deadline.held.method, 'GET')
+      assert.equal(deadline.held.path, '/api/skyanchor/place')
+      assert.equal(deadline.held.status, 200)
+      assert.equal(
+        privateEvents.filter(event => event.event === 'request').length,
+        1,
+      )
+      await expect(checkButton).toBeDisabled()
+      deadline.manualCheckDisabled = true
+      phase = 'before-deadline'
+      await b.clock.fastForward(14999)
+      await expect(checkButton).toBeDisabled()
+      await expect(b.getByTestId('skyanchor-toolbar')).not.toContainText(
+        'Private sync request timed out',
+      )
+      deadline.beforeDeadlinePageTime = await b.evaluate(() => Date.now())
+      assert.equal(
+        deadline.beforeDeadlinePageTime - deadline.startedPageTime,
+        14999,
+      )
+      phase = 'deadline'
+      await b.clock.fastForward(1)
       await expect(b.getByTestId('skyanchor-toolbar')).toContainText(
         'Private sync request timed out',
+      )
+      await expect(checkButton).toBeEnabled()
+      await expect
+        .poll(
+          () => privateEvents.filter(event => event.event === 'failed').length,
+        )
+        .toBe(1)
+      deadline.completedPageTime = await b.evaluate(() => Date.now())
+      assert.equal(deadline.completedPageTime - deadline.startedPageTime, 15000)
+      assert.equal(
+        privateEvents.filter(event => event.event === 'request').length,
+        1,
       )
       assert.deepEqual(await savedBytes(b), beforeHang)
       assert.deepEqual(await cloud(), cloudBeforeHang)
     } finally {
       privateHold.release()
+      await b.clock.resume()
+      b.off('request', onPrivateRequest)
+      b.off('requestfailed', onPrivateFailed)
     }
+    const recoveryResponse = b.waitForResponse(
+      response =>
+        privateRequest(response.request()) && response.status() === 200,
+    )
+    await expect(checkButton).toBeEnabled()
     await readingAction(b, 'Check other device')
+    const recovered = await recoveryResponse
+    deadline.recovery = {
+      method: recovered.request().method(),
+      path: new URL(recovered.url()).pathname,
+      status: recovered.status(),
+      wallTime: Date.now(),
+    }
+    await expect(checkButton).toBeEnabled()
+    await expect(b.getByTestId('skyanchor-toolbar')).not.toContainText(
+      'Private sync request timed out',
+    )
+    assert.deepEqual(await savedBytes(b), beforeHang)
+    assert.deepEqual(await cloud(), cloudBeforeHang)
+    deadline.explicitRecovery = true
     await expect(
       b.getByRole('button', {name: 'Reconnect private sync', exact: true}),
     ).toBeEnabled()
@@ -1715,6 +1812,7 @@ export async function verifyHandoff({
     } finally {
       releaseRefresh()
       await contexts[1].unroute(refreshPattern, hangRefresh)
+      await b.clock.resume()
     }
     phone.expected.set('POST /api/skyanchor/session 401', 1)
     await readingAction(b, 'Reconnect private sync')

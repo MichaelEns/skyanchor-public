@@ -29,6 +29,15 @@ page held) retains blue Return. Both require confirmed sharing, no sync error,
 the exact local occurrence/offset and unchanged cloud row/clock. Closing the
 panel must not silently clear the red notice.
 
+The foreground private-GET deadline case first waits for idle, installs a paused
+page clock, and triggers focus. Its response latch accepts only the phone's
+session cookie and `GET /api/skyanchor/place`, recording method, path and time
+without recording the cookie. Check must be disabled while that request is held:
+waiting to click it before advancing time would block the fixture itself.
+The owned request remains busy at 14,999 ms, aborts with the timeout notice at
+15,000 ms, and preserves saved bytes and the full D1 row/clock. Only then is the
+hold released and the clock resumed for an explicit, successful Check retry.
+
 The separate automatic-source proof uses a WebKit phone and two fresh desktop
 profiles with three distinct synthetic browser IDs. No source Save helper or
 injected reading row seeds this path. Actual scrolling before Connect must

@@ -92,7 +92,7 @@ let worker
 let origin
 let apiHold
 const apiHolds = new Set()
-function holdApi(method) {
+function holdApi(method, {cookie, scenario} = {}) {
   let entered, release
   const reached = new Promise(resolve => {
     entered = resolve
@@ -100,7 +100,7 @@ function holdApi(method) {
   const done = new Promise(resolve => {
     release = resolve
   })
-  const hold = {method, entered, reached, done, release}
+  const hold = {method, cookie, scenario, entered, reached, done, release}
   apiHolds.add(hold)
   apiHold = hold
   return hold
@@ -127,11 +127,20 @@ const server = https.createServer(
         const responseBytes = Buffer.from(await result.arrayBuffer())
         if (
           apiHold?.method === request.method &&
-          url.pathname === '/api/skyanchor/place'
+          url.pathname === '/api/skyanchor/place' &&
+          (!apiHold.cookie ||
+            request.headers.cookie?.split('; ').includes(apiHold.cookie))
         ) {
           const hold = apiHold
           apiHold = undefined
-          hold.entered()
+          hold.request = {
+            method: request.method,
+            path: url.pathname,
+            wallTime: Date.now(),
+            status: result.status,
+            scenario: hold.scenario,
+          }
+          hold.entered(hold.request)
           await hold.done
           apiHolds.delete(hold)
         }
