@@ -80,6 +80,29 @@ test('Sync verifier accepts only canonical Bluesky origins and binds regional to
       200,
     )
     const before = (await db.prepare('SELECT * FROM places').all()).results
+    const oldCookie = client.cookie,
+      oldCsrf = client.csrf
+    assert.equal(
+      (
+        await client.call(
+          'session',
+          'POST',
+          {device: randomUUID(), service: regional},
+          headers,
+        )
+      ).status,
+      200,
+    )
+    assert.equal(
+      (
+        await context(runtime).call('place', 'GET', undefined, {
+          cookie: oldCookie,
+          'x-skyanchor-csrf': oldCsrf,
+        })
+      ).status,
+      401,
+      'Successful registration of a new profile must still revoke the previous cookie',
+    )
     assert.equal(
       (
         await client.call(

@@ -375,7 +375,9 @@ async function route(request: Request, env: Env) {
       ),
     ]
     if (old)
-      operations.unshift(
+      operations.splice(
+        1,
+        0,
         env.DB.prepare(
           `DELETE FROM sessions WHERE token_hash = ? AND EXISTS
           (SELECT 1 FROM device_registry WHERE did = ? AND device = ?)`,

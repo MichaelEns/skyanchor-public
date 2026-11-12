@@ -10,7 +10,7 @@ CREATE TABLE reading_history (
   feed TEXT NOT NULL CHECK (length(feed) BETWEEN 1 AND 256),
   device TEXT NOT NULL CHECK (length(device) = 36),
   revision INTEGER NOT NULL CHECK (revision > 0),
-  state TEXT NOT NULL CHECK (length(CAST(state AS BLOB)) <= 16384 AND json_valid(state) AND json_type(state, '$.anchor') = 'text'),
+  state TEXT NOT NULL CHECK (length(CAST(state AS BLOB)) <= 16384 AND json_valid(state) AND json_type(state, '$.anchor') IS 'text'),
   updated INTEGER NOT NULL CHECK (updated > 0),
   PRIMARY KEY (did, feed, device, revision)
 );
