@@ -46,8 +46,10 @@ another decision.
 
 Browsers cannot read your OS machine name. Generated labels describe only a
 browser/platform family and a short random profile-ID suffix. Rename this
-browser in Reading place; names stay private to the account and renewals do not
-replace them. Tabs share a profile ID; separate browser/PWA storage contexts may
+browser in Reading place; names stay private to the account. Existing generic
+profile labels gain browser/platform names on a new-client authenticated renewal;
+explicit user renames are never replaced by renewal, including nameless legacy
+renewal. Tabs share a profile ID; separate browser/PWA storage contexts may
 not. At most 32 profiles can register per account, without eviction. History is
 a rolling three distinct occurrences per profile/feed, not an archive; another
 save of the same occurrence replaces its offset/time. Deleted or moderated

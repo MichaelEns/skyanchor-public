@@ -45,6 +45,7 @@ export function defaultDeviceName(device: string, userAgent = '') {
 export type SavedDevice = {
   device: string
   label: string
+  labelKind: 'default' | 'user'
   updated: number
   lastSaved: number | null
   count: number
@@ -93,6 +94,7 @@ export function validDeviceList(
         DEVICE_UUID.test(item.device) &&
         typeof item.label === 'string' &&
         normalizedDeviceName(item.label) === item.label &&
+        (item.labelKind === 'default' || item.labelKind === 'user') &&
         time(item.updated) &&
         (item.lastSaved === null ||
           (time(item.lastSaved) && item.lastSaved > 0)) &&

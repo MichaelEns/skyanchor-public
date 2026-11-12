@@ -70,13 +70,24 @@ test('Private checkpoint parsing binds owner/feed/device, immutable revisions an
   const list = {
     did,
     feed: 'following',
-    devices: [{device, label: 'Reader', updated: 0, lastSaved: 100, count: 2}],
+    devices: [
+      {
+        device,
+        label: 'Reader',
+        labelKind: 'default',
+        updated: 0,
+        lastSaved: 100,
+        count: 2,
+      },
+    ],
   }
   assert.equal(validDeviceList(list, did, 'following'), true)
   for (const devices of [
     [{...list.devices[0], label: undefined}],
     [...list.devices, ...list.devices],
     [{...list.devices[0], count: 0}],
+    [{...list.devices[0], labelKind: undefined}],
+    [{...list.devices[0], labelKind: 'guessed'}],
     Array(33).fill(list.devices[0]),
   ])
     assert.equal(validDeviceList({...list, devices}, did, 'following'), false)
@@ -86,6 +97,18 @@ test('Private checkpoint parsing binds owner/feed/device, immutable revisions an
   assert.match(
     defaultDeviceName(device, 'Version/20 Safari/600 iPhone'),
     /^Safari on iPhone/,
+  )
+  assert.equal(
+    defaultDeviceName(device, 'Windows NT 10.0 Chrome/145 Safari/537 Edg/145'),
+    'Edge on Windows - 0000',
+  )
+  assert.equal(
+    validDeviceList(
+      {...list, devices: [{...list.devices[0], labelKind: 'user'}]},
+      did,
+      'following',
+    ),
+    true,
   )
   let cancelled = false
   await assert.rejects(

@@ -383,6 +383,13 @@ async function route(request: Request, env: Env) {
           (SELECT 1 FROM device_registry WHERE did = ? AND device = ?)`,
         ).bind(await hash(old), account.did, body.device),
       )
+    if ('deviceName' in body)
+      operations.push(
+        env.DB.prepare(
+          `UPDATE device_registry SET label = ?, updated = ?
+           WHERE did = ? AND device = ? AND label_kind = 'default' AND label != ?`,
+        ).bind(label, Date.now(), account.did, body.device, label),
+      )
     await env.DB.batch(operations)
     const registered = await env.DB.prepare(
       'SELECT device FROM device_registry WHERE did = ? AND device = ?',
@@ -431,15 +438,20 @@ async function route(request: Request, env: Env) {
     const label = normalizedDeviceName(body.label)
     if (!label) throw new HttpError(400, 'Invalid browser profile name')
     await env.DB.prepare(
-      'UPDATE device_registry SET label = ?, updated = ? WHERE did = ? AND device = ?',
+      "UPDATE device_registry SET label = ?, label_kind = 'user', updated = ? WHERE did = ? AND device = ?",
     )
       .bind(label, Date.now(), session.did, session.device)
       .run()
     const renamed = await env.DB.prepare(
-      'SELECT device, label, updated FROM device_registry WHERE did = ? AND device = ?',
+      'SELECT device, label, label_kind AS labelKind, updated FROM device_registry WHERE did = ? AND device = ?',
     )
       .bind(session.did, session.device)
-      .first<{device: string; label: string; updated: number}>()
+      .first<{
+        device: string
+        label: string
+        labelKind: 'default' | 'user'
+        updated: number
+      }>()
     if (!renamed)
       throw new HttpError(409, 'Browser profile not registered; reconnect')
     return json({did: session.did, ...renamed})
@@ -447,7 +459,7 @@ async function route(request: Request, env: Env) {
   if (url.pathname === '/api/skyanchor/devices') {
     if (request.method !== 'GET') throw new HttpError(405, 'GET required')
     const rows = await env.DB.prepare(
-      `SELECT d.device, d.label, d.updated,
+      `SELECT d.device, d.label, d.label_kind AS labelKind, d.updated,
         (SELECT MAX(h.updated) FROM reading_history h WHERE h.did = d.did AND h.device = d.device AND h.feed = ?) AS lastSaved,
         (SELECT COUNT(*) FROM reading_history h WHERE h.did = d.did AND h.device = d.device AND h.feed = ?) AS count
        FROM device_registry d WHERE d.did = ? ORDER BY d.device LIMIT ?`,

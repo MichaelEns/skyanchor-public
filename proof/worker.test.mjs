@@ -194,7 +194,7 @@ const place = uri => ({
 })
 
 test('Checkpoint migration preserves exact 0001/0002 rows, active session and clock; backfills only confirmed places', async () => {
-  const {runtime, db, dispose} = await workerRuntime(
+  const {runtime, db, token, dispose} = await workerRuntime(
     'https://skyanchor.test',
     undefined,
     true,
@@ -280,8 +280,95 @@ test('Checkpoint migration preserves exact 0001/0002 rows, active session and cl
     assert.equal(list.status, 200)
     assert.equal(list.value.devices.length, 2)
     assert.ok(
-      list.value.devices.every(item => item.label.startsWith('Browser-')),
+      list.value.devices.every(
+        item =>
+          item.label.startsWith('Browser-') && item.labelKind === 'default',
+      ),
     )
+    const regional = 'https://shimeji.us-east.host.bsky.network'
+    const authorization = 'Bearer ' + token(didA, regional)
+    const upgraded = context(runtime)
+    const renew = deviceName =>
+      upgraded.call(
+        'session',
+        'POST',
+        {
+          device,
+          service: regional,
+          ...(deviceName === undefined ? {} : {deviceName}),
+        },
+        {authorization},
+      )
+    assert.equal(
+      (await renew('Safari on iPhone - ' + device.slice(0, 4))).status,
+      200,
+    )
+    const upgradedName = (await upgraded.call('devices')).value.devices.find(
+      item => item.device === device,
+    )
+    assert.equal(upgradedName.label, 'Safari on iPhone - ' + device.slice(0, 4))
+    assert.equal(upgradedName.labelKind, 'default')
+    assert.equal((await renew()).status, 200)
+    assert.deepEqual(
+      (await upgraded.call('devices')).value.devices.find(
+        item => item.device === device,
+      ),
+      upgradedName,
+      'A nameless legacy renewal must not downgrade generated family metadata',
+    )
+    const named = await upgraded.call('device', 'PUT', {
+      label: 'FixtureNamedPC',
+    })
+    assert.equal(named.value.labelKind, 'user')
+    assert.equal(
+      (await renew('Edge on Windows - ' + device.slice(0, 4))).status,
+      200,
+    )
+    assert.equal((await renew()).status, 200)
+    const userName = (await upgraded.call('devices')).value.devices.find(
+      item => item.device === device,
+    )
+    assert.equal(userName.label, 'FixtureNamedPC')
+    assert.equal(userName.labelKind, 'user')
+    const legacyShape = await db
+      .prepare(
+        'SELECT label, label_kind FROM device_registry WHERE did = ? AND device = ?',
+      )
+      .bind(didA, other)
+      .first()
+    assert.equal(
+      (
+        await upgraded.call(
+          'session',
+          'POST',
+          {device: other},
+          {authorization: 'Bearer ' + token(didA)},
+        )
+      ).status,
+      200,
+    )
+    assert.deepEqual(
+      await db
+        .prepare(
+          'SELECT label, label_kind FROM device_registry WHERE did = ? AND device = ?',
+        )
+        .bind(didA, other)
+        .first(),
+      legacyShape,
+    )
+    assert.equal(
+      JSON.stringify(
+        (await db.prepare('SELECT * FROM places ORDER BY did, feed').all())
+          .results,
+      ),
+      JSON.stringify(JSON.parse(before)[0]),
+      'Name upgrades must not change any original place bytes',
+    )
+    assert.deepEqual(await db.prepare('SELECT * FROM clock').first(), {
+      id: 1,
+      revision: 50,
+      nonce: 'unchanged',
+    })
     // An old Worker can still tombstone progress after rolling back code only.
     await db
       .prepare(
@@ -583,7 +670,9 @@ test('Profile rename is owner/session-only and survives legacy renewal; device c
     assert.equal(saved.status, 200)
     for (let i = 1; i < 32; i++)
       await db
-        .prepare('INSERT INTO device_registry VALUES (?, ?, ?, ?)')
+        .prepare(
+          'INSERT INTO device_registry (did, device, label, updated) VALUES (?, ?, ?, ?)',
+        )
         .bind(didA, randomUUID(), 'Fixture browser ' + i, 1)
         .run()
     const before = await db.prepare('SELECT * FROM places').all()
@@ -607,7 +696,9 @@ test('Profile rename is owner/session-only and survives legacy renewal; device c
       200,
     )
     await db
-      .prepare('INSERT INTO device_registry VALUES (?, ?, ?, ?)')
+      .prepare(
+        'INSERT INTO device_registry (did, device, label, updated) VALUES (?, ?, ?, ?)',
+      )
       .bind(didA, randomUUID(), 'Retained legacy browser', 1)
       .run()
     assert.equal((await a.call('devices')).status, 422)

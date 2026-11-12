@@ -341,7 +341,9 @@ export function ReadingToolbar({
       !('device' in value) ||
       value.device !== device.current ||
       !('label' in value) ||
-      value.label !== label
+      value.label !== label ||
+      !('labelKind' in value) ||
+      value.labelKind !== 'user'
     )
       throw new Error(l`Invalid browser rename response`)
     await loadDevices()

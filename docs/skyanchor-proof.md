@@ -117,3 +117,14 @@ is `pnpm skyanchor:e2e --device-checkpoints-only`; it does not replace the full
 17-stage post-commit gate. Real D1 tests apply versioned migrations, compare
 existing row bytes and test rollback tombstones, failed CAS, retention, private
 rename/renewal, capacity and whole-transaction failure.
+
+The source-A Keep mine response is held after its actual D1 commit while B
+attempts the expired historical restore. The proof attributes every place
+request/response to its profile, verifies A's exact submitted state and revision,
+and proves B sends no receiving PUT. After releasing A's response, confirmation
+requires A's profile ID, visible local state, shared caption, finished requests
+and a stable full row/clock across the real debounce/pending-save interval.
+The unchanged row/clock assertion uses that confirmed baseline, not an enabled
+Save button. Generated production WebKit iPhone and desktop Windows labels are
+checked before rename; actual Edge execution remains a separate approved
+parent validation, not a spoofed-UA claim.

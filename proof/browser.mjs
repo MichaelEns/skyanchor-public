@@ -1219,6 +1219,7 @@ async function runBrowserProof() {
       signIn,
       worker,
       report,
+      holdApi,
     })
     assert.deepEqual(unexpected, [])
     report.passed = true
@@ -1244,6 +1245,7 @@ async function runBrowserProof() {
       signIn,
       worker,
       report,
+      holdApi,
     })
     await verifyAutomaticSource({
       desktopBrowser,
@@ -2241,6 +2243,7 @@ async function runBrowserProof() {
     signIn,
     worker,
     report,
+    holdApi,
   })
   await verifyAutomaticSource({
     desktopBrowser,

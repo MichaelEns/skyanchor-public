@@ -2,6 +2,7 @@ CREATE TABLE device_registry (
   did TEXT NOT NULL,
   device TEXT NOT NULL CHECK (length(device) = 36),
   label TEXT NOT NULL CHECK (length(label) BETWEEN 1 AND 64 AND length(CAST(label AS BLOB)) <= 256),
+  label_kind TEXT NOT NULL DEFAULT 'default' CHECK (label_kind IN ('default', 'user')),
   updated INTEGER NOT NULL CHECK (updated >= 0),
   PRIMARY KEY (did, device)
 );

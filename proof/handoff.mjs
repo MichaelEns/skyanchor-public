@@ -14,11 +14,21 @@ export async function verifyDeviceCheckpoints({
   signIn,
   worker,
   report,
+  holdApi,
 }) {
   const did = 'did:plc:mmmmmmmmmmmmmmmmmmmmmmmm'
   const contexts = [],
     writes = [],
     errors = []
+  const requests = new Map(),
+    profileIds = new Map()
+  let sourceHold
+  const writeCount = page =>
+    writes.filter(item => item.device === profileIds.get(page)).length
+  const pendingRequests = page =>
+    [...requests.values()].filter(
+      item => item.profile === profileIds.get(page) && !item.finished,
+    )
   const key = 'skyanchor:following:v1:' + did
   const local = page =>
     page.evaluate(key => JSON.parse(localStorage.getItem(key))?.place, key)
@@ -52,13 +62,46 @@ export async function verifyDeviceCheckpoints({
     const page = await context.newPage()
     page.on('pageerror', error => errors.push(error.message))
     page.on('request', request => {
-      if (
-        request.method() === 'PUT' &&
-        new URL(request.url()).pathname === '/api/skyanchor/place'
-      )
-        writes.push(request.postData())
+      if (new URL(request.url()).pathname !== '/api/skyanchor/place') return
+      const body = request.postDataJSON()
+      const record = {
+        profile: profileIds.get(page),
+        method: request.method(),
+        expectedRevision: body?.revision,
+        status: undefined,
+        revision: undefined,
+        finished: false,
+      }
+      requests.set(request, record)
+      if (request.method() === 'PUT')
+        writes.push({device: profileIds.get(page), state: body.state, record})
+    })
+    page.on('response', async response => {
+      const record = requests.get(response.request())
+      if (!record) return
+      record.status = response.status()
+      try {
+        const value = await response.json()
+        record.revision = value.revision ?? value.current?.revision
+      } catch (error) {
+        errors.push('Checkpoint response parse failed: ' + error.message)
+      }
+    })
+    page.on('requestfinished', request => {
+      const record = requests.get(request)
+      if (record) record.finished = true
+    })
+    page.on('requestfailed', request => {
+      const record = requests.get(request)
+      if (record) {
+        record.finished = true
+        errors.push(
+          'Checkpoint request failed: ' + request.failure()?.errorText,
+        )
+      }
     })
     await signIn(page, 'reader.test')
+    profileIds.set(page, await profileId(page))
     return page
   }
   async function confirmed(page, previous = 0) {
@@ -68,12 +111,21 @@ export async function verifyDeviceCheckpoints({
           const current = (await cloud()).place
           return (
             current?.revision > previous &&
+            current.device === profileIds.get(page) &&
             current.state === JSON.stringify(await local(page))
           )
         },
         {timeout: 10000},
       )
       .toBe(true)
+    await readingPanel(page)
+    await expect(page.getByTestId('skyanchor-source-state')).toContainText(
+      'Current local place confirmed shared',
+    )
+    await expect(
+      page.getByRole('button', {name: 'Save my place', exact: true}),
+    ).toBeEnabled()
+    await expect.poll(() => pendingRequests(page).length).toBe(0)
     return (await cloud()).place
   }
   async function phoneCheckpoint(page, distance) {
@@ -139,6 +191,18 @@ export async function verifyDeviceCheckpoints({
     await readingAction(a, 'Connect private sync')
     let row = await confirmed(a)
     const aId = await profileId(a)
+    const registry = async () =>
+      (
+        await worker.db
+          .prepare(
+            'SELECT device, label, label_kind AS labelKind FROM device_registry WHERE did = ? ORDER BY device',
+          )
+          .bind(did)
+          .all()
+      ).results
+    const phoneName = (await registry()).find(item => item.device === aId)
+    assert.match(phoneName.label, /^Safari on iPhone - /)
+    assert.equal(phoneName.labelKind, 'default')
     for (let i = 0; i < 3; i++) {
       await closeReadingPanel(a)
       await phoneCheckpoint(a, 700)
@@ -147,6 +211,9 @@ export async function verifyDeviceCheckpoints({
     const aSaves = await history(aId)
     assert.equal(aSaves.length, 3)
     await readingPanel(a)
+    await expect(
+      a.getByRole('textbox', {name: 'Name this browser profile', exact: true}),
+    ).toHaveValue(phoneName.label)
     await a
       .getByRole('textbox', {name: 'Name this browser profile', exact: true})
       .fill('Fixture phone reading profile')
@@ -189,13 +256,25 @@ export async function verifyDeviceCheckpoints({
     )
     const cId = await profileId(c)
     assert.equal(new Set([aId, bId, cId]).size, 3)
+    const generated = (await registry()).filter(item =>
+      [bId, cId].includes(item.device),
+    )
+    for (const item of generated) {
+      assert.match(item.label, /^(Chrome|Edge) on Windows - /)
+      assert.ok(item.label.endsWith(item.device.slice(0, 4)))
+      assert.equal(item.labelKind, 'default')
+    }
+    assert.notEqual(generated[0].label, generated[1].label)
+    await expect(
+      c.getByRole('textbox', {name: 'Name this browser profile', exact: true}),
+    ).toHaveValue(generated.find(item => item.device === cId).label)
     await readingAction(b, 'Check saved places')
     await expect(
       b.getByRole('button', {name: 'Check saved places', exact: true}),
     ).toBeEnabled()
     const before = await cloud(),
       beforeLocal = await local(b),
-      beforeWrites = writes.length
+      beforeWrites = writeCount(b)
     await chooseSource(b, aId)
     const labels = await chooseSave(b, 'Older save')
     await expect(
@@ -203,7 +282,7 @@ export async function verifyDeviceCheckpoints({
     ).toContainText('Fixture phone reading profile')
     assert.deepEqual(await local(b), beforeLocal)
     assert.deepEqual(await cloud(), before)
-    assert.equal(writes.length, beforeWrites)
+    assert.equal(writeCount(b), beforeWrites)
     const chosen = aSaves[2]
     // A newer source head must not replace the record already selected on B.
     await closeReadingPanel(a)
@@ -212,18 +291,83 @@ export async function verifyDeviceCheckpoints({
     await expect(
       a.getByRole('button', {name: 'Keep mine', exact: true}),
     ).toBeEnabled()
+    const sourceLocal = await local(a),
+      sourceBefore = await cloud()
+    const cookie = (await a.context().cookies()).find(
+      item => item.name === '__Host-skyanchor',
+    )
+    assert.ok(cookie)
+    sourceHold = holdApi('PUT', {
+      cookie: cookie.name + '=' + cookie.value,
+      scenario: 'device-checkpoint-source-keep-mine',
+    })
     await readingAction(a, 'Keep mine')
+    let holdTimeout
+    try {
+      await Promise.race([
+        sourceHold.reached,
+        new Promise((_, reject) => {
+          holdTimeout = setTimeout(
+            () => reject(new Error('Source Keep mine did not reach D1')),
+            10000,
+          )
+        }),
+      ])
+    } finally {
+      clearTimeout(holdTimeout)
+    }
+    const committedWhileHeld = await cloud()
+    assert.equal(sourceHold.request.status, 200)
+    assert.ok(committedWhileHeld.place.revision > sourceBefore.place.revision)
+    assert.equal(committedWhileHeld.place.device, aId)
+    assert.equal(committedWhileHeld.place.state, JSON.stringify(sourceLocal))
+    assert.equal(
+      committedWhileHeld.clock.revision,
+      committedWhileHeld.place.revision,
+    )
+    assert.deepEqual(writes.at(-1).state, sourceLocal)
+    assert.equal(writes.at(-1).device, aId)
+    assert.equal(
+      pendingRequests(a).filter(item => item.method === 'PUT').length,
+      1,
+    )
+    const sourcePendingWhileHeld = pendingRequests(a).map(item => ({...item}))
     await expect(
       a.getByRole('button', {name: 'Save my place', exact: true}),
-    ).toBeEnabled()
-    // That write expired the oldest save, so recovery must fail rather than adopt it.
-    const advanced = await cloud()
+    ).toBeDisabled()
+    assert.ok(
+      !(await history(aId)).some(item => item.revision === chosen.revision),
+    )
+    // The destination may attempt recovery while A's committed response is still held.
+    const bWritesBeforeHeld = writeCount(b)
+    await readingAction(b, 'Resume saved place')
+    await expect(b.getByTestId('skyanchor-resume-result')).toContainText(
+      'expired or was deleted',
+    )
+    assert.equal(writeCount(b), bWritesBeforeHeld)
+    const receivingWritesWhileSourceHeld = writeCount(b) - bWritesBeforeHeld
+    assert.deepEqual(await local(b), beforeLocal)
+    assert.deepEqual(await cloud(), committedWhileHeld)
+    sourceHold.release()
+    sourceHold = undefined
+    const confirmedSource = await confirmed(a, sourceBefore.place.revision)
+    assert.equal(confirmedSource.revision, committedWhileHeld.place.revision)
+    assert.equal(confirmedSource.state, JSON.stringify(sourceLocal))
+    const advanced = await cloud(),
+      sourceWrites = writeCount(a)
+    // Let the real debounce/pending retry run; no source write is suppressed.
+    await a.waitForTimeout(1200)
+    assert.equal(writeCount(a), sourceWrites)
+    assert.equal(pendingRequests(a).length, 0)
+    assert.deepEqual(await cloud(), advanced)
+    const receivingWrites = writeCount(b)
     await readingAction(b, 'Resume saved place')
     await expect(b.getByTestId('skyanchor-resume-result')).toContainText(
       'expired or was deleted',
     )
     assert.deepEqual(await local(b), beforeLocal)
     assert.deepEqual(await cloud(), advanced)
+    assert.equal(writeCount(b), receivingWrites)
     await readingAction(b, 'Check saved places')
     await expect(
       b.getByRole('button', {name: 'Check saved places', exact: true}),
@@ -231,7 +375,7 @@ export async function verifyDeviceCheckpoints({
     await chooseSave(b, 'Previous save')
     const chosenCurrent = (await history(aId))[1]
     const beforeRestore = await cloud(),
-      putsBeforeRestore = writes.length
+      putsBeforeRestore = writeCount(b)
     await readingAction(b, 'Resume saved place')
     await expect(b.getByTestId('skyanchor-resume-result')).toContainText(
       'Restored this saved place locally',
@@ -241,13 +385,13 @@ export async function verifyDeviceCheckpoints({
       .toBe(chosenCurrent.state)
     const error = await placement(b, JSON.parse(chosenCurrent.state))
     assert.deepEqual(await cloud(), beforeRestore)
-    assert.equal(writes.length, putsBeforeRestore)
+    assert.equal(writeCount(b), putsBeforeRestore)
     await scrollReading(b, 90)
     await b.waitForTimeout(1200)
     await b.evaluate(() => dispatchEvent(new Event('focus')))
     await b.waitForTimeout(500)
     assert.deepEqual(await cloud(), beforeRestore)
-    assert.equal(writes.length, putsBeforeRestore)
+    assert.equal(writeCount(b), putsBeforeRestore)
     await b.reload()
     await b.getByTestId('skyanchor-reading-button').waitFor()
     await readingPanel(b)
@@ -268,7 +412,7 @@ export async function verifyDeviceCheckpoints({
       b.getByRole('combobox', {name: 'Source of saved place', exact: true}),
     ).toContainText('This browser')
     await chooseSource(b, aId)
-    const historicalRestorePuts = writes.length - putsBeforeRestore
+    const historicalRestorePuts = writeCount(b) - putsBeforeRestore
     assert.equal(historicalRestorePuts, 0)
     await readingAction(c, 'Check other device')
     await readingAction(c, 'Resume other device')
@@ -294,11 +438,12 @@ export async function verifyDeviceCheckpoints({
       ),
     ).toBeVisible()
     assert.equal(
-      writes.length - putsBeforeRestore,
-      1,
+      writeCount(b) - putsBeforeRestore,
+      0,
       'Only C has written; B must not silently overwrite it',
     )
     await readingAction(b, 'Keep mine')
+    await confirmed(b, cShared.revision)
     await expect(
       b.getByRole('button', {name: 'Keep mine', exact: true}),
     ).toHaveCount(0)
@@ -354,11 +499,19 @@ export async function verifyDeviceCheckpoints({
       rejectedTombstone: true,
       historicalRestorePuts,
       explicitSharingCAS: true,
+      generatedPhoneName: phoneName.label,
+      generatedDesktopNames: generated.map(item => item.label),
+      heldSourceCommit: committedWhileHeld.place.revision,
+      confirmedSourceRevision: confirmedSource.revision,
+      receivingWritesWhileSourceHeld,
+      sourcePendingWhileHeld,
+      requests: [...requests.values()],
     }
     report.checks.push(
       'Three production browser profiles: renamed source, three timestamped saves, no-write selection, expired immutable choice, exact local historical restore, durable autosave pause, own-browser history and deletion-race rejection',
     )
   } finally {
+    sourceHold?.release()
     await Promise.all(contexts.map(context => context.close()))
   }
 }

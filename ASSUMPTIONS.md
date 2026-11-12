@@ -46,6 +46,10 @@ user-agent string. Generated browser/platform labels are approximate profile
 labels, not hardware identity. Registration is bounded to 32 profiles without
 eviction; legacy over-cap accounts retain all data and existing-profile access,
 but the bounded device-list endpoint reports an explicit capacity error.
+The registry explicitly distinguishes default labels from user renames. A
+session with a generated family label can update only a default label, including
+an existing backfilled Browser-ID label. Nameless legacy sessions do not change
+labels; renames mark the label as user-owned regardless of its text.
 
 Migration `0003_device_checkpoints.sql` is additive and backfills current
 non-null places only, plus known place/session device IDs. It does not change
