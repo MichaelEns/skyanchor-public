@@ -1314,6 +1314,23 @@ async function runBrowserProof() {
   }
   await signIn(page, 'fixture@example.test', 'open')
   await signIn(phonePage, 'reader.test')
+  if (process.argv.includes('--new-content-only')) {
+    await verifyNewContent({
+      desktopBrowser,
+      phoneBrowser,
+      origin,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+      entries,
+      post,
+      installViewportFixture,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
+  }
   if (process.argv.includes('--profile-only')) {
     await scrollReading(page, 400)
     const connected = page.waitForResponse(

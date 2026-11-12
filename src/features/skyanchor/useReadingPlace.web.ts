@@ -72,6 +72,8 @@ export function useReadingPlace({
     intentEpoch.current++
   }
   function continueScrollIntent() {
+    cancelAnimationFrame(correctionFrame.current)
+    correcting.current = false
     clearTimeout(intentTimer.current)
     userScrollUntil.current = Date.now() + 250
     intentTimer.current = setTimeout(

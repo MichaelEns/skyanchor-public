@@ -140,3 +140,29 @@ revalidation labels. Dedicated context-local hidden and deleted flags reject
 the same chosen historical occurrence before successful recovery, preserving
 local/Return bytes, URL, history, full cloud row/clock and zero receiving PUTs.
 No shared moderation flags are cleared and application moderation is unchanged.
+
+The newer-content proof uses trusted Home input, not a fixed toolbar's
+visibility, to establish the actual first post and its local checkpoint before
+Refresh. A controlled passive scroll/resize reproduces the old 22669 px
+correction before any Refresh action, without changing the cloud row/clock.
+Owned input now ends a pending correction frame while retaining the
+corrected-scroll-position guard: a corrective event alone still cannot become
+reading intent. Hook coverage exercises wheel, Home and touch before RAF.
+
+`pnpm skyanchor:e2e --new-content-only` owns the focused production regression.
+Both engines hold only the disposable page's JavaScript RAF callbacks during
+trusted Home, prove the actual top differs from the still-stale local
+checkpoint, then activate Refresh before capture. No-new and fresh-head
+integration retain that exact visible occurrence within two pixels; fresh
+prefix ordering is checked separately. The real Home autosave is confirmed
+while the head response is held, establishing a full row/clock baseline before
+integration. Subsequent discovery at the current top must not move or write.
+The complete browser runner retains all preceding moderation, device history,
+handoff, reverse, momentum and continuous-history cases. WebKit keyboard
+coverage is not physical iPhone touch acceptance.
+
+The handoff double-activation case waits for the Resume button to be enabled
+before its two native DOM clicks. The receipt records whether it was initially
+disabled while Check metadata settled; native `.click()` would otherwise
+silently do nothing. Exactly one recovery head request and unchanged cloud
+progress are still required.

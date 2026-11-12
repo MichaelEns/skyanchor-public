@@ -2054,12 +2054,17 @@ export async function verifyHandoff({
       request => request.limit === 30 && request.index === 0,
     ).length
     await readingPanel(b)
-    await b
-      .getByRole('button', {name: 'Resume other device', exact: true})
-      .evaluate(button => {
-        button.click()
-        button.click()
-      })
+    const doubleResume = b.getByRole('button', {
+      name: 'Resume other device',
+      exact: true,
+    })
+    const disabledBeforeCheckSettled = await doubleResume.isDisabled()
+    await expect(doubleResume).toBeEnabled()
+    report.doubleActivation = {disabledBeforeCheckSettled}
+    await doubleResume.evaluate(button => {
+      button.click()
+      button.click()
+    })
     await expect(b.getByTestId('skyanchor-resume-result')).toContainText(
       "Resumed the other device's saved place",
     )
