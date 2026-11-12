@@ -181,7 +181,7 @@ disabled while Check metadata settled; native `.click()` would otherwise
 silently do nothing. Exactly one recovery head request and unchanged cloud
 progress are still required.
 
-Deep handoff pagination uses trusted desktop End input for every successive
+Deep handoff pagination uses trusted desktop mouse-wheel input for every successive
 page, not passive `scrollTo(bottom)`. Each next 30-item response is held while
 the proof verifies the actual last row in the viewport, the loading footer,
 and its requested cursor; release must append real rows within the original
@@ -193,10 +193,13 @@ the failure mechanism, not the exact natural event order of the parent's Edge
 failure, which was not reproduced in the initial Chromium trace. Bounded failure
 output retains viewport/max-scroll/header/footer geometry, correction events,
 actual cursor HTTP statuses and existing error checks.
-Before each native End, the proof selects source tab A with `bringToFront`,
-blurs the prior control without scrolling, and requires document focus and
-the body as the active element. Before/after geometry and trusted keydown/keyup
+Before each wheel gesture, the proof selects source tab A with `bringToFront`,
+blurs the prior control without scrolling, requires document focus, and places
+the pointer over the feed. One real wheel gesture covers the remaining current
+page distance while its next response is held. Geometry and trusted wheel
 receipts retain focus, target tag/role, platform and default-prevention state,
-never input values. This makes the user-selected-tab precondition explicit;
-it does not establish that focus caused the parent's Edge failure without
-the parent's focused Edge receipt.
+never input values. The parent's focused Edge run still observed trusted,
+unprevented End keydown/keyup without scrolling or the next cursor request at
+150 rows. Focus was therefore not established as the cause. That native Edge
+End interaction remains unresolved; pagination setup no longer depends on it.
+Separate Home keyboard and input-intent coverage remains unchanged.

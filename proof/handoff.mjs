@@ -1853,7 +1853,7 @@ export async function verifyHandoff({
     await closeReadingPanel(a)
     await a.evaluate(() => {
       window.fixturePaginationTrace = []
-      window.fixturePaginationKeys = []
+      window.fixturePaginationWheels = []
       window.fixturePaginationSample = phase => {
         const rows = [...document.querySelectorAll('[data-skyanchor-key]')]
         const header = document.querySelector(
@@ -1892,12 +1892,9 @@ export async function verifyHandoff({
       }
       const onScroll = () => window.fixturePaginationSample('scroll')
       const onResize = () => window.fixturePaginationSample('resize')
-      const onKey = event => {
-        if (event.key !== 'End') return
-        window.fixturePaginationKeys.push({
-          type: event.type,
-          key: event.key,
-          code: event.code,
+      const onWheel = event => {
+        window.fixturePaginationWheels.push({
+          deltaY: event.deltaY,
           trusted: event.isTrusted,
           prevented: event.defaultPrevented,
           focused: document.hasFocus(),
@@ -1905,19 +1902,17 @@ export async function verifyHandoff({
           targetRole: event.target?.getAttribute?.('role'),
           y: scrollY,
         })
-        if (window.fixturePaginationKeys.length > 40)
-          window.fixturePaginationKeys.shift()
+        if (window.fixturePaginationWheels.length > 20)
+          window.fixturePaginationWheels.shift()
       }
       addEventListener('scroll', onScroll)
       addEventListener('resize', onResize)
-      addEventListener('keydown', onKey)
-      addEventListener('keyup', onKey)
+      addEventListener('wheel', onWheel, {passive: true})
       window.fixturePaginationStop = () => {
         window.scrollBy = scrollBy
         removeEventListener('scroll', onScroll)
         removeEventListener('resize', onResize)
-        removeEventListener('keydown', onKey)
-        removeEventListener('keyup', onKey)
+        removeEventListener('wheel', onWheel)
       }
     })
     const pagination = []
@@ -1956,38 +1951,39 @@ export async function verifyHandoff({
               2,
           )
         }
-        const beforeEnd = await a.evaluate(() =>
-          window.fixturePaginationSample('before-owned-end'),
+        const beforeWheel = await a.evaluate(() =>
+          window.fixturePaginationSample('before-owned-wheel'),
         )
         await a.bringToFront()
         await a.evaluate(() => document.activeElement?.blur())
         await expect
           .poll(() => a.evaluate(() => document.hasFocus()))
           .toBe(true)
-        const readyForEnd = await a.evaluate(() =>
-          window.fixturePaginationSample('focused-before-owned-end'),
+        const readyForWheel = await a.evaluate(() =>
+          window.fixturePaginationSample('focused-before-owned-wheel'),
         )
-        assert.equal(readyForEnd.activeTag, 'BODY')
-        await a.keyboard.press('End')
-        const afterKey = await a.evaluate(() =>
-          window.fixturePaginationSample('after-owned-end-key'),
+        const viewport = a.viewportSize()
+        await a.mouse.move(viewport.width / 2, viewport.height / 2)
+        await a.mouse.wheel(
+          0,
+          Math.ceil(readyForWheel.maxY - readyForWheel.y + viewport.height),
         )
-        const keys = await a.evaluate(() =>
-          window.fixturePaginationKeys.slice(-2),
-        )
-        assert.deepEqual(
-          keys.map(event => event.type),
-          ['keydown', 'keyup'],
+        await expect
+          .poll(() => a.evaluate(() => window.fixturePaginationWheels.length))
+          .toBe(pagination.length + 1)
+        const wheel = await a.evaluate(() =>
+          window.fixturePaginationWheels.at(-1),
         )
         assert.ok(
-          keys.every(
-            event => event.trusted && event.focused && !event.prevented,
-          ),
+          wheel.trusted &&
+            wheel.focused &&
+            !wheel.prevented &&
+            wheel.deltaY > 0,
         )
         await expect
           .poll(() =>
             a.evaluate(() => {
-              const sample = window.fixturePaginationSample('owned-end')
+              const sample = window.fixturePaginationSample('owned-wheel')
               return (
                 sample.lastBottom <= sample.height + 2 &&
                 sample.lastBottom > sample.header &&
@@ -2007,15 +2003,15 @@ export async function verifyHandoff({
           .poll(() =>
             a.evaluate(
               () =>
-                window.fixturePaginationSample('owned-end-loading').loading
+                window.fixturePaginationSample('owned-wheel-loading').loading
                   .length,
             ),
           )
           .toBeGreaterThan(0)
         const end = await a.evaluate(() =>
-          window.fixturePaginationSample('owned-end-requested'),
+          window.fixturePaginationSample('owned-wheel-requested'),
         )
-        pagination.push({count, beforeEnd, readyForEnd, afterKey, keys, end})
+        pagination.push({count, beforeWheel, readyForWheel, wheel, end})
       } finally {
         next.release()
       }
@@ -2024,7 +2020,7 @@ export async function verifyHandoff({
         .toBeGreaterThan(count)
     }
     report.deepPagination = {
-      input: 'trusted End',
+      input: 'trusted mouse wheel',
       passiveCorrection,
       pages: pagination,
       requests: contexts[0].fixture.controls.timelineRequests,
@@ -2723,7 +2719,9 @@ export async function verifyHandoff({
           window.fixturePaginationSample?.('failure'),
         ),
         trace: await source.page.evaluate(() => window.fixturePaginationTrace),
-        keys: await source.page.evaluate(() => window.fixturePaginationKeys),
+        wheels: await source.page.evaluate(
+          () => window.fixturePaginationWheels,
+        ),
         requests: source.controls.timelineRequests.slice(-8),
         responses: source.controls.timelineResponses.slice(-8),
         http: source.timelineHttp.slice(-8),
