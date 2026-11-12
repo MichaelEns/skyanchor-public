@@ -1781,7 +1781,15 @@ export async function verifyHandoff({
       const page = await context.newPage()
       page.on('pageerror', error => failures.push(error.message))
       const expected = new Map()
+      const timelineHttp = []
       page.on('response', response => {
+        const url = new URL(response.url())
+        if (url.pathname.endsWith('/app.bsky.feed.getTimeline'))
+          timelineHttp.push({
+            status: response.status(),
+            cursor: url.searchParams.get('cursor'),
+            limit: url.searchParams.get('limit'),
+          })
         if (
           response.status() < 400 ||
           response.url().includes('com.atproto.repo.getRecord')
@@ -1806,7 +1814,7 @@ export async function verifyHandoff({
         await page.getByTestId('HomeScreen').waitFor()
         await page.locator('[data-skyanchor-key]').first().waitFor()
       }
-      contexts[index].fixture = {page, controls, expected}
+      contexts[index].fixture = {page, controls, expected, timelineHttp}
     }
     const [a, b, c] = contexts.map(context => context.fixture.page)
     const devices = await Promise.all(
@@ -1843,17 +1851,139 @@ export async function verifyHandoff({
     )
     await expect(a.getByTestId('skyanchor-reading-indicator')).toHaveCount(0)
     await closeReadingPanel(a)
+    await a.evaluate(() => {
+      window.fixturePaginationTrace = []
+      window.fixturePaginationSample = phase => {
+        const rows = [...document.querySelectorAll('[data-skyanchor-key]')]
+        const header = document.querySelector(
+          '[data-testid="mobileHomeHeader"]',
+        )
+        const last = rows.at(-1)
+        const sample = {
+          phase,
+          y: scrollY,
+          maxY: document.documentElement.scrollHeight - innerHeight,
+          height: innerHeight,
+          header: header?.getBoundingClientRect().bottom ?? 0,
+          count: rows.length,
+          last: last?.dataset.skyanchorKey,
+          lastBottom: last?.getBoundingClientRect().bottom,
+          loading: [...document.querySelectorAll('[role="progressbar"]')].map(
+            node => ({
+              top: node.getBoundingClientRect().top,
+              bottom: node.getBoundingClientRect().bottom,
+            }),
+          ),
+        }
+        window.fixturePaginationTrace.push(sample)
+        if (window.fixturePaginationTrace.length > 50)
+          window.fixturePaginationTrace.shift()
+        return sample
+      }
+      const scrollBy = window.scrollBy
+      window.scrollBy = function (...args) {
+        window.fixturePaginationSample('correction-scrollBy')
+        return scrollBy.apply(this, args)
+      }
+      const onScroll = () => window.fixturePaginationSample('scroll')
+      const onResize = () => window.fixturePaginationSample('resize')
+      addEventListener('scroll', onScroll)
+      addEventListener('resize', onResize)
+      window.fixturePaginationStop = () => {
+        window.scrollBy = scrollBy
+        removeEventListener('scroll', onScroll)
+        removeEventListener('resize', onResize)
+      }
+    })
+    const pagination = []
+    let passiveCorrection
     // Load real successive timeline pages; B and C keep their different, fresh windows.
     for (let i = 0; i < 20; i++) {
       const count = await a.locator('[data-skyanchor-key]').count()
       if (await a.locator('[data-skyanchor-key*="/post470|"]').count()) break
-      await a.evaluate(() =>
-        window.scrollTo(0, document.documentElement.scrollHeight),
-      )
+      const controls = contexts[0].fixture.controls
+      const next = controls.holdTimeline(30, count)
+      try {
+        if (count === 180) {
+          passiveCorrection = await a.evaluate(() => {
+            const before = window.fixturePaginationSample(
+              'before-passive-bottom',
+            )
+            const intendedY =
+              document.documentElement.scrollHeight - innerHeight
+            scrollTo(0, document.documentElement.scrollHeight)
+            const atBottom = window.fixturePaginationSample(
+              'passive-bottom-before-layout',
+            )
+            dispatchEvent(new Event('resize'))
+            const after = window.fixturePaginationSample(
+              'passive-bottom-after-layout',
+            )
+            return {before, intendedY, atBottom, after}
+          })
+          assert.ok(
+            Math.abs(
+              passiveCorrection.atBottom.y - passiveCorrection.intendedY,
+            ) <= 2,
+          )
+          assert.ok(
+            Math.abs(passiveCorrection.after.y - passiveCorrection.before.y) <=
+              2,
+          )
+        }
+        const beforeEnd = await a.evaluate(() =>
+          window.fixturePaginationSample('before-owned-end'),
+        )
+        await a.evaluate(() => document.activeElement?.blur())
+        await a.keyboard.press('End')
+        await expect
+          .poll(() =>
+            a.evaluate(() => {
+              const sample = window.fixturePaginationSample('owned-end')
+              return (
+                sample.lastBottom <= sample.height + 2 &&
+                sample.lastBottom > sample.header &&
+                sample.maxY - sample.y <= sample.height
+              )
+            }),
+          )
+          .toBe(true)
+        await expect
+          .poll(() =>
+            controls.timelineRequests.some(
+              request => request.index === count && request.limit === 30,
+            ),
+          )
+          .toBe(true)
+        await expect
+          .poll(() =>
+            a.evaluate(
+              () =>
+                window.fixturePaginationSample('owned-end-loading').loading
+                  .length,
+            ),
+          )
+          .toBeGreaterThan(0)
+        const end = await a.evaluate(() =>
+          window.fixturePaginationSample('owned-end-requested'),
+        )
+        pagination.push({count, beforeEnd, end})
+      } finally {
+        next.release()
+      }
       await expect
         .poll(() => a.locator('[data-skyanchor-key]').count())
         .toBeGreaterThan(count)
     }
+    report.deepPagination = {
+      input: 'trusted End',
+      passiveCorrection,
+      pages: pagination,
+      requests: contexts[0].fixture.controls.timelineRequests,
+      responses: contexts[0].fixture.controls.timelineResponses,
+      http: contexts[0].fixture.timelineHttp,
+    }
+    await a.evaluate(() => window.fixturePaginationStop())
     const target = a.locator('[data-skyanchor-key*="/post470|repost:"]').last()
     await target.scrollIntoViewIfNeeded()
     await target.evaluate(node =>
@@ -2538,6 +2668,26 @@ export async function verifyHandoff({
       'Three independent browser profiles (email entryway, WebKit regional handle, cold persisted regional desktop) hand off a deep exact repost/reply occurrence outside fresh windows through real D1 CAS. Offers never jump or write; expired access/cookie renewal and failure recovery preserve local state.',
     )
   } catch (error) {
+    const source = contexts[0]?.fixture
+    if (source) {
+      report.deepPagination = {
+        geometry: await source.page.evaluate(() =>
+          window.fixturePaginationSample?.('failure'),
+        ),
+        trace: await source.page.evaluate(() => window.fixturePaginationTrace),
+        requests: source.controls.timelineRequests.slice(-8),
+        responses: source.controls.timelineResponses.slice(-8),
+        http: source.timelineHttp.slice(-8),
+        errors: failures,
+      }
+      console.error(
+        'Synthetic deep pagination:',
+        JSON.stringify({
+          ...report.deepPagination,
+          trace: report.deepPagination.trace?.slice(-12),
+        }),
+      )
+    }
     report.handoffFailure ??= await Promise.all(
       contexts
         .filter(context => context.fixture)

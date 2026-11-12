@@ -180,3 +180,16 @@ before its two native DOM clicks. The receipt records whether it was initially
 disabled while Check metadata settled; native `.click()` would otherwise
 silently do nothing. Exactly one recovery head request and unchanged cloud
 progress are still required.
+
+Deep handoff pagination uses trusted desktop End input for every successive
+page, not passive `scrollTo(bottom)`. Each next 30-item response is held while
+the proof verifies the actual last row in the viewport, the loading footer,
+and its requested cursor; release must append real rows within the original
+timeout. The receipt includes geometry and served cursor offsets through
+post470, without inserting fixture pages into application state.
+A controlled resize at exactly 180 rows demonstrates how passive movement
+can return to the captured row before pagination is triggered. This establishes
+the failure mechanism, not the exact natural event order of the parent's Edge
+failure, which was not reproduced in the initial Chromium trace. Bounded failure
+output retains viewport/max-scroll/header/footer geometry, correction events,
+actual cursor HTTP statuses and existing error checks.
