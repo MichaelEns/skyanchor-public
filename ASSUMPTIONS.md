@@ -39,6 +39,45 @@ the intentional Return checkpoint. Errors and paused source sharing are visible 
 from connection status. Shared timestamps come only from the server's `updated`
 value; browser origin labels do not identify a physical device.
 
+Private device names are account-scoped, NFC-normalized, 1-64 Unicode code
+points / at most 256 UTF-8 bytes, without controls, invisible/format characters
+or angle brackets. The website cannot read OS hostnames and stores no full
+user-agent string. Generated browser/platform labels are approximate profile
+labels, not hardware identity. Registration is bounded to 32 profiles without
+eviction; legacy over-cap accounts retain all data and existing-profile access,
+but the bounded device-list endpoint reports an explicit capacity error.
+The registry explicitly distinguishes default labels from user renames. A
+session with a generated family label can update only a default label, including
+an existing backfilled Browser-ID label. Nameless legacy sessions do not change
+labels; renames mark the label as user-owned regardless of its text.
+
+Migration `0003_device_checkpoints.sql` is additive and backfills current
+non-null places only, plus known place/session device IDs. It does not change
+existing place/session/clock bytes. Saves and pruning share the existing
+nonce-gated CAS transaction. Retention is the three most recently confirmed
+distinct occurrence anchors per profile/feed; repeated offsets/context-neighbor
+updates of an anchor replace its previous checkpoint. Revision/state/time
+identity is frozen when chosen; an expired/replaced checkpoint fails, rather
+than silently switching to a newer save. Only successful CAS writes enter history.
+Metadata lists at most 32 profiles, history reads at most three 16-KiB states;
+authenticated requests retain the 16-KiB body bound and existing origin/CSRF
+checks. Client streamed response limits are 32 KiB metadata and 64 KiB history.
+
+Historical Resume rechecks the selected record and current shared head before
+retrieval, before placement and after settlement. It never accepts a historical
+revision as a CAS base and never uploads the restored position. A durable local
+pause survives cold reopen; intentional scrolling and Return cannot lift it.
+Explicit Save/Keep mine rechecks its known shared revision, requiring a new
+decision on drift and retaining ordinary CAS conflict protection. Latest-shared
+Resume remains the default adoption path. Checks cannot move the viewport.
+Deletion purges all history for the active feed in the tombstone transaction;
+names and other feeds remain. Additive tombstone triggers also purge history
+when the previous Worker writes a deletion during code rollback. Keep the new
+tables/triggers when rolling back Worker code, and do not replay migrations.
+An old Worker does not record new history, and new history UI must not be used
+until the new API is restored. This is bounded recovery, not a full timeline
+archive or guaranteed service retention.
+
 Explicit remote Resume searches current Following/profile API history rather
 than reconstructing a repost from its URI. Recovery permits 296 history pages
 of at most 30 entries, reserves four current-post/reply revalidation requests,

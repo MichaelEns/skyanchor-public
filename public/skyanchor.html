@@ -42,17 +42,37 @@
       to debounced cloud saves. The same-origin Worker verifies a bsky.social
       access token without receiving your password or refresh token. D1 stores
       your verified DID, device UUID, reading occurrence/offset/neighbors,
-      revision and update time. Session rows contain a token hash, CSRF token
-      and ten-minute expiry, not a stored access token.
+      revision, server save time and private browser-profile names. Names may
+      contain personal information: choose nonsensitive, replaceable labels.
+      Websites cannot read OS machine names. Default names are approximate
+      browser/platform families with a random profile-ID suffix; a browser
+      profile is not a physical machine. Session rows contain a token hash, CSRF
+      token and ten-minute expiry, not a stored access token.
     </p>
     <p>
       Expired sessions are removed on the next session creation and may remain
-      physically stored until then. Cloud progress has no automatic expiry.
-      Delete cloud progress and disconnect removes progress while retaining a
-      revision tombstone to reject stale writes; your local place is unchanged.
-      Disconnect other devices too to stop their future saves. Signing out
-      clears this device's account reading/Return data and revokes its own sync
-      session. Tombstones and the monotonic clock have no TTL.
+      physically stored until then. Cloud progress has no time-based expiry.
+      Each browser profile/feed retains its latest confirmed save and two older
+      distinct occurrences, not unlimited history; saving the same occurrence
+      again replaces its offset and time. Up to 32 browser profiles may register
+      per account, without silent eviction. Names have no automatic expiry and
+      can be replaced by renaming that browser. Save times are not post ages or
+      evidence of last device use: a recent save can point to an old post.
+      Delete cloud progress and disconnect removes the active feed's progress
+      and all its browser-profile save history while retaining names, other
+      feeds and a revision tombstone to reject stale writes; your local place is
+      unchanged. Disconnect other devices too to stop their future saves.
+      Signing out clears this device's account reading/Return data and revokes
+      its own sync session. Tombstones and the monotonic clock have no TTL.
+    </p>
+    <p>
+      Latest shared remains the default Check/Resume source. Selecting or
+      checking a browser's saved place does not move the feed. Explicit Resume
+      saved place restores locally without changing latest shared; sharing stays
+      paused until explicit Save my place or Keep mine. Deleted, moderated or
+      expired occurrences may be unavailable. Recovery is not a guaranteed
+      timeline archive. Signing out clears cached device names/history from the
+      UI, but does not delete cloud history or names.
     </p>
     <p>
       No remote analytics delivery is enabled. The service worker does not cache

@@ -6,11 +6,19 @@ import path from 'node:path'
 
 export const didA = 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa'
 export const didB = 'did:plc:bbbbbbbbbbbbbbbbbbbbbbbb'
+export const checkpointMigrationStatements = () =>
+  readFileSync(
+    path.join('worker', 'migrations', '0003_device_checkpoints.sql'),
+    'utf8',
+  )
+    .split(/;\s*(?:\r?\n|$)/)
+    .filter(sql => sql.trim())
 export async function workerRuntime(
   origin = 'https://skyanchor.test',
   publicConfig,
   authorMigration = true,
   verifier,
+  checkpointMigration = true,
 ) {
   const result = await build({
     entryPoints: [path.join('worker', 'index.ts')],
@@ -71,7 +79,10 @@ export async function workerRuntime(
     },
   })
   const db = await runtime.getD1Database('DB')
-  for (const sql of readFileSync(path.join('worker', 'schema.sql'), 'utf8')
+  for (const sql of readFileSync(
+    path.join('worker', 'migrations', '0001_reading.sql'),
+    'utf8',
+  )
     .split(';')
     .filter(sql => sql.trim()))
     await db.prepare(sql).run()
@@ -85,6 +96,8 @@ export async function workerRuntime(
         .filter(sql => sql.trim())
         .map(sql => db.prepare(sql)),
     )
+  if (checkpointMigration)
+    await db.batch(checkpointMigrationStatements().map(sql => db.prepare(sql)))
   await runtime.ready
   const token = (did, service = 'https://bsky.social') => {
     const value = randomBytes(48).toString('base64url')

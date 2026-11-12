@@ -16,6 +16,7 @@ import {
   verifyHandoff,
   verifyReverseHandoff,
   verifyScrollInput,
+  verifyDeviceCheckpoints,
 } from './handoff.mjs'
 import {verifyProfileReading} from './profile-reading.mjs'
 import {verifyAuthContrast} from './auth-contrast.mjs'
@@ -369,6 +370,9 @@ async function mockUpstream(context, owner = didA) {
   let timelineHold
   const timelineRequests = []
   const timelineResponses = []
+  const recordModerated = new Set()
+  const recordDeleted = new Set()
+  const revalidationResponses = []
   await context.route('**/*', async route => {
     const request = route.request()
     const url = new URL(request.url())
@@ -686,13 +690,16 @@ async function mockUpstream(context, owner = didA) {
       result = {
         posts: uris.flatMap(uri => {
           const value = all.find(post => post.uri === uri)
-          return !value || (timeline === undefined && deleted.has(uri))
+          return !value ||
+            recordDeleted.has(uri) ||
+            (timeline === undefined && deleted.has(uri))
             ? []
             : [
                 {
                   ...value,
                   labels:
-                    timeline === undefined && moderated.has(uri)
+                    recordModerated.has(uri) ||
+                    (timeline === undefined && moderated.has(uri))
                       ? [
                           {
                             src: api.moderation.did,
@@ -706,6 +713,16 @@ async function mockUpstream(context, owner = didA) {
               ]
         }),
       }
+      revalidationResponses.push({
+        requested: uris,
+        posts: result.posts.map(value => ({
+          uri: value.uri,
+          labels: value.labels,
+        })),
+        sharedModerated: uris.filter(uri => moderated.has(uri)),
+        sharedDeleted: uris.filter(uri => deleted.has(uri)),
+        isolatedTimeline: timeline !== undefined,
+      })
     } else if (nsid === 'app.bsky.feed.getPostThread') {
       const uri = url.searchParams.get('uri')
       result = {
@@ -887,6 +904,17 @@ async function mockUpstream(context, owner = didA) {
     },
     timelineRequests,
     timelineResponses,
+    revalidationResponses,
+    sharedRecordState: uri => ({
+      uri,
+      moderated: moderated.has(uri),
+      deleted: deleted.has(uri),
+      labels: moderated.has(uri) ? ['!hide'] : [],
+    }),
+    setRecordModerated: (uri, hidden) =>
+      hidden ? recordModerated.add(uri) : recordModerated.delete(uri),
+    setRecordDeleted: (uri, missing) =>
+      missing ? recordDeleted.add(uri) : recordDeleted.delete(uri),
     holdTimeline: (limit = 1, index) => {
       let entered, release
       const reached = new Promise(resolve => {
@@ -1210,6 +1238,21 @@ async function runBrowserProof() {
     report.passed = true
     return
   }
+  if (process.argv.includes('--device-checkpoints-only')) {
+    await verifyDeviceCheckpoints({
+      desktopBrowser,
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+      holdApi,
+      entries,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
+  }
   if (process.argv.includes('--scroll-input-only')) {
     await verifyScrollInput({
       phoneBrowser,
@@ -1223,6 +1266,16 @@ async function runBrowserProof() {
     return
   }
   if (process.argv.includes('--handoff-only')) {
+    await verifyDeviceCheckpoints({
+      desktopBrowser,
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+      holdApi,
+      entries,
+    })
     await verifyAutomaticSource({
       desktopBrowser,
       phoneBrowser,
@@ -1261,6 +1314,23 @@ async function runBrowserProof() {
   }
   await signIn(page, 'fixture@example.test', 'open')
   await signIn(phonePage, 'reader.test')
+  if (process.argv.includes('--new-content-only')) {
+    await verifyNewContent({
+      desktopBrowser,
+      phoneBrowser,
+      origin,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+      entries,
+      post,
+      installViewportFixture,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
+  }
   if (process.argv.includes('--profile-only')) {
     await scrollReading(page, 400)
     const connected = page.waitForResponse(
@@ -2018,6 +2088,11 @@ async function runBrowserProof() {
       didA,
     )
     moderated.add(longLived.anchor.split('|')[0])
+    report.longReturnModeration = {
+      uri: longLived.anchor.split('|')[0],
+      label: '!hide',
+      labeler: api.moderation.did,
+    }
     const callsBeforeReturn = upstreamCalls.filter(
       call => call.nsid === 'app.bsky.feed.getPosts',
     ).length
@@ -2080,6 +2155,7 @@ async function runBrowserProof() {
       didA,
     )
     deleted.add(coldAnchor.split('|')[0])
+    report.coldReturnDeletion = {uri: coldAnchor.split('|')[0]}
     await page.reload()
     await readingPanel(page)
     await expect(page.getByTestId('skyanchor-fallback')).toContainText(
@@ -2212,6 +2288,16 @@ async function runBrowserProof() {
     await closeReadingPanel(page)
     await closeReadingPanel(phonePage)
   }
+  await verifyDeviceCheckpoints({
+    desktopBrowser,
+    phoneBrowser,
+    mockUpstream,
+    signIn,
+    worker,
+    report,
+    holdApi,
+    entries,
+  })
   await verifyAutomaticSource({
     desktopBrowser,
     phoneBrowser,

@@ -245,6 +245,10 @@ function readingFixture({
     move(top) {
       rowTop = top
     },
+    scrollBy(top) {
+      window.scrollBy({top})
+      events.get('scroll')()
+    },
     depart(inside = true) {
       events.get('skyanchor-before-navigation')(
         new FixtureEvent({target: inside ? node : {}}),
@@ -294,6 +298,29 @@ test('Passive captures stay local; a wheel-owned reading scroll carries sharing 
   fixture.events.get('scroll')()
   fixture.flush()
   assert.equal(fixture.dispatched.at(-1).intentional, true)
+})
+
+test('Owned reading interrupts a pending correction before RAF without capturing its corrective scroll', () => {
+  for (const input of ['wheel', 'Home', 'touch']) {
+    const fixture = readingFixture()
+    fixture.hook.preserve(targetPlace, () => {})
+    if (input === 'Home')
+      fixture.events.get('keydown')({
+        key: 'Home',
+        target: fixture.keyTarget(false),
+      })
+    else fixture.events.get(input === 'touch' ? 'touchstart' : 'wheel')()
+    fixture.events.get('scroll')()
+    assert.deepEqual(fixture.saved, [])
+    fixture.scrollBy(-37)
+    fixture.flush()
+    assert.equal(fixture.dispatched.length, 1, input)
+    assert.equal(fixture.dispatched.at(-1).intentional, true, input)
+    assert.equal(fixture.saved.at(-1).offset, targetPlace.offset + 37, input)
+    fixture.events.get('resize')()
+    assert.equal(fixture.rowTop, targetPlace.offset + 37 + 143, input)
+    fixture.cleanup()
+  }
 })
 
 test('Touch momentum remains owned beyond three seconds, but quiescence and scrollend cannot authorize a later passive scroll', () => {

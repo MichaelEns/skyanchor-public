@@ -7,6 +7,600 @@ import {
   scrollReading,
 } from './reading-panel.mjs'
 
+export async function verifyDeviceCheckpoints({
+  desktopBrowser,
+  phoneBrowser,
+  mockUpstream,
+  signIn,
+  worker,
+  report,
+  holdApi,
+  entries,
+}) {
+  const did = 'did:plc:mmmmmmmmmmmmmmmmmmmmmmmm'
+  const originalAuthor = entries[0].post.author.did
+  const scenarioTimeline = JSON.parse(
+    JSON.stringify(entries).replaceAll(originalAuthor, did),
+  )
+  const controlsByPage = new Map()
+  const contexts = [],
+    writes = [],
+    errors = []
+  const requests = new Map(),
+    profileIds = new Map()
+  let sourceHold
+  const writeCount = page =>
+    writes.filter(item => item.device === profileIds.get(page)).length
+  const pendingRequests = page =>
+    [...requests.values()].filter(
+      item => item.profile === profileIds.get(page) && !item.finished,
+    )
+  const key = 'skyanchor:following:v1:' + did
+  const local = page =>
+    page.evaluate(key => JSON.parse(localStorage.getItem(key))?.place, key)
+  const cloud = async () => ({
+    place: await worker.db
+      .prepare("SELECT * FROM places WHERE did = ? AND feed = 'following'")
+      .bind(did)
+      .first(),
+    clock: await worker.db.prepare('SELECT * FROM clock').first(),
+  })
+  const history = device =>
+    worker.db
+      .prepare(
+        "SELECT revision, state, updated FROM reading_history WHERE did = ? AND feed = 'following' AND device = ? ORDER BY revision DESC",
+      )
+      .bind(did, device)
+      .all()
+      .then(result => result.results)
+  const profileId = page =>
+    page.evaluate(() => localStorage.getItem('skyanchor:device'))
+  async function fresh(browser, phone = false) {
+    const context = await browser.newContext({
+      ...(phone
+        ? browserDevices['iPhone 13']
+        : {viewport: {width: 1280, height: 900}}),
+      ignoreHTTPSErrors: true,
+      serviceWorkers: 'block',
+    })
+    contexts.push(context)
+    const controls = await mockUpstream(context, did)
+    controls.setTimeline(scenarioTimeline)
+    const page = await context.newPage()
+    controlsByPage.set(page, controls)
+    page.on('pageerror', error => errors.push(error.message))
+    page.on('request', request => {
+      if (new URL(request.url()).pathname !== '/api/skyanchor/place') return
+      const body = request.postDataJSON()
+      const record = {
+        profile: profileIds.get(page),
+        method: request.method(),
+        expectedRevision: body?.revision,
+        status: undefined,
+        revision: undefined,
+        finished: false,
+      }
+      requests.set(request, record)
+      if (request.method() === 'PUT')
+        writes.push({device: profileIds.get(page), state: body.state, record})
+    })
+    page.on('response', async response => {
+      const record = requests.get(response.request())
+      if (!record) return
+      record.status = response.status()
+      try {
+        const value = await response.json()
+        record.revision = value.revision ?? value.current?.revision
+      } catch (error) {
+        errors.push('Checkpoint response parse failed: ' + error.message)
+      }
+    })
+    page.on('requestfinished', request => {
+      const record = requests.get(request)
+      if (record) record.finished = true
+    })
+    page.on('requestfailed', request => {
+      const record = requests.get(request)
+      if (record) {
+        record.finished = true
+        errors.push(
+          'Checkpoint request failed: ' + request.failure()?.errorText,
+        )
+      }
+    })
+    await signIn(page, 'reader.test')
+    profileIds.set(page, await profileId(page))
+    return page
+  }
+  async function confirmed(page, previous = 0) {
+    await expect
+      .poll(
+        async () => {
+          const current = (await cloud()).place
+          return (
+            current?.revision > previous &&
+            current.device === profileIds.get(page) &&
+            current.state === JSON.stringify(await local(page))
+          )
+        },
+        {timeout: 10000},
+      )
+      .toBe(true)
+    await readingPanel(page)
+    await expect(page.getByTestId('skyanchor-source-state')).toContainText(
+      'Current local place confirmed shared',
+    )
+    await expect(
+      page.getByRole('button', {name: 'Save my place', exact: true}),
+    ).toBeEnabled()
+    await expect.poll(() => pendingRequests(page).length).toBe(0)
+    return (await cloud()).place
+  }
+  async function phoneCheckpoint(page, distance) {
+    await scrollReading(page, distance)
+    const offset = await page.evaluate(key => {
+      const place = JSON.parse(localStorage.getItem(key)).place
+      const node = [...document.querySelectorAll('[data-skyanchor-key]')].find(
+        node => node.dataset.skyanchorKey === place.anchor,
+      )
+      const header = document.querySelector('[data-testid="mobileHomeHeader"]')
+      return (
+        node.getBoundingClientRect().top -
+        (header?.getBoundingClientRect().bottom ?? 0) +
+        20
+      )
+    }, key)
+    await scrollReading(page, offset)
+  }
+  async function chooseSource(page, device) {
+    await readingPanel(page)
+    await page
+      .getByRole('combobox', {name: 'Source of saved place', exact: true})
+      .click()
+    await page
+      .getByRole('option')
+      .filter({hasText: '[' + device.slice(0, 4) + ']'})
+      .click()
+    await expect(
+      page.getByRole('button', {name: 'Resume saved place', exact: true}),
+    ).toBeEnabled()
+  }
+  async function chooseSave(page, prefix) {
+    await page.getByRole('combobox', {name: 'Saved place', exact: true}).click()
+    await expect(page.getByRole('option')).toHaveCount(3)
+    const labels = await page.getByRole('option').allTextContents()
+    assert.ok(labels.every(label => /\d/.test(label)))
+    await page.getByRole('option').filter({hasText: prefix}).click()
+    return labels
+  }
+  async function placement(page, state) {
+    const error = await page.evaluate(place => {
+      const node = [...document.querySelectorAll('[data-skyanchor-key]')].find(
+        node => node.dataset.skyanchorKey === place.anchor,
+      )
+      const header = document.querySelector('[data-testid="mobileHomeHeader"]')
+      return node
+        ? Math.abs(
+            node.getBoundingClientRect().top -
+              (header?.getBoundingClientRect().bottom ?? 0) -
+              place.offset,
+          )
+        : Infinity
+    }, state)
+    assert.ok(
+      error <= 2,
+      'The frozen occurrence and offset must be placed within two pixels',
+    )
+    return error
+  }
+  try {
+    const a = await fresh(phoneBrowser, true)
+    await phoneCheckpoint(a, 400)
+    await readingAction(a, 'Connect private sync')
+    let row = await confirmed(a)
+    const aId = await profileId(a)
+    const registry = async () =>
+      (
+        await worker.db
+          .prepare(
+            'SELECT device, label, label_kind AS labelKind FROM device_registry WHERE did = ? ORDER BY device',
+          )
+          .bind(did)
+          .all()
+      ).results
+    const phoneName = (await registry()).find(item => item.device === aId)
+    assert.match(phoneName.label, /^Safari on iPhone - /)
+    assert.equal(phoneName.labelKind, 'default')
+    for (let i = 0; i < 3; i++) {
+      await closeReadingPanel(a)
+      await phoneCheckpoint(a, 700)
+      row = await confirmed(a, row.revision)
+    }
+    const aSaves = await history(aId)
+    assert.equal(aSaves.length, 3)
+    await readingPanel(a)
+    await expect(
+      a.getByRole('textbox', {name: 'Name this browser profile', exact: true}),
+    ).toHaveValue(phoneName.label)
+    await a
+      .getByRole('textbox', {name: 'Name this browser profile', exact: true})
+      .fill('Fixture phone reading profile')
+    await readingAction(a, 'Save browser name')
+    await expect(
+      a.getByText('This browser profile was renamed.', {exact: true}),
+    ).toBeVisible()
+    const b = await fresh(desktopBrowser)
+    await readingAction(b, 'Connect private sync')
+    await expect(
+      b.getByRole('button', {name: 'Resume other device', exact: true}),
+    ).toBeEnabled()
+    await readingAction(b, 'Resume other device')
+    await expect(b.getByTestId('skyanchor-resume-result')).toContainText(
+      'Confirmed locally.',
+    )
+    await expect
+      .poll(async () => JSON.stringify(await local(b)))
+      .toBe(row.state)
+    await readingPanel(b)
+    await expect(b.getByTestId('skyanchor-source-state')).toContainText(
+      'Current local place confirmed shared',
+    )
+    await closeReadingPanel(b)
+    await scrollReading(b, 650)
+    const shared = await confirmed(b, row.revision)
+    const bId = await profileId(b)
+    const c = await fresh(desktopBrowser)
+    await readingAction(c, 'Connect private sync')
+    await readingAction(c, 'Resume other device')
+    await expect(c.getByTestId('skyanchor-resume-result')).toContainText(
+      'Confirmed locally.',
+    )
+    await expect
+      .poll(async () => JSON.stringify(await local(c)))
+      .toBe(shared.state)
+    await readingPanel(c)
+    await expect(c.getByTestId('skyanchor-source-state')).toContainText(
+      'Current local place confirmed shared',
+    )
+    const cId = await profileId(c)
+    assert.equal(new Set([aId, bId, cId]).size, 3)
+    const generated = (await registry()).filter(item =>
+      [bId, cId].includes(item.device),
+    )
+    for (const item of generated) {
+      assert.match(item.label, /^(Chrome|Edge) on Windows - /)
+      assert.ok(item.label.endsWith(item.device.slice(0, 4)))
+      assert.equal(item.labelKind, 'default')
+    }
+    assert.notEqual(generated[0].label, generated[1].label)
+    await expect(
+      c.getByRole('textbox', {name: 'Name this browser profile', exact: true}),
+    ).toHaveValue(generated.find(item => item.device === cId).label)
+    await readingAction(b, 'Check saved places')
+    await expect(
+      b.getByRole('button', {name: 'Check saved places', exact: true}),
+    ).toBeEnabled()
+    const before = await cloud(),
+      beforeLocal = await local(b),
+      beforeWrites = writeCount(b)
+    await chooseSource(b, aId)
+    const labels = await chooseSave(b, 'Older save')
+    await expect(
+      b.getByRole('combobox', {name: 'Source of saved place', exact: true}),
+    ).toContainText('Fixture phone reading profile')
+    assert.deepEqual(await local(b), beforeLocal)
+    assert.deepEqual(await cloud(), before)
+    assert.equal(writeCount(b), beforeWrites)
+    const chosen = aSaves[2]
+    // A newer source head must not replace the record already selected on B.
+    await closeReadingPanel(a)
+    await phoneCheckpoint(a, 550)
+    await readingAction(a, 'Check other device')
+    await expect(
+      a.getByRole('button', {name: 'Keep mine', exact: true}),
+    ).toBeEnabled()
+    const sourceLocal = await local(a),
+      sourceBefore = await cloud()
+    const cookie = (await a.context().cookies()).find(
+      item => item.name === '__Host-skyanchor',
+    )
+    assert.ok(cookie)
+    sourceHold = holdApi('PUT', {
+      cookie: cookie.name + '=' + cookie.value,
+      scenario: 'device-checkpoint-source-keep-mine',
+    })
+    await readingAction(a, 'Keep mine')
+    let holdTimeout
+    try {
+      await Promise.race([
+        sourceHold.reached,
+        new Promise((_, reject) => {
+          holdTimeout = setTimeout(
+            () => reject(new Error('Source Keep mine did not reach D1')),
+            10000,
+          )
+        }),
+      ])
+    } finally {
+      clearTimeout(holdTimeout)
+    }
+    const committedWhileHeld = await cloud()
+    assert.equal(sourceHold.request.status, 200)
+    assert.ok(committedWhileHeld.place.revision > sourceBefore.place.revision)
+    assert.equal(committedWhileHeld.place.device, aId)
+    assert.equal(committedWhileHeld.place.state, JSON.stringify(sourceLocal))
+    assert.equal(
+      committedWhileHeld.clock.revision,
+      committedWhileHeld.place.revision,
+    )
+    assert.deepEqual(writes.at(-1).state, sourceLocal)
+    assert.equal(writes.at(-1).device, aId)
+    assert.equal(
+      pendingRequests(a).filter(item => item.method === 'PUT').length,
+      1,
+    )
+    const sourcePendingWhileHeld = pendingRequests(a).map(item => ({...item}))
+    await expect(
+      a.getByRole('button', {name: 'Save my place', exact: true}),
+    ).toBeDisabled()
+    assert.ok(
+      !(await history(aId)).some(item => item.revision === chosen.revision),
+    )
+    // The destination may attempt recovery while A's committed response is still held.
+    const bWritesBeforeHeld = writeCount(b)
+    await readingAction(b, 'Resume saved place')
+    await expect(b.getByTestId('skyanchor-resume-result')).toContainText(
+      'expired or was deleted',
+    )
+    assert.equal(writeCount(b), bWritesBeforeHeld)
+    const receivingWritesWhileSourceHeld = writeCount(b) - bWritesBeforeHeld
+    assert.deepEqual(await local(b), beforeLocal)
+    assert.deepEqual(await cloud(), committedWhileHeld)
+    sourceHold.release()
+    sourceHold = undefined
+    const confirmedSource = await confirmed(a, sourceBefore.place.revision)
+    assert.equal(confirmedSource.revision, committedWhileHeld.place.revision)
+    assert.equal(confirmedSource.state, JSON.stringify(sourceLocal))
+    const advanced = await cloud(),
+      sourceWrites = writeCount(a)
+    // Let the real debounce/pending retry run; no source write is suppressed.
+    await a.waitForTimeout(1200)
+    assert.equal(writeCount(a), sourceWrites)
+    assert.equal(pendingRequests(a).length, 0)
+    assert.deepEqual(await cloud(), advanced)
+    const receivingWrites = writeCount(b)
+    await readingAction(b, 'Resume saved place')
+    await expect(b.getByTestId('skyanchor-resume-result')).toContainText(
+      'expired or was deleted',
+    )
+    assert.deepEqual(await local(b), beforeLocal)
+    assert.deepEqual(await cloud(), advanced)
+    assert.equal(writeCount(b), receivingWrites)
+    await readingAction(b, 'Check saved places')
+    await expect(
+      b.getByRole('button', {name: 'Check saved places', exact: true}),
+    ).toBeEnabled()
+    await chooseSave(b, 'Previous save')
+    const chosenCurrent = (await history(aId))[1]
+    const beforeRestore = await cloud(),
+      putsBeforeRestore = writeCount(b)
+    const selectedUri = JSON.parse(chosenCurrent.state).anchor.split('|')[0]
+    assert.ok(selectedUri.startsWith('at://' + did + '/'))
+    const bControls = controlsByPage.get(b)
+    const localBytes = () =>
+      b.evaluate(
+        key => ({
+          snapshot: localStorage.getItem(key),
+          return: localStorage.getItem(
+            key.replace('skyanchor:following:', 'skyanchor:return:'),
+          ),
+          url: location.href,
+        }),
+        key,
+      )
+    const beforeRejected = await localBytes()
+    const historyBeforeRejected = await history(aId)
+    const rejectedRecords = []
+    for (const reason of ['moderated', 'deleted']) {
+      if (reason === 'moderated')
+        bControls.setRecordModerated(selectedUri, true)
+      else bControls.setRecordDeleted(selectedUri, true)
+      const responsesBefore = bControls.revalidationResponses.length
+      await readingAction(b, 'Resume saved place')
+      await expect(b.getByTestId('skyanchor-resume-result')).toContainText(
+        'Could not restore the exact saved occurrence.',
+      )
+      if (reason === 'moderated')
+        await expect(b.getByTestId('skyanchor-resume-result')).toContainText(
+          'missing or excluded by current moderation',
+        )
+      const revalidation =
+        bControls.revalidationResponses.slice(responsesBefore)
+      const response = revalidation.find(item =>
+        item.requested.includes(selectedUri),
+      )
+      assert.ok(
+        response,
+        'Historical recovery must revalidate the exact selected URI',
+      )
+      if (reason === 'moderated')
+        assert.ok(
+          response.posts
+            .find(item => item.uri === selectedUri)
+            .labels.some(label => label.val === '!hide'),
+        )
+      else assert.ok(!response.posts.some(item => item.uri === selectedUri))
+      assert.deepEqual(await localBytes(), beforeRejected)
+      assert.deepEqual(await cloud(), beforeRestore)
+      assert.deepEqual(await history(aId), historyBeforeRejected)
+      assert.equal(writeCount(b), putsBeforeRestore)
+      rejectedRecords.push({reason, uri: selectedUri, revalidation})
+      if (reason === 'moderated')
+        bControls.setRecordModerated(selectedUri, false)
+      else bControls.setRecordDeleted(selectedUri, false)
+    }
+    await readingAction(b, 'Resume saved place')
+    await expect(b.getByTestId('skyanchor-resume-result')).toContainText(
+      'Restored this saved place locally',
+    )
+    await expect
+      .poll(async () => JSON.stringify(await local(b)))
+      .toBe(chosenCurrent.state)
+    const error = await placement(b, JSON.parse(chosenCurrent.state))
+    assert.deepEqual(await cloud(), beforeRestore)
+    assert.equal(writeCount(b), putsBeforeRestore)
+    await scrollReading(b, 90)
+    await b.waitForTimeout(1200)
+    await b.evaluate(() => dispatchEvent(new Event('focus')))
+    await b.waitForTimeout(500)
+    assert.deepEqual(await cloud(), beforeRestore)
+    assert.equal(writeCount(b), putsBeforeRestore)
+    await b.reload()
+    await b.getByTestId('skyanchor-reading-button').waitFor()
+    await readingPanel(b)
+    await expect(b.getByTestId('skyanchor-source-state')).toContainText(
+      'Restored saved place is local only',
+    )
+    await closeReadingPanel(b)
+    await scrollReading(b, 70)
+    await b.waitForTimeout(1100)
+    assert.deepEqual(await cloud(), beforeRestore)
+    // Device history includes this browser's own earlier saves, not only others.
+    await readingAction(b, 'Check saved places')
+    await expect(
+      b.getByRole('button', {name: 'Check saved places', exact: true}),
+    ).toBeEnabled()
+    await chooseSource(b, bId)
+    await expect(
+      b.getByRole('combobox', {name: 'Source of saved place', exact: true}),
+    ).toContainText('This browser')
+    await chooseSource(b, aId)
+    const historicalRestorePuts = writeCount(b) - putsBeforeRestore
+    assert.equal(historicalRestorePuts, 0)
+    const cControls = controlsByPage.get(c)
+    const chosenSharedUri = JSON.parse(beforeRestore.place.state).anchor.split(
+      '|',
+    )[0]
+    const originalSharedUri = chosenSharedUri.replace(did, originalAuthor)
+    const originalSharedRecord = cControls.sharedRecordState(originalSharedUri)
+    const cResponsesBefore = cControls.revalidationResponses.length
+    await readingAction(c, 'Check other device')
+    await readingAction(c, 'Resume other device')
+    await expect(c.getByTestId('skyanchor-resume-result')).toContainText(
+      'Confirmed locally.',
+    )
+    await expect
+      .poll(async () => JSON.stringify(await local(c)))
+      .toBe(beforeRestore.place.state)
+    await readingPanel(c)
+    await expect(c.getByTestId('skyanchor-source-state')).toContainText(
+      'Current local place confirmed shared',
+    )
+    const cRevalidation = cControls.revalidationResponses
+      .slice(cResponsesBefore)
+      .find(item => item.requested.includes(chosenSharedUri))
+    assert.ok(cRevalidation)
+    assert.ok(cRevalidation.posts.some(item => item.uri === chosenSharedUri))
+    assert.deepEqual(
+      cRevalidation.posts.find(item => item.uri === chosenSharedUri).labels,
+      [],
+    )
+    assert.ok(cRevalidation.isolatedTimeline)
+    assert.deepEqual(await cloud(), beforeRestore)
+    await closeReadingPanel(c)
+    await scrollReading(c, 350)
+    const cShared = await confirmed(c, beforeRestore.place.revision)
+    // Sharing a local historical view requires a fresh, explicit shared-head decision.
+    await readingAction(b, 'Save my place')
+    await expect(
+      b.getByText(
+        'Latest shared changed. Review it and choose Keep mine again to share this local view.',
+        {exact: true},
+      ),
+    ).toBeVisible()
+    assert.equal(
+      writeCount(b) - putsBeforeRestore,
+      0,
+      'Only C has written; B must not silently overwrite it',
+    )
+    await readingAction(b, 'Keep mine')
+    await confirmed(b, cShared.revision)
+    await expect(
+      b.getByRole('button', {name: 'Keep mine', exact: true}),
+    ).toHaveCount(0)
+    const explicitlyShared = (await cloud()).place
+    assert.ok(explicitlyShared.revision > cShared.revision)
+    assert.equal(explicitlyShared.device, bId)
+    assert.equal(explicitlyShared.state, JSON.stringify(await local(b)))
+    assert.equal(
+      await b.evaluate(
+        did => localStorage.getItem('skyanchor:historic-local:' + did),
+        did,
+      ),
+      null,
+    )
+    // A tombstone after a list read must reject the cached save before movement.
+    await readingAction(c, 'Check other device')
+    await readingAction(c, 'Resume other device')
+    await expect(c.getByTestId('skyanchor-resume-result')).toContainText(
+      'Confirmed locally.',
+    )
+    await expect
+      .poll(async () => JSON.stringify(await local(c)))
+      .toBe(explicitlyShared.state)
+    await readingPanel(c)
+    await expect(c.getByTestId('skyanchor-source-state')).toContainText(
+      'Current local place confirmed shared',
+    )
+    await readingAction(c, 'Delete cloud progress and disconnect')
+    await expect(
+      c.getByText(
+        'Cloud progress deleted and sync disconnected. Your local reading place is unchanged.',
+        {exact: true},
+      ),
+    ).toBeVisible()
+    const deleted = await cloud(),
+      localBeforeDeleteRestore = await local(b)
+    assert.equal(deleted.place.state, null)
+    await readingAction(b, 'Resume saved place')
+    await expect(b.getByTestId('skyanchor-resume-result')).toContainText(
+      'Cloud progress was deleted',
+    )
+    assert.deepEqual(await local(b), localBeforeDeleteRestore)
+    assert.deepEqual(await cloud(), deleted)
+    assert.equal((await history(aId)).length, 0)
+    assert.ok(chosen.revision < chosenCurrent.revision)
+    assert.deepEqual(errors, [])
+    report.deviceCheckpoints = {
+      profiles: 3,
+      retained: 3,
+      labels,
+      placementError: error,
+      rejectedExpired: true,
+      rejectedTombstone: true,
+      historicalRestorePuts,
+      explicitSharingCAS: true,
+      generatedPhoneName: phoneName.label,
+      generatedDesktopNames: generated.map(item => item.label),
+      heldSourceCommit: committedWhileHeld.place.revision,
+      confirmedSourceRevision: confirmedSource.revision,
+      receivingWritesWhileSourceHeld,
+      sourcePendingWhileHeld,
+      requests: [...requests.values()],
+      originalSharedRecord,
+      isolatedSharedUri: chosenSharedUri,
+      isolatedSharedRevalidation: cRevalidation,
+      rejectedRecords,
+    }
+    report.checks.push(
+      'Three production browser profiles: renamed source, three timestamped saves, no-write selection, expired immutable choice, exact local historical restore, durable autosave pause, own-browser history and deletion-race rejection',
+    )
+  } finally {
+    sourceHold?.release()
+    await Promise.all(contexts.map(context => context.close()))
+  }
+}
+
 export async function verifyScrollInput({
   phoneBrowser,
   mockUpstream,
@@ -1187,7 +1781,15 @@ export async function verifyHandoff({
       const page = await context.newPage()
       page.on('pageerror', error => failures.push(error.message))
       const expected = new Map()
+      const timelineHttp = []
       page.on('response', response => {
+        const url = new URL(response.url())
+        if (url.pathname.endsWith('/app.bsky.feed.getTimeline'))
+          timelineHttp.push({
+            status: response.status(),
+            cursor: url.searchParams.get('cursor'),
+            limit: url.searchParams.get('limit'),
+          })
         if (
           response.status() < 400 ||
           response.url().includes('com.atproto.repo.getRecord')
@@ -1212,7 +1814,7 @@ export async function verifyHandoff({
         await page.getByTestId('HomeScreen').waitFor()
         await page.locator('[data-skyanchor-key]').first().waitFor()
       }
-      contexts[index].fixture = {page, controls, expected}
+      contexts[index].fixture = {page, controls, expected, timelineHttp}
     }
     const [a, b, c] = contexts.map(context => context.fixture.page)
     const devices = await Promise.all(
@@ -1249,17 +1851,201 @@ export async function verifyHandoff({
     )
     await expect(a.getByTestId('skyanchor-reading-indicator')).toHaveCount(0)
     await closeReadingPanel(a)
+    await a.evaluate(() => {
+      window.fixturePaginationTrace = []
+      window.fixturePaginationWheels = []
+      window.fixturePaginationSample = phase => {
+        const rows = [...document.querySelectorAll('[data-skyanchor-key]')]
+        const header = document.querySelector(
+          '[data-testid="mobileHomeHeader"]',
+        )
+        const last = rows.at(-1)
+        const sample = {
+          phase,
+          focused: document.hasFocus(),
+          activeTag: document.activeElement?.tagName,
+          activeRole: document.activeElement?.getAttribute('role'),
+          platform: navigator.platform,
+          y: scrollY,
+          maxY: document.documentElement.scrollHeight - innerHeight,
+          height: innerHeight,
+          header: header?.getBoundingClientRect().bottom ?? 0,
+          count: rows.length,
+          last: last?.dataset.skyanchorKey,
+          lastBottom: last?.getBoundingClientRect().bottom,
+          loading: [...document.querySelectorAll('[role="progressbar"]')].map(
+            node => ({
+              top: node.getBoundingClientRect().top,
+              bottom: node.getBoundingClientRect().bottom,
+            }),
+          ),
+        }
+        window.fixturePaginationTrace.push(sample)
+        if (window.fixturePaginationTrace.length > 50)
+          window.fixturePaginationTrace.shift()
+        return sample
+      }
+      const scrollBy = window.scrollBy
+      window.scrollBy = function (...args) {
+        window.fixturePaginationSample('correction-scrollBy')
+        return scrollBy.apply(this, args)
+      }
+      const onScroll = () => window.fixturePaginationSample('scroll')
+      const onResize = () => window.fixturePaginationSample('resize')
+      const onWheel = event => {
+        window.fixturePaginationWheels.push({
+          deltaY: event.deltaY,
+          trusted: event.isTrusted,
+          prevented: event.defaultPrevented,
+          focused: document.hasFocus(),
+          targetTag: event.target?.tagName,
+          targetRole: event.target?.getAttribute?.('role'),
+          y: scrollY,
+        })
+        if (window.fixturePaginationWheels.length > 20)
+          window.fixturePaginationWheels.shift()
+      }
+      addEventListener('scroll', onScroll)
+      addEventListener('resize', onResize)
+      addEventListener('wheel', onWheel, {passive: true})
+      window.fixturePaginationStop = () => {
+        window.scrollBy = scrollBy
+        removeEventListener('scroll', onScroll)
+        removeEventListener('resize', onResize)
+        removeEventListener('wheel', onWheel)
+      }
+    })
+    const pagination = []
+    let passiveCorrection
     // Load real successive timeline pages; B and C keep their different, fresh windows.
     for (let i = 0; i < 20; i++) {
       const count = await a.locator('[data-skyanchor-key]').count()
       if (await a.locator('[data-skyanchor-key*="/post470|"]').count()) break
-      await a.evaluate(() =>
-        window.scrollTo(0, document.documentElement.scrollHeight),
-      )
-      await expect
-        .poll(() => a.locator('[data-skyanchor-key]').count())
-        .toBeGreaterThan(count)
+      const controls = contexts[0].fixture.controls
+      {
+        if (count === 180) {
+          passiveCorrection = await a.evaluate(() => {
+            const before = window.fixturePaginationSample(
+              'before-passive-bottom',
+            )
+            const intendedY =
+              document.documentElement.scrollHeight - innerHeight
+            scrollTo(0, document.documentElement.scrollHeight)
+            const atBottom = window.fixturePaginationSample(
+              'passive-bottom-before-layout',
+            )
+            dispatchEvent(new Event('resize'))
+            const after = window.fixturePaginationSample(
+              'passive-bottom-after-layout',
+            )
+            return {before, intendedY, atBottom, after}
+          })
+          assert.ok(
+            Math.abs(
+              passiveCorrection.atBottom.y - passiveCorrection.intendedY,
+            ) <= 2,
+          )
+          assert.ok(
+            Math.abs(passiveCorrection.after.y - passiveCorrection.before.y) <=
+              2,
+          )
+        }
+        const beforeWheel = await a.evaluate(() =>
+          window.fixturePaginationSample('before-owned-wheel'),
+        )
+        await a.bringToFront()
+        await a.evaluate(() => document.activeElement?.blur())
+        await expect
+          .poll(() => a.evaluate(() => document.hasFocus()))
+          .toBe(true)
+        const readyForWheel = await a.evaluate(() =>
+          window.fixturePaginationSample('focused-before-owned-wheel'),
+        )
+        const targetKey = readyForWheel.last
+        const targetIndex = history.findIndex(item =>
+          targetKey.startsWith(item.post.uri + '|'),
+        )
+        assert.ok(targetIndex >= 0)
+        const viewport = a.viewportSize()
+        await a.mouse.move(viewport.width / 2, viewport.height / 2)
+        await a.mouse.wheel(
+          0,
+          Math.ceil(readyForWheel.maxY - readyForWheel.y + viewport.height),
+        )
+        await expect
+          .poll(() => a.evaluate(() => window.fixturePaginationWheels.length))
+          .toBe(pagination.length + 1)
+        const wheel = await a.evaluate(() =>
+          window.fixturePaginationWheels.at(-1),
+        )
+        assert.ok(
+          wheel.trusted &&
+            wheel.focused &&
+            !wheel.prevented &&
+            wheel.deltaY > 0,
+        )
+        await expect
+          .poll(() =>
+            a.evaluate(key => {
+              const sample = window.fixturePaginationSample('owned-wheel')
+              const target = [
+                ...document.querySelectorAll('[data-skyanchor-key]'),
+              ].find(node => node.dataset.skyanchorKey === key)
+              return target?.getBoundingClientRect().bottom <= sample.height + 2
+            }, targetKey),
+          )
+          .toBe(true)
+        await expect
+          .poll(() =>
+            controls.timelineResponses.some(
+              response =>
+                response.index <= targetIndex + 1 &&
+                response.index + response.limit > targetIndex + 1 &&
+                response.limit === 30,
+            ),
+          )
+          .toBe(true)
+        await expect
+          .poll(() => a.locator('[data-skyanchor-key]').count())
+          .toBeGreaterThan(readyForWheel.count)
+        const end = await a.evaluate(() =>
+          window.fixturePaginationSample('owned-wheel-appended'),
+        )
+        assert.ok(end.y > readyForWheel.y)
+        const targetBottom = await a
+          .locator('[data-skyanchor-key]')
+          .evaluateAll(
+            (nodes, key) =>
+              nodes
+                .find(node => node.dataset.skyanchorKey === key)
+                ?.getBoundingClientRect().bottom,
+            targetKey,
+          )
+        pagination.push({
+          count,
+          beforeWheel,
+          readyForWheel,
+          wheel,
+          targetKey,
+          targetIndex,
+          targetBottom,
+          completion: 'real data appended',
+          responses: controls.timelineResponses.filter(
+            response => response.index > targetIndex && response.limit === 30,
+          ),
+          end,
+        })
+      }
     }
+    report.deepPagination = {
+      input: 'trusted mouse wheel',
+      passiveCorrection,
+      pages: pagination,
+      requests: contexts[0].fixture.controls.timelineRequests,
+      responses: contexts[0].fixture.controls.timelineResponses,
+      http: contexts[0].fixture.timelineHttp,
+    }
+    await a.evaluate(() => window.fixturePaginationStop())
     const target = a.locator('[data-skyanchor-key*="/post470|repost:"]').last()
     await target.scrollIntoViewIfNeeded()
     await target.evaluate(node =>
@@ -1460,12 +2246,17 @@ export async function verifyHandoff({
       request => request.limit === 30 && request.index === 0,
     ).length
     await readingPanel(b)
-    await b
-      .getByRole('button', {name: 'Resume other device', exact: true})
-      .evaluate(button => {
-        button.click()
-        button.click()
-      })
+    const doubleResume = b.getByRole('button', {
+      name: 'Resume other device',
+      exact: true,
+    })
+    const disabledBeforeCheckSettled = await doubleResume.isDisabled()
+    await expect(doubleResume).toBeEnabled()
+    report.doubleActivation = {disabledBeforeCheckSettled}
+    await doubleResume.evaluate(button => {
+      button.click()
+      button.click()
+    })
     await expect(b.getByTestId('skyanchor-resume-result')).toContainText(
       "Resumed the other device's saved place",
     )
@@ -1939,6 +2730,29 @@ export async function verifyHandoff({
       'Three independent browser profiles (email entryway, WebKit regional handle, cold persisted regional desktop) hand off a deep exact repost/reply occurrence outside fresh windows through real D1 CAS. Offers never jump or write; expired access/cookie renewal and failure recovery preserve local state.',
     )
   } catch (error) {
+    const source = contexts[0]?.fixture
+    if (source) {
+      report.deepPagination = {
+        geometry: await source.page.evaluate(() =>
+          window.fixturePaginationSample?.('failure'),
+        ),
+        trace: await source.page.evaluate(() => window.fixturePaginationTrace),
+        wheels: await source.page.evaluate(
+          () => window.fixturePaginationWheels,
+        ),
+        requests: source.controls.timelineRequests.slice(-8),
+        responses: source.controls.timelineResponses.slice(-8),
+        http: source.timelineHttp.slice(-8),
+        errors: failures,
+      }
+      console.error(
+        'Synthetic deep pagination:',
+        JSON.stringify({
+          ...report.deepPagination,
+          trace: report.deepPagination.trace?.slice(-12),
+        }),
+      )
+    }
     report.handoffFailure ??= await Promise.all(
       contexts
         .filter(context => context.fixture)

@@ -1151,6 +1151,8 @@ let PostFeed = ({
         throw new Error(
           l`Saved occurrence is missing or excluded by current moderation. Your local place and Return are preserved.`,
         )
+      await options.verify?.()
+      if (!active()) throw new Error(l`Remote Resume cancelled.`)
       retrieving = false
       if (queryClient.getQueryData(RQKEY(feed, feedParams)) !== raw)
         throw new Error(
@@ -1165,6 +1167,7 @@ let PostFeed = ({
       queryClient.setQueryData(RQKEY(feed, feedParams), integrated)
       integrated = queryClient.getQueryData(RQKEY(feed, feedParams))
       await placement
+      await options.verify?.()
       if (!active()) throw new Error(l`Remote Resume cancelled.`)
       const stored = readSnapshot(localStorage, did, readingFeed)
       if (JSON.stringify(stored?.place) !== JSON.stringify(place))

@@ -99,11 +99,15 @@ export function clearReadingAccount(did: string, revokeSession = true) {
   localStorage.removeItem(RETURN_PREFIX + did)
   localStorage.removeItem('skyanchor:sync-enabled:' + did)
   localStorage.removeItem('skyanchor:revision:' + did)
+  localStorage.removeItem('skyanchor:historic-local:' + did)
   for (const key of Object.keys(localStorage)) {
     if (
-      [STORAGE_PREFIX, RETURN_PREFIX, 'skyanchor:revision:'].some(prefix =>
-        key.startsWith(prefix + did + ':author|'),
-      )
+      [
+        STORAGE_PREFIX,
+        RETURN_PREFIX,
+        'skyanchor:revision:',
+        'skyanchor:historic-local:',
+      ].some(prefix => key.startsWith(prefix + did + ':author|'))
     )
       localStorage.removeItem(key)
   }

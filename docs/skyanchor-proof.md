@@ -104,3 +104,108 @@ consumer inventories; it does not waive security findings.
 linear root history. The owner must additionally scan every reachable new Git
 object with private markers held outside this repository. No generic scanner
 can establish absolute absence of personal information.
+
+# Device checkpoint acceptance
+
+The normal production browser gate also exercises three independent browser
+profiles (phone-sized WebKit and two desktops) with synthetic private names.
+It checks three timestamped distinct occurrences, no-write source selection,
+an expired frozen choice, exact local-only older-save placement within two
+pixels, own-browser history, durable sharing pause through scroll/focus/reload,
+explicit fresh-CAS sharing and a cached-save/tombstone race. The focused selector
+is `pnpm skyanchor:e2e --device-checkpoints-only`; it does not replace the full
+17-stage post-commit gate. Real D1 tests apply versioned migrations, compare
+existing row bytes and test rollback tombstones, failed CAS, retention, private
+rename/renewal, capacity and whole-transaction failure.
+
+The source-A Keep mine response is held after its actual D1 commit while B
+attempts the expired historical restore. The proof attributes every place
+request/response to its profile, verifies A's exact submitted state and revision,
+and proves B sends no receiving PUT. After releasing A's response, confirmation
+requires A's profile ID, visible local state, shared caption, finished requests
+and a stable full row/clock across the real debounce/pending-save interval.
+The unchanged row/clock assertion uses that confirmed baseline, not an enabled
+Save button. Generated production WebKit iPhone and desktop Windows labels are
+checked before rename; actual Edge execution remains a separate approved
+parent validation, not a spoofed-UA claim.
+
+The complete browser sequence retains earlier Return moderation/deletion
+fixtures. Its hidden shared URI
+`at://did:plc:aaaaaaaaaaaaaaaaaaaaaaaa/app.bsky.feed.post/post19`
+previously contaminated the device scenario despite a different signed-in
+account: public post records were still shared. Device acceptance now owns a
+consistent feed/reply/revalidation URI set under its synthetic scenario author.
+The receipt records the original `!hide` flag and the isolated record's actual
+revalidation labels. Dedicated context-local hidden and deleted flags reject
+the same chosen historical occurrence before successful recovery, preserving
+local/Return bytes, URL, history, full cloud row/clock and zero receiving PUTs.
+No shared moderation flags are cleared and application moderation is unchanged.
+
+The newer-content proof uses trusted Home input, not a fixed toolbar's
+visibility, to establish the actual first post and its local checkpoint before
+Refresh. A controlled passive scroll/resize reproduces the old 22669 px
+correction before any Refresh action, without changing the cloud row/clock.
+Owned input now ends a pending correction frame while retaining the
+corrected-scroll-position guard: a corrective event alone still cannot become
+reading intent. Hook coverage exercises wheel, Home and touch before RAF.
+
+`pnpm skyanchor:e2e --new-content-only` owns the focused production regression.
+Both engines hold only the disposable page's JavaScript RAF callbacks during
+trusted Home, prove the actual top differs from the still-stale local
+checkpoint, then activate Refresh before capture. No-new and fresh-head
+integration retain that exact visible occurrence within two pixels; fresh
+prefix ordering is checked separately. The real Home autosave is confirmed
+while the head response is held, establishing a full row/clock baseline before
+integration. Subsequent discovery at the current top must not move or write.
+The complete browser runner retains all preceding moderation, device history,
+handoff, reverse, momentum and continuous-history cases. WebKit keyboard
+coverage is not physical iPhone touch acceptance.
+
+The immediate-input phase pauses only its disposable page's simulated clock
+before Home. Cross-process fixture work while RAF is deliberately held must not
+consume the 250 ms input-ownership budget. It runs one millisecond for the
+dialog-close callback, sixteen for released RAF, and one second for the real
+750 ms save debounce/one-second retry interval, then resumes the clock. The
+receipt requires an intentional Home capture, an actual successful source PUT
+and matching response/D1 state, revision and device before releasing the head.
+The original running-clock failure was reproduced locally as a passive capture
+and an explicit sharing decision, not a missing debounce or wrong-state PUT.
+This controlled phase does not establish that the exact hosted scheduling cause
+is resolved; the new HEAD still requires its real hosted check. Failures print
+bounded synthetic phase, clock, input/capture, private-request status and UI
+evidence, omitting cookie values, authorization and session/CSRF material.
+
+The handoff double-activation case waits for the Resume button to be enabled
+before its two native DOM clicks. The receipt records whether it was initially
+disabled while Check metadata settled; native `.click()` would otherwise
+silently do nothing. Exactly one recovery head request and unchanged cloud
+progress are still required.
+
+Deep handoff pagination uses trusted desktop mouse-wheel input for every successive
+page, not passive `scrollTo(bottom)`. The pre-input last row key is frozen;
+that same row must reach or pass the viewport bottom, scrolling must advance,
+and real rows beyond that boundary must be served and appended within the
+original timeout. The receipt includes geometry and served cursor offsets through
+post470, without inserting fixture pages into application state.
+A controlled resize at exactly 180 rows demonstrates how passive movement
+can return to the captured row before pagination is triggered. This establishes
+the failure mechanism, not the exact natural event order of the parent's Edge
+failure, which was not reproduced in the initial Chromium trace. Bounded failure
+output retains viewport/max-scroll/header/footer geometry, correction events,
+actual cursor HTTP statuses and existing error checks.
+Before each wheel gesture, the proof selects source tab A with `bringToFront`,
+blurs the prior control without scrolling, requires document focus, and places
+the pointer over the feed. One real wheel gesture covers the remaining current
+page distance. Geometry and trusted wheel
+receipts retain focus, target tag/role, platform and default-prevention state,
+never input values. The parent's focused Edge run still observed trusted,
+unprevented End keydown/keyup without scrolling or the next cursor request at
+150 rows. Focus was therefore not established as the cause. That native Edge
+End interaction remains unresolved; pagination setup no longer depends on it.
+Separate Home keyboard and input-intent coverage remains unchanged.
+The parent's Edge wheel trace proved a setup-oracle race: the old last row240
+reached the viewport, then real responses at offsets240/270 appended through
+row300 before polling examined the DOM's new last row. Setup therefore does not
+hold a guessed cursor based on rendered count or require a transient spinner.
+It accepts fast completed pagination against the frozen target and actual
+served data. Explicit pending-response coverage elsewhere remains unchanged.
