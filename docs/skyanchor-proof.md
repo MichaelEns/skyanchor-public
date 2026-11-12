@@ -193,3 +193,10 @@ the failure mechanism, not the exact natural event order of the parent's Edge
 failure, which was not reproduced in the initial Chromium trace. Bounded failure
 output retains viewport/max-scroll/header/footer geometry, correction events,
 actual cursor HTTP statuses and existing error checks.
+Before each native End, the proof selects source tab A with `bringToFront`,
+blurs the prior control without scrolling, and requires document focus and
+the body as the active element. Before/after geometry and trusted keydown/keyup
+receipts retain focus, target tag/role, platform and default-prevention state,
+never input values. This makes the user-selected-tab precondition explicit;
+it does not establish that focus caused the parent's Edge failure without
+the parent's focused Edge receipt.

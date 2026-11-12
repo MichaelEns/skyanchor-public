@@ -1853,6 +1853,7 @@ export async function verifyHandoff({
     await closeReadingPanel(a)
     await a.evaluate(() => {
       window.fixturePaginationTrace = []
+      window.fixturePaginationKeys = []
       window.fixturePaginationSample = phase => {
         const rows = [...document.querySelectorAll('[data-skyanchor-key]')]
         const header = document.querySelector(
@@ -1861,6 +1862,10 @@ export async function verifyHandoff({
         const last = rows.at(-1)
         const sample = {
           phase,
+          focused: document.hasFocus(),
+          activeTag: document.activeElement?.tagName,
+          activeRole: document.activeElement?.getAttribute('role'),
+          platform: navigator.platform,
           y: scrollY,
           maxY: document.documentElement.scrollHeight - innerHeight,
           height: innerHeight,
@@ -1887,12 +1892,32 @@ export async function verifyHandoff({
       }
       const onScroll = () => window.fixturePaginationSample('scroll')
       const onResize = () => window.fixturePaginationSample('resize')
+      const onKey = event => {
+        if (event.key !== 'End') return
+        window.fixturePaginationKeys.push({
+          type: event.type,
+          key: event.key,
+          code: event.code,
+          trusted: event.isTrusted,
+          prevented: event.defaultPrevented,
+          focused: document.hasFocus(),
+          targetTag: event.target?.tagName,
+          targetRole: event.target?.getAttribute?.('role'),
+          y: scrollY,
+        })
+        if (window.fixturePaginationKeys.length > 40)
+          window.fixturePaginationKeys.shift()
+      }
       addEventListener('scroll', onScroll)
       addEventListener('resize', onResize)
+      addEventListener('keydown', onKey)
+      addEventListener('keyup', onKey)
       window.fixturePaginationStop = () => {
         window.scrollBy = scrollBy
         removeEventListener('scroll', onScroll)
         removeEventListener('resize', onResize)
+        removeEventListener('keydown', onKey)
+        removeEventListener('keyup', onKey)
       }
     })
     const pagination = []
@@ -1934,8 +1959,31 @@ export async function verifyHandoff({
         const beforeEnd = await a.evaluate(() =>
           window.fixturePaginationSample('before-owned-end'),
         )
+        await a.bringToFront()
         await a.evaluate(() => document.activeElement?.blur())
+        await expect
+          .poll(() => a.evaluate(() => document.hasFocus()))
+          .toBe(true)
+        const readyForEnd = await a.evaluate(() =>
+          window.fixturePaginationSample('focused-before-owned-end'),
+        )
+        assert.equal(readyForEnd.activeTag, 'BODY')
         await a.keyboard.press('End')
+        const afterKey = await a.evaluate(() =>
+          window.fixturePaginationSample('after-owned-end-key'),
+        )
+        const keys = await a.evaluate(() =>
+          window.fixturePaginationKeys.slice(-2),
+        )
+        assert.deepEqual(
+          keys.map(event => event.type),
+          ['keydown', 'keyup'],
+        )
+        assert.ok(
+          keys.every(
+            event => event.trusted && event.focused && !event.prevented,
+          ),
+        )
         await expect
           .poll(() =>
             a.evaluate(() => {
@@ -1967,7 +2015,7 @@ export async function verifyHandoff({
         const end = await a.evaluate(() =>
           window.fixturePaginationSample('owned-end-requested'),
         )
-        pagination.push({count, beforeEnd, end})
+        pagination.push({count, beforeEnd, readyForEnd, afterKey, keys, end})
       } finally {
         next.release()
       }
@@ -2675,6 +2723,7 @@ export async function verifyHandoff({
           window.fixturePaginationSample?.('failure'),
         ),
         trace: await source.page.evaluate(() => window.fixturePaginationTrace),
+        keys: await source.page.evaluate(() => window.fixturePaginationKeys),
         requests: source.controls.timelineRequests.slice(-8),
         responses: source.controls.timelineResponses.slice(-8),
         http: source.timelineHttp.slice(-8),
