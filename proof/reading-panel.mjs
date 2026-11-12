@@ -181,6 +181,9 @@ export async function verifyNewContent({
       serviceWorkers: 'block',
     })
     const failures = []
+    const privateRequests = []
+    const privateRequestIds = new Map()
+    let immediatePhase
     let held
     try {
       await context.addInitScript(() => {
@@ -202,8 +205,50 @@ export async function verifyNewContent({
       const initial = [...entries]
       controls.setTimeline(initial)
       const current = await context.newPage()
+      current.on('request', request => {
+        const url = new URL(request.url())
+        if (!url.pathname.startsWith('/api/skyanchor/')) return
+        const entry = {
+          id: privateRequests.length,
+          phase: immediatePhase,
+          method: request.method(),
+          path: url.pathname,
+          request:
+            url.pathname === '/api/skyanchor/place' &&
+            request.method() === 'PUT'
+              ? request.postDataJSON()
+              : undefined,
+        }
+        privateRequestIds.set(request, entry)
+        privateRequests.push(entry)
+        void request.allHeaders().then(
+          headers => {
+            entry.cookiePresent = !!headers.cookie
+          },
+          error => {
+            entry.headersError = error.message
+          },
+        )
+      })
+      current.on('requestfailed', request => {
+        const entry = privateRequestIds.get(request)
+        if (entry) entry.failed = request.failure()?.errorText
+      })
       current.on('pageerror', error => failures.push(error.message))
       current.on('response', response => {
+        const entry = privateRequestIds.get(response.request())
+        if (entry) {
+          entry.status = response.status()
+          if (entry.path === '/api/skyanchor/place')
+            void response.json().then(
+              value => {
+                entry.response = value
+              },
+              error => {
+                entry.responseError = error.message
+              },
+            )
+        }
         if (
           response.status() >= 400 &&
           !response.url().includes('com.atproto.repo.getRecord')
@@ -674,6 +719,9 @@ export async function verifyNewContent({
           )
           window.fixtureTopTrace.push({
             phase,
+            now: Date.now(),
+            ticks: performance.now(),
+            visibility: document.visibilityState,
             y: scrollY,
             header: bottom,
             anchor: row?.dataset.skyanchorKey,
@@ -709,6 +757,17 @@ export async function verifyNewContent({
           }
         }
         addEventListener('scroll', () => trace('scroll'))
+        for (const event of ['focus', 'blur', 'online', 'resize', 'scrollend'])
+          addEventListener(event, () => trace(event))
+        addEventListener('keydown', event =>
+          trace('keydown', {
+            key: event.key,
+            target: event.target?.tagName,
+            role: event.target?.getAttribute?.('role'),
+            prevented: event.defaultPrevented,
+          }),
+        )
+        document.addEventListener('visibilitychange', () => trace('visibility'))
         addEventListener('skyanchor-place', event =>
           trace('capture', {detail: event.detail}),
         )
@@ -768,6 +827,7 @@ export async function verifyNewContent({
       assert.ok(Math.abs(await current.evaluate(() => scrollY)) <= 2)
       const immediateRefreshCases = []
       for (const kind of ['no-new', 'new-head']) {
+        immediatePhase = kind
         await current.evaluate(() => document.activeElement?.blur())
         await current.keyboard.press('PageDown')
         await expect
@@ -789,6 +849,9 @@ export async function verifyNewContent({
             ...incoming,
             ...initial,
           ])
+        const phaseTime = await current.evaluate(() => Date.now())
+        // Cross-process commands must not consume the immediate gesture's intent budget.
+        await current.clock.pauseAt(phaseTime + 1000)
         held = controls.holdTimeline(30, 0)
         await current.evaluate(() => {
           const request = window.requestAnimationFrame
@@ -828,6 +891,7 @@ export async function verifyNewContent({
         await current
           .getByRole('button', {name: 'Refresh', exact: true})
           .evaluate(button => button.click())
+        await current.clock.runFor(1)
         await Promise.race([
           held.reached,
           current.waitForTimeout(10_000).then(() => {
@@ -836,10 +900,25 @@ export async function verifyNewContent({
         ])
         assert.ok(Math.abs(await current.evaluate(() => scrollY)) <= 2)
         await current.evaluate(() => window.fixtureReleaseFrames())
+        await current.clock.runFor(16)
         await expect
           .poll(async () => (await snapshot()).place.anchor)
           .toBe(topKey)
+        const homeCapture = await current.evaluate(() =>
+          window.fixtureTopTrace.findLast(entry => entry.phase === 'capture'),
+        )
+        assert.equal(homeCapture.detail.intentional, true)
+        assert.equal(homeCapture.local.anchor, topKey)
         // Confirm the real Home gesture's automatic save before releasing integration.
+        const beforeDebounce = await current.evaluate(() => ({
+          now: Date.now(),
+          ticks: performance.now(),
+        }))
+        await current.clock.runFor(1000)
+        const afterDebounce = await current.evaluate(() => ({
+          now: Date.now(),
+          ticks: performance.now(),
+        }))
         await expect
           .poll(
             async () =>
@@ -847,7 +926,23 @@ export async function verifyNewContent({
               JSON.stringify((await snapshot()).place),
           )
           .toBe(true)
+        await current.clock.resume()
         const immediateBaseline = await cloudBytes()
+        const acceptedWrite = () =>
+          privateRequests.findLast(
+            entry =>
+              entry.phase === kind &&
+              entry.method === 'PUT' &&
+              entry.status === 200 &&
+              entry.response?.revision === immediateBaseline.place.revision &&
+              entry.response?.device === immediateBaseline.place.device &&
+              JSON.stringify(entry.response.state) ===
+                immediateBaseline.place.state &&
+              JSON.stringify(entry.request.state) ===
+                immediateBaseline.place.state,
+          )
+        await expect.poll(() => !!acceptedWrite()).toBe(true)
+        const acceptedHomeWrite = acceptedWrite()
         held.release()
         held = undefined
         await expect(
@@ -877,6 +972,14 @@ export async function verifyNewContent({
         assert.deepEqual(await cloudBytes(), immediateBaseline)
         immediateRefreshCases.push({
           kind,
+          beforeDebounce,
+          afterDebounce,
+          homeCapture,
+          acceptedHomeWrite: {
+            id: acceptedHomeWrite.id,
+            revision: immediateBaseline.place.revision,
+            device: immediateBaseline.place.device,
+          },
           before: beforeImmediate,
           after: afterImmediate,
           deltaCSSPx: delta,
@@ -887,6 +990,7 @@ export async function verifyNewContent({
       report.immediateTopRefresh.push({
         engine: index === 0 ? 'desktop' : 'phone WebKit',
         cases: immediateRefreshCases,
+        trace: await current.evaluate(() => window.fixtureTopTrace),
       })
       await current.evaluate(() => document.activeElement?.blur())
       await current.keyboard.press('Home')
@@ -972,6 +1076,14 @@ export async function verifyNewContent({
       report.newContentFailure = {
         engine: index === 0 ? 'desktop' : 'phone WebKit',
         failures,
+        immediatePhase,
+        privateRequests: privateRequests.slice(-24),
+        clock: current
+          ? await current.evaluate(() => ({
+              now: Date.now(),
+              ticks: performance.now(),
+            }))
+          : undefined,
         cloud: await worker.db
           .prepare(
             "SELECT did, feed, state, revision, device, updated FROM places WHERE did = ? AND feed = 'following'",
@@ -995,6 +1107,54 @@ export async function verifyNewContent({
             }))
           : undefined,
       }
+      const diagnostic = report.newContentFailure
+      const stateSummary = state =>
+        state && {
+          version: state.version,
+          anchor: state.anchor,
+          offset: state.offset,
+          neighbors: state.neighbors?.length,
+        }
+      console.error(
+        'Synthetic new-content failure:',
+        JSON.stringify({
+          engine: diagnostic.engine,
+          phase: immediatePhase,
+          clock: diagnostic.clock,
+          failures,
+          requests: diagnostic.privateRequests.slice(-8).map(entry => ({
+            ...entry,
+            request: entry.request && {
+              revision: entry.request.revision,
+              state: stateSummary(entry.request.state),
+            },
+            response: entry.response && {
+              revision: entry.response.revision,
+              device: entry.response.device,
+              updated: entry.response.updated,
+              state: stateSummary(entry.response.state),
+            },
+          })),
+          cloud: diagnostic.cloud && {
+            ...diagnostic.cloud,
+            state: stateSummary(JSON.parse(diagnostic.cloud.state)),
+          },
+          ui: diagnostic.ui.slice(-4500),
+          geometry: {
+            ...diagnostic.geometry,
+            localPlaces: undefined,
+            topTrace: diagnostic.geometry?.topTrace?.slice(-8).map(entry => ({
+              ...entry,
+              local: stateSummary(entry.local),
+              detail: entry.detail && {
+                intentional: entry.detail.intentional,
+                place: stateSummary(entry.detail.place),
+              },
+              stack: undefined,
+            })),
+          },
+        }),
+      )
       throw error
     } finally {
       held?.release()

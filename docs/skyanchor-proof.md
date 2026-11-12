@@ -161,6 +161,20 @@ The complete browser runner retains all preceding moderation, device history,
 handoff, reverse, momentum and continuous-history cases. WebKit keyboard
 coverage is not physical iPhone touch acceptance.
 
+The immediate-input phase pauses only its disposable page's simulated clock
+before Home. Cross-process fixture work while RAF is deliberately held must not
+consume the 250 ms input-ownership budget. It runs one millisecond for the
+dialog-close callback, sixteen for released RAF, and one second for the real
+750 ms save debounce/one-second retry interval, then resumes the clock. The
+receipt requires an intentional Home capture, an actual successful source PUT
+and matching response/D1 state, revision and device before releasing the head.
+The original running-clock failure was reproduced locally as a passive capture
+and an explicit sharing decision, not a missing debounce or wrong-state PUT.
+This controlled phase does not establish that the exact hosted scheduling cause
+is resolved; the new HEAD still requires its real hosted check. Failures print
+bounded synthetic phase, clock, input/capture, private-request status and UI
+evidence, omitting cookie values, authorization and session/CSRF material.
+
 The handoff double-activation case waits for the Resume button to be enabled
 before its two native DOM clicks. The receipt records whether it was initially
 disabled while Check metadata settled; native `.click()` would otherwise
