@@ -10,13 +10,24 @@ import {type SessionAccount, useSession, useSessionApi} from '#/state/session'
 import {atoms as a, useTheme} from '#/alf'
 import {Button, ButtonIcon, ButtonText} from '#/components/Button'
 import * as Dialog from '#/components/Dialog'
+import * as TextField from '#/components/forms/TextField'
 import {Bookmark_Stroke2_Corner0_Rounded as ReadingIcon} from '#/components/icons/Bookmark'
+import * as Select from '#/components/Select'
 import {Text} from '#/components/Typography'
 import {
   authenticateSyncAccount,
   SyncAuthenticationError,
   syncAuthService,
 } from './auth-service'
+import {
+  boundedSyncJson,
+  defaultDeviceName,
+  normalizedDeviceName,
+  type SavedCheckpoint,
+  type SavedDevice,
+  validDeviceHistory,
+  validDeviceList,
+} from './checkpoints'
 import {
   type ReadingFeed,
   type ReadingPlace,
@@ -86,6 +97,23 @@ export function ReadingToolbar({
   const [verifiedAt, setVerifiedAt] = useState<number>()
   const [busy, setBusy] = useState(false)
   const [restoring, setRestoring] = useState(false)
+  const [restoringSaved, setRestoringSaved] = useState(false)
+  const [devices, setDevices] = useState<SavedDevice[]>([])
+  const [source, setSource] = useState('shared')
+  const [saves, setSaves] = useState<SavedCheckpoint[]>([])
+  const [selectedSave, setSelectedSave] = useState('')
+  const [deviceName, setDeviceName] = useState('')
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const historyController = useRef<AbortController | undefined>(undefined)
+  const sourceRef = useRef(source)
+  sourceRef.current = source
+  const historicKey = readingStorageKey(
+    'skyanchor:historic-local:',
+    account.did,
+    feed,
+  )
+  const historicLocal = useRef(localStorage.getItem(historicKey) === '1')
+  const [restoredLocal, setRestoredLocal] = useState(historicLocal.current)
   const [result, setResult] = useState<
     {message: string; error: boolean} | undefined
   >()
@@ -139,6 +167,16 @@ export function ReadingToolbar({
     init: RequestInit = {},
     retry = true,
   ): Promise<Remote> {
+    const value = await privateRequest(path, init, retry)
+    if (!validSyncPlace(value, account.did, feed))
+      throw new Error(l`Invalid private sync response or account binding`)
+    return value
+  }
+  async function privateRequest(
+    path: string,
+    init: RequestInit = {},
+    retry = true,
+  ): Promise<unknown> {
     return withRequestDeadline(
       l`Private sync request`,
       15_000,
@@ -150,7 +188,7 @@ export function ReadingToolbar({
     path: string,
     init: RequestInit,
     retry: boolean,
-  ): Promise<Remote> {
+  ): Promise<unknown> {
     const started = generation.current
     const shared = getSyncSession(account.did)
     if (shared && shared.expires > session.current.expires)
@@ -165,8 +203,13 @@ export function ReadingToolbar({
     const response = await fetch(
       '/api/skyanchor/' +
         path +
-        (path === 'place' && feed !== 'following'
-          ? '?feed=' + encodeURIComponent(feed)
+        ((path === 'place' ||
+          path === 'devices' ||
+          path.startsWith('history?')) &&
+        feed !== 'following'
+          ? (path.includes('?') ? '&' : '?') +
+            'feed=' +
+            encodeURIComponent(feed)
           : ''),
       {
         ...init,
@@ -178,7 +221,10 @@ export function ReadingToolbar({
         },
       },
     )
-    const value: unknown = await response.json()
+    const value = await boundedSyncJson(
+      response,
+      path.startsWith('history?') ? 65_536 : 32_768,
+    )
     if (
       started !== generation.current ||
       !live.current.enabled ||
@@ -187,9 +233,9 @@ export function ReadingToolbar({
       throw new Error(l`Account changed; sync response discarded.`)
     if ((response.status === 401 || response.status === 403) && retry) {
       await renew()
-      return request(path, init, false)
+      return privateRequest(path, init, false)
     }
-    if (response.status === 409) {
+    if (response.status === 409 && path === 'place') {
       if (
         !value ||
         typeof value !== 'object' ||
@@ -216,16 +262,90 @@ export function ReadingToolbar({
     }
     if (response.status === 422)
       throw new Error(
-        l`Profile reading-place capacity reached (64 filters including deleted-place markers). Existing places were not evicted.`,
+        path === 'place'
+          ? l`Profile reading-place capacity reached (64 filters including deleted-place markers). Existing places were not evicted.`
+          : l`Browser profile capacity reached (32). Existing names and saved places were not evicted.`,
       )
     if (!response.ok)
       throw new Error(
         l`Private sync failed (${response.status}). Reconnect if the session expired.`,
       )
-    if (!validSyncPlace(value, account.did, feed)) {
-      throw new Error(l`Invalid private sync response or account binding`)
-    }
     return value
+  }
+  async function loadDevices() {
+    const value = await privateRequest('devices')
+    if (!validDeviceList(value, account.did, feed))
+      throw new Error(l`Invalid saved-device response`)
+    setDevices(value.devices)
+    setDeviceName(
+      value.devices.find(item => item.device === device.current)?.label ?? '',
+    )
+  }
+  async function loadHistory(selected: string) {
+    historyController.current?.abort()
+    const controller = new AbortController()
+    historyController.current = controller
+    setHistoryLoading(true)
+    try {
+      const value = await privateRequest(
+        'history?device=' + encodeURIComponent(selected),
+        {signal: controller.signal},
+      )
+      if (controller.signal.aborted || sourceRef.current !== selected) return
+      if (!validDeviceHistory(value, account.did, feed, selected))
+        throw new Error(l`Invalid saved-place history response`)
+      setSaves(value.saves)
+      setSelectedSave(
+        previous => previous || String(value.saves[0]?.revision ?? ''),
+      )
+    } catch (error) {
+      if (!controller.signal.aborted && sourceRef.current === selected)
+        throw error
+    } finally {
+      if (historyController.current === controller) {
+        historyController.current = undefined
+        setHistoryLoading(false)
+      }
+    }
+  }
+  function chooseSource(value: string) {
+    if (!value || value === source || busy || restoring) return
+    historyController.current?.abort()
+    setSource(value)
+    sourceRef.current = value
+    setSaves([])
+    setSelectedSave('')
+    if (value !== 'shared') void run(() => loadHistory(value))
+    else setHistoryLoading(false)
+  }
+  async function checkSavedPlaces() {
+    await checkRemote()
+    await loadDevices()
+    if (sourceRef.current !== 'shared') await loadHistory(sourceRef.current)
+  }
+  async function renameBrowser() {
+    const label = normalizedDeviceName(deviceName)
+    if (!label)
+      throw new Error(
+        l`Use a nonempty browser name of at most 64 characters, without control, invisible, or angle-bracket characters.`,
+      )
+    const value = await privateRequest('device', {
+      method: 'PUT',
+      body: JSON.stringify({label}),
+    })
+    if (
+      !value ||
+      typeof value !== 'object' ||
+      !('did' in value) ||
+      value.did !== account.did ||
+      !('device' in value) ||
+      value.device !== device.current ||
+      !('label' in value) ||
+      value.label !== label
+    )
+      throw new Error(l`Invalid browser rename response`)
+    await loadDevices()
+    setStatus(l`This browser profile was renamed.`)
   }
   async function checkRemote(completingResume = false) {
     if (!session.current.csrf || !enabled) return
@@ -273,6 +393,15 @@ export function ReadingToolbar({
         lastSaved.current === JSON.stringify(current.state)
       initialShare.current = current.revision === 0 && !current.state
       setUnsaved(!!place && !matches)
+      if (historicLocal.current) {
+        setOther(current)
+        automatic.current = false
+        setUnsaved(true)
+        setStatus(
+          l`Restored saved place is local only. Latest shared is unchanged. Choose Keep mine or Save my place explicitly to share this view.`,
+        )
+        return current
+      }
       // Revision and last-writer identity are CAS metadata, not viewport evidence.
       if (!matches && !pendingMovement && !initialShare.current) {
         setOther(current)
@@ -396,6 +525,10 @@ export function ReadingToolbar({
               body: JSON.stringify({
                 device: device.current,
                 service: syncAuthService(fresh.service),
+                deviceName: defaultDeviceName(
+                  device.current,
+                  navigator.userAgent,
+                ),
               }),
             },
             active,
@@ -417,9 +550,11 @@ export function ReadingToolbar({
     if (!active()) throw new Error(l`Account changed; sync response discarded.`)
     if (!response.ok)
       throw new Error(
-        response.status === 401
-          ? l`Your Bluesky session needs renewal. Sign in again when ready; local reading progress is preserved.`
-          : l`Private sync could not connect (${response.status}). Your place stays local; retry when the connection is available.`,
+        response.status === 422
+          ? l`Browser profile capacity reached (32). Existing profiles and saved places were not evicted.`
+          : response.status === 401
+            ? l`Your Bluesky session needs renewal. Sign in again when ready; local reading progress is preserved.`
+            : l`Private sync could not connect (${response.status}). Your place stays local; retry when the connection is available.`,
       )
     if (
       !value ||
@@ -454,7 +589,12 @@ export function ReadingToolbar({
     }
     await renewing.current
   }
-  async function save(expectedRevision = revision.current, keepalive = false) {
+  async function save(
+    expectedRevision = historicLocal.current
+      ? observedRevision.current
+      : revision.current,
+    keepalive = false,
+  ) {
     if (resumeController.current)
       throw new Error(l`Wait for Resume to finish or cancel it before saving.`)
     if (writing.current) {
@@ -474,6 +614,20 @@ export function ReadingToolbar({
     })
     const started = generation.current
     try {
+      if (historicLocal.current) {
+        const fresh = await request('place')
+        setSharedPlace(fresh)
+        observedRevision.current = Math.max(
+          observedRevision.current,
+          fresh.revision,
+        )
+        if (fresh.revision !== expectedRevision) {
+          setOther(fresh)
+          throw new Error(
+            l`Latest shared changed. Review it and choose Keep mine again to share this local view.`,
+          )
+        }
+      }
       const current = await request('place', {
         method: 'PUT',
         keepalive,
@@ -486,6 +640,9 @@ export function ReadingToolbar({
         throw new Error(l`Stale sync completion discarded.`)
       }
       acceptRevision(current.revision)
+      historicLocal.current = false
+      localStorage.removeItem(historicKey)
+      setRestoredLocal(false)
       setSharedPlace(current)
       lastSaved.current = JSON.stringify(place)
       initialShare.current = false
@@ -532,6 +689,7 @@ export function ReadingToolbar({
     setBusy(false)
     return () => {
       lifetime.current.abort()
+      historyController.current?.abort()
       resumeController.current?.abort()
       resumeController.current = undefined
       setRestoring(false)
@@ -546,6 +704,11 @@ export function ReadingToolbar({
       userMoved.current = false
       pendingPlace.current = undefined
       initialShare.current = false
+      setDevices([])
+      setSaves([])
+      setSource('shared')
+      setSelectedSave('')
+      setDeviceName('')
     }
   }, [account.did, feed, enabled])
   useEffect(() => {
@@ -554,6 +717,7 @@ export function ReadingToolbar({
     const flush = (keepalive = false) => {
       if (
         !automatic.current ||
+        historicLocal.current ||
         activeCheck.current ||
         !live.current.enabled ||
         !live.current.csrf
@@ -701,6 +865,7 @@ export function ReadingToolbar({
     window.addEventListener('online', foreground)
     document.addEventListener('visibilitychange', foreground)
     void run(checkRemote)
+    void run(loadDevices)
     return () => {
       window.removeEventListener('focus', foreground)
       window.removeEventListener('online', foreground)
@@ -748,9 +913,12 @@ export function ReadingToolbar({
     return () => observer.disconnect()
   }, [enabled, feed, account.did, control])
 
+  const restoringLabel = restoringSaved
+    ? l`Restoring saved place...`
+    : l`Restoring your other device's place...`
   const marker = readingIndicator({
     loading: restoring
-      ? l`Restoring your other device's place...`
+      ? restoringLabel
       : checking
         ? l`Checking shared place...`
         : loading,
@@ -772,7 +940,7 @@ export function ReadingToolbar({
             : l`Shared place cleared`
           : marker.kind === 'loading'
             ? restoring
-              ? l`Restoring your other device's place...`
+              ? restoringLabel
               : checking
                 ? l`Checking shared place...`
                 : loading
@@ -795,33 +963,76 @@ export function ReadingToolbar({
             ? l`Not yet synced`
             : l`Connected`
 
-  function startResume() {
-    if (!other || busy || resumeController.current) return
-    const offered = other
+  function startResume(checkpoint?: SavedCheckpoint) {
+    if ((!other && !checkpoint) || busy || resumeController.current) return
+    const selectedDevice = source
+    const selectedLabel =
+      devices.find(item => item.device === selectedDevice)?.label ??
+      defaultDeviceName(selectedDevice)
+    const offered: Remote = checkpoint
+      ? {did: account.did, feed, device: selectedDevice, ...checkpoint}
+      : other!
     const controller = new AbortController()
     resumeController.current = controller
     choiceEpoch.current++
     automatic.current = false
     pending.current = false
     setAttention(false)
-    setStatus(l`Restoring your other device's place...`)
+    const message = checkpoint
+      ? l`Restoring saved place...`
+      : l`Restoring your other device's place...`
+    setStatus(message)
+    setRestoringSaved(!!checkpoint)
     setRestoring(true)
     setBusy(true)
     setResult({
-      message: l`Restoring your other device's place...`,
+      message,
       error: false,
     })
     const started = generation.current
     control.close(() => {
       if (started !== generation.current || !live.current.enabled) return
       void run(async () => {
+        const verify = async () => {
+          if (!checkpoint) return
+          const current = await request('place', {signal: controller.signal})
+          if (!current.state)
+            throw new Error(
+              l`Cloud progress was deleted. This saved place is no longer available; your local place and Return are preserved.`,
+            )
+          if (
+            current.revision <
+            Math.max(revision.current, observedRevision.current)
+          )
+            throw new Error(l`Stale sync completion discarded.`)
+          const history = await privateRequest(
+            'history?device=' + encodeURIComponent(selectedDevice),
+            {signal: controller.signal},
+          )
+          if (
+            !validDeviceHistory(history, account.did, feed, selectedDevice) ||
+            !history.saves.some(
+              item => JSON.stringify(item) === JSON.stringify(checkpoint),
+            )
+          )
+            throw new Error(
+              l`The selected saved place expired or was deleted. Refresh saved places and choose again.`,
+            )
+          setSharedPlace(current)
+          observedRevision.current = Math.max(
+            observedRevision.current,
+            current.revision,
+          )
+        }
         try {
           if (controller.signal.aborted)
             throw new Error(
               l`Resume cancelled. Your original saved place and Return were kept. Retry when ready.`,
             )
+          await verify()
           const same = await resume(offered.state ?? undefined, {
             signal: controller.signal,
+            verify: checkpoint ? verify : undefined,
             progress: (pages, phase) => {
               if (started === generation.current)
                 setResult({
@@ -830,7 +1041,9 @@ export function ReadingToolbar({
                       ? l`Placing and saving your exact reading position locally...`
                       : phase === 'revalidate'
                         ? l`Checking the saved post and reply context against current records...`
-                        : l`Restoring your other device's place...` +
+                        : (checkpoint
+                            ? l`Restoring saved place...`
+                            : l`Restoring your other device's place...`) +
                           ' ' +
                           l`History pages checked` +
                           ': ' +
@@ -844,23 +1057,50 @@ export function ReadingToolbar({
             throw new Error(
               l`Account changed; restored sync response discarded.`,
             )
-          acceptRevision(offered.revision)
+          if (checkpoint) {
+            historicLocal.current = true
+            localStorage.setItem(historicKey, '1')
+            setRestoredLocal(true)
+          } else {
+            acceptRevision(offered.revision)
+            historicLocal.current = false
+            localStorage.removeItem(historicKey)
+            setRestoredLocal(false)
+          }
           userMoved.current = false
           pendingPlace.current = undefined
           initialShare.current = false
           lastSaved.current = JSON.stringify(offered.state)
           lastCaptured.current = lastSaved.current
-          setUnsaved(false)
+          setUnsaved(!!checkpoint)
           setOther(undefined)
           setAttention(false)
-          const message = same
-            ? l`Already at the other device's saved place. Confirmed locally.`
-            : l`Resumed the other device's saved place. Confirmed locally.`
+          const savedAt = checkpoint
+            ? formatDateTime(i18n, checkpoint.updated, {
+                dateStyle: 'medium',
+                timeStyle: 'medium',
+              })
+            : ''
+          const message = checkpoint
+            ? l`Restored this saved place locally` +
+              ': ' +
+              selectedLabel +
+              ' - ' +
+              savedAt +
+              '. ' +
+              l`Latest shared is unchanged. Sharing requires Save my place or Keep mine.`
+            : same
+              ? l`Already at the other device's saved place. Confirmed locally.`
+              : l`Resumed the other device's saved place. Confirmed locally.`
           setStatus(message)
           setResult({message, error: false})
           try {
             const latest = await checkRemote(true)
-            if (latest && !sameReadingPlace(latest.state, offered.state)) {
+            if (
+              !checkpoint &&
+              latest &&
+              !sameReadingPlace(latest.state, offered.state)
+            ) {
               const changed = l`The chosen place was restored locally, but the shared place changed during Resume. Automatic sharing is paused. Open Reading place and choose again; your viewport has not moved to the newer place.`
               setStatus(changed)
               setResult({message: changed, error: false})
@@ -1055,7 +1295,14 @@ export function ReadingToolbar({
                 </Text>
               )}
               <Text testID="skyanchor-source-state" role="status">
-                {!csrf ? (
+                {restoredLocal ? (
+                  <Trans>
+                    Restored saved place is local only. Latest shared is
+                    unchanged. Scrolling, Return, and reopening do not share it.
+                    Choose Save my place or Keep mine explicitly, or Resume
+                    other device to return to latest shared.
+                  </Trans>
+                ) : !csrf ? (
                   <Trans>
                     Saved only on this device. Connect to check the shared
                     place.
@@ -1109,9 +1356,205 @@ export function ReadingToolbar({
                   </Trans>
                 )}
               </Text>
+              {!!csrf && (
+                <View style={a.gap_sm}>
+                  <Text style={a.font_bold}>
+                    <Trans>Source of saved place</Trans>
+                  </Text>
+                  <Select.Root
+                    value={source}
+                    onValueChange={chooseSource}
+                    disabled={busy || restoring}>
+                    <Select.Trigger label={l`Source of saved place`}>
+                      {({props}) => (
+                        <Button
+                          {...props}
+                          label={l`Source of saved place`}
+                          size="large"
+                          color="secondary"
+                          style={[a.w_full, {minHeight: 44}]}>
+                          <Select.ValueText style={{flexShrink: 1}} />
+                          <Select.Icon />
+                        </Button>
+                      )}
+                    </Select.Trigger>
+                    <Select.Content
+                      label={l`Source of saved place`}
+                      items={[
+                        {value: 'shared', label: l`Latest shared place`},
+                        ...devices.map(item => ({
+                          value: item.device,
+                          label:
+                            item.label +
+                            ' [' +
+                            item.device.slice(0, 4) +
+                            ']' +
+                            (item.device === device.current
+                              ? ' - ' + l`This browser`
+                              : '') +
+                            ' - ' +
+                            (item.lastSaved
+                              ? l`Saved` +
+                                ' ' +
+                                formatDateTime(i18n, item.lastSaved, {
+                                  dateStyle: 'medium',
+                                  timeStyle: 'medium',
+                                })
+                              : l`No saved place in this feed`),
+                        })),
+                      ]}
+                      renderItem={({value, label}) => (
+                        <Select.Item value={value} label={label}>
+                          <Select.ItemIndicator />
+                          <Select.ItemText>{label}</Select.ItemText>
+                        </Select.Item>
+                      )}
+                    />
+                  </Select.Root>
+                  <Text>
+                    <Trans>
+                      Times show server-confirmed saves, not post age or last
+                      device use. Saved recently can point to an older post.
+                    </Trans>
+                  </Text>
+                  {source !== 'shared' && (
+                    <>
+                      {historyLoading ? (
+                        <Text role="status">
+                          <Trans>Loading saved places...</Trans>
+                        </Text>
+                      ) : saves.length ? (
+                        <Select.Root
+                          value={selectedSave}
+                          onValueChange={setSelectedSave}
+                          disabled={busy || restoring}>
+                          <Select.Trigger label={l`Saved place`}>
+                            {({props}) => (
+                              <Button
+                                {...props}
+                                label={l`Saved place`}
+                                size="large"
+                                color="secondary"
+                                style={[a.w_full, {minHeight: 44}]}>
+                                <Select.ValueText style={{flexShrink: 1}} />
+                                <Select.Icon />
+                              </Button>
+                            )}
+                          </Select.Trigger>
+                          <Select.Content
+                            label={l`Saved place`}
+                            items={saves.map((item, index) => ({
+                              value: String(item.revision),
+                              label:
+                                (index === 0
+                                  ? l`Latest save`
+                                  : index === 1
+                                    ? l`Previous save`
+                                    : l`Older save`) +
+                                ' - ' +
+                                formatDateTime(i18n, item.updated, {
+                                  dateStyle: 'medium',
+                                  timeStyle: 'medium',
+                                }),
+                            }))}
+                            renderItem={({value, label}) => (
+                              <Select.Item value={value} label={label}>
+                                <Select.ItemIndicator />
+                                <Select.ItemText>{label}</Select.ItemText>
+                              </Select.Item>
+                            )}
+                          />
+                        </Select.Root>
+                      ) : (
+                        <Text role="status">
+                          <Trans>
+                            No saved places are available for this browser in
+                            this feed. Check saved places to refresh.
+                          </Trans>
+                        </Text>
+                      )}
+                      {!!saves.length &&
+                        !saves.some(
+                          item => String(item.revision) === selectedSave,
+                        ) && (
+                          <Text role="alert">
+                            <Trans>
+                              The selected save expired. Choose an available
+                              saved place.
+                            </Trans>
+                          </Text>
+                        )}
+                      <Button
+                        label={l`Resume saved place`}
+                        size="large"
+                        color="primary"
+                        disabled={
+                          busy ||
+                          restoring ||
+                          historyLoading ||
+                          !saves.some(
+                            item => String(item.revision) === selectedSave,
+                          )
+                        }
+                        onPress={() =>
+                          startResume(
+                            saves.find(
+                              item => String(item.revision) === selectedSave,
+                            ),
+                          )
+                        }>
+                        <ButtonText>
+                          <Trans>Resume saved place</Trans>
+                        </ButtonText>
+                      </Button>
+                    </>
+                  )}
+                  <Button
+                    label={l`Check saved places`}
+                    size="large"
+                    color="secondary"
+                    disabled={busy}
+                    onPress={() => void run(checkSavedPlaces)}>
+                    <ButtonText>
+                      <Trans>Check saved places</Trans>
+                    </ButtonText>
+                  </Button>
+                  <TextField.LabelText>
+                    <Trans>Name this browser profile</Trans>
+                  </TextField.LabelText>
+                  <TextField.Root>
+                    <TextField.Input
+                      label={l`Name this browser profile`}
+                      value={deviceName}
+                      onChangeText={setDeviceName}
+                      editable={!busy}
+                      maxLength={128}
+                      autoComplete="off"
+                    />
+                  </TextField.Root>
+                  <Button
+                    label={l`Save browser name`}
+                    size="large"
+                    color="secondary"
+                    disabled={busy || !deviceName.trim()}
+                    onPress={() => void run(renameBrowser)}>
+                    <ButtonText>
+                      <Trans>Save browser name</Trans>
+                    </ButtonText>
+                  </Button>
+                  <Text>
+                    <Trans>
+                      Names are private to this account. A browser profile is
+                      not a physical machine; websites cannot read your computer
+                      name. Different profiles or installed apps may have
+                      different IDs.
+                    </Trans>
+                  </Text>
+                </View>
+              )}
               {sharedPlace && (
-                <Text testID="skyanchor-shared-save">
-                  {sharedPlace.updated
+                <Text emoji testID="skyanchor-shared-save">
+                  {sharedPlace.state && sharedPlace.updated
                     ? l`Shared checkpoint last saved` +
                       ': ' +
                       formatDateTime(i18n, sharedPlace.updated, {
@@ -1119,6 +1562,13 @@ export function ReadingToolbar({
                         timeStyle: 'medium',
                       }) +
                       '. ' +
+                      (devices.find(item => item.device === sharedPlace.device)
+                        ?.label ??
+                        defaultDeviceName(sharedPlace.device ?? '')) +
+                      ' [' +
+                      sharedPlace.device?.slice(0, 4) +
+                      ']' +
+                      ' - ' +
                       (sharedPlace.device === device.current
                         ? l`This browser`
                         : l`Another browser`)
@@ -1215,7 +1665,7 @@ export function ReadingToolbar({
                       size="large"
                       color="secondary"
                       disabled={busy}
-                      onPress={() => void run(checkRemote)}>
+                      onPress={() => void run(checkSavedPlaces)}>
                       <ButtonText>
                         <Trans>Check other device</Trans>
                       </ButtonText>
@@ -1331,6 +1781,11 @@ export function ReadingToolbar({
                         reconnecting.current = false
                         setCsrf('')
                         setOther(undefined)
+                        setDevices([])
+                        setSaves([])
+                        setSelectedSave('')
+                        setSource('shared')
+                        setDeviceName('')
                         setStatus(
                           l`Cloud progress deleted and sync disconnected. Your local reading place is unchanged.`,
                         )
@@ -1372,7 +1827,7 @@ export function ReadingToolbar({
                       size="large"
                       color="primary"
                       disabled={busy || restoring}
-                      onPress={startResume}>
+                      onPress={() => startResume()}>
                       <ButtonText>
                         <Trans>Resume other device</Trans>
                       </ButtonText>

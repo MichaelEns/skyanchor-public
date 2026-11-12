@@ -23,6 +23,25 @@ The three bounded public configuration/geolocation routes are not a general
 proxy. Private sync is same-origin and explicitly opt-in. Cloud availability
 does not guarantee background saves.
 
+For browser checkpoints, the owner must apply the additive versioned
+`0003_device_checkpoints.sql` once, after 0001/0002, deploy the new Worker API
+first, then update the frontend. This local work performs none of those hosted
+operations. Legacy `{device[, service]}` sessions and unnamed place writes
+remain supported. Rolling retention is three distinct occurrence anchors per
+browser profile/feed; repeat saves update that anchor's checkpoint, not a
+complete archive. Registration stops explicitly at 32 profiles without eviction.
+Device names are private, replaceable profile labels, not OS machine names.
+Latest shared stays the default; saved-place recovery is local-only until
+explicit sharing and never decreases a CAS revision. Timestamps are save times,
+not post ages or last use. Active-feed deletion removes every profile's history
+for that feed, retaining names, other feeds and revision tombstones.
+
+Rollback is code-only: leave additive tables and tombstone triggers installed.
+The prior Worker continues legacy sync and deletion, but cannot record/list
+history; roll the frontend back too. Never drop data or reset the clock as a
+rollback. The migration/atomicity fixture verifies exact existing place,
+session, nonce and clock bytes and old-Worker tombstone cleanup.
+
 Release validation includes synthetic real-local D1 tests, all supplier
 compatibility tests, continuous-history/Back/viewport/browser proofs, asset and
 license checks, strict dependency-use evidence and a fresh raw audit.

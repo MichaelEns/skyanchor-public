@@ -104,3 +104,16 @@ consumer inventories; it does not waive security findings.
 linear root history. The owner must additionally scan every reachable new Git
 object with private markers held outside this repository. No generic scanner
 can establish absolute absence of personal information.
+
+# Device checkpoint acceptance
+
+The normal production browser gate also exercises three independent browser
+profiles (phone-sized WebKit and two desktops) with synthetic private names.
+It checks three timestamped distinct occurrences, no-write source selection,
+an expired frozen choice, exact local-only older-save placement within two
+pixels, own-browser history, durable sharing pause through scroll/focus/reload,
+explicit fresh-CAS sharing and a cached-save/tombstone race. The focused selector
+is `pnpm skyanchor:e2e --device-checkpoints-only`; it does not replace the full
+17-stage post-commit gate. Real D1 tests apply versioned migrations, compare
+existing row bytes and test rollback tombstones, failed CAS, retention, private
+rename/renewal, capacity and whole-transaction failure.

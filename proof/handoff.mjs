@@ -7,6 +7,362 @@ import {
   scrollReading,
 } from './reading-panel.mjs'
 
+export async function verifyDeviceCheckpoints({
+  desktopBrowser,
+  phoneBrowser,
+  mockUpstream,
+  signIn,
+  worker,
+  report,
+}) {
+  const did = 'did:plc:mmmmmmmmmmmmmmmmmmmmmmmm'
+  const contexts = [],
+    writes = [],
+    errors = []
+  const key = 'skyanchor:following:v1:' + did
+  const local = page =>
+    page.evaluate(key => JSON.parse(localStorage.getItem(key))?.place, key)
+  const cloud = async () => ({
+    place: await worker.db
+      .prepare("SELECT * FROM places WHERE did = ? AND feed = 'following'")
+      .bind(did)
+      .first(),
+    clock: await worker.db.prepare('SELECT * FROM clock').first(),
+  })
+  const history = device =>
+    worker.db
+      .prepare(
+        "SELECT revision, state, updated FROM reading_history WHERE did = ? AND feed = 'following' AND device = ? ORDER BY revision DESC",
+      )
+      .bind(did, device)
+      .all()
+      .then(result => result.results)
+  const profileId = page =>
+    page.evaluate(() => localStorage.getItem('skyanchor:device'))
+  async function fresh(browser, phone = false) {
+    const context = await browser.newContext({
+      ...(phone
+        ? browserDevices['iPhone 13']
+        : {viewport: {width: 1280, height: 900}}),
+      ignoreHTTPSErrors: true,
+      serviceWorkers: 'block',
+    })
+    contexts.push(context)
+    await mockUpstream(context, did)
+    const page = await context.newPage()
+    page.on('pageerror', error => errors.push(error.message))
+    page.on('request', request => {
+      if (
+        request.method() === 'PUT' &&
+        new URL(request.url()).pathname === '/api/skyanchor/place'
+      )
+        writes.push(request.postData())
+    })
+    await signIn(page, 'reader.test')
+    return page
+  }
+  async function confirmed(page, previous = 0) {
+    await expect
+      .poll(
+        async () => {
+          const current = (await cloud()).place
+          return (
+            current?.revision > previous &&
+            current.state === JSON.stringify(await local(page))
+          )
+        },
+        {timeout: 10000},
+      )
+      .toBe(true)
+    return (await cloud()).place
+  }
+  async function phoneCheckpoint(page, distance) {
+    await scrollReading(page, distance)
+    const offset = await page.evaluate(key => {
+      const place = JSON.parse(localStorage.getItem(key)).place
+      const node = [...document.querySelectorAll('[data-skyanchor-key]')].find(
+        node => node.dataset.skyanchorKey === place.anchor,
+      )
+      const header = document.querySelector('[data-testid="mobileHomeHeader"]')
+      return (
+        node.getBoundingClientRect().top -
+        (header?.getBoundingClientRect().bottom ?? 0) +
+        20
+      )
+    }, key)
+    await scrollReading(page, offset)
+  }
+  async function chooseSource(page, device) {
+    await readingPanel(page)
+    await page
+      .getByRole('combobox', {name: 'Source of saved place', exact: true})
+      .click()
+    await page
+      .getByRole('option')
+      .filter({hasText: '[' + device.slice(0, 4) + ']'})
+      .click()
+    await expect(
+      page.getByRole('button', {name: 'Resume saved place', exact: true}),
+    ).toBeEnabled()
+  }
+  async function chooseSave(page, prefix) {
+    await page.getByRole('combobox', {name: 'Saved place', exact: true}).click()
+    await expect(page.getByRole('option')).toHaveCount(3)
+    const labels = await page.getByRole('option').allTextContents()
+    assert.ok(labels.every(label => /\d/.test(label)))
+    await page.getByRole('option').filter({hasText: prefix}).click()
+    return labels
+  }
+  async function placement(page, state) {
+    const error = await page.evaluate(place => {
+      const node = [...document.querySelectorAll('[data-skyanchor-key]')].find(
+        node => node.dataset.skyanchorKey === place.anchor,
+      )
+      const header = document.querySelector('[data-testid="mobileHomeHeader"]')
+      return node
+        ? Math.abs(
+            node.getBoundingClientRect().top -
+              (header?.getBoundingClientRect().bottom ?? 0) -
+              place.offset,
+          )
+        : Infinity
+    }, state)
+    assert.ok(
+      error <= 2,
+      'The frozen occurrence and offset must be placed within two pixels',
+    )
+    return error
+  }
+  try {
+    const a = await fresh(phoneBrowser, true)
+    await phoneCheckpoint(a, 400)
+    await readingAction(a, 'Connect private sync')
+    let row = await confirmed(a)
+    const aId = await profileId(a)
+    for (let i = 0; i < 3; i++) {
+      await closeReadingPanel(a)
+      await phoneCheckpoint(a, 700)
+      row = await confirmed(a, row.revision)
+    }
+    const aSaves = await history(aId)
+    assert.equal(aSaves.length, 3)
+    await readingPanel(a)
+    await a
+      .getByRole('textbox', {name: 'Name this browser profile', exact: true})
+      .fill('Fixture phone reading profile')
+    await readingAction(a, 'Save browser name')
+    await expect(
+      a.getByText('This browser profile was renamed.', {exact: true}),
+    ).toBeVisible()
+    const b = await fresh(desktopBrowser)
+    await readingAction(b, 'Connect private sync')
+    await expect(
+      b.getByRole('button', {name: 'Resume other device', exact: true}),
+    ).toBeEnabled()
+    await readingAction(b, 'Resume other device')
+    await expect(b.getByTestId('skyanchor-resume-result')).toContainText(
+      'Confirmed locally.',
+    )
+    await expect
+      .poll(async () => JSON.stringify(await local(b)))
+      .toBe(row.state)
+    await readingPanel(b)
+    await expect(b.getByTestId('skyanchor-source-state')).toContainText(
+      'Current local place confirmed shared',
+    )
+    await closeReadingPanel(b)
+    await scrollReading(b, 650)
+    const shared = await confirmed(b, row.revision)
+    const bId = await profileId(b)
+    const c = await fresh(desktopBrowser)
+    await readingAction(c, 'Connect private sync')
+    await readingAction(c, 'Resume other device')
+    await expect(c.getByTestId('skyanchor-resume-result')).toContainText(
+      'Confirmed locally.',
+    )
+    await expect
+      .poll(async () => JSON.stringify(await local(c)))
+      .toBe(shared.state)
+    await readingPanel(c)
+    await expect(c.getByTestId('skyanchor-source-state')).toContainText(
+      'Current local place confirmed shared',
+    )
+    const cId = await profileId(c)
+    assert.equal(new Set([aId, bId, cId]).size, 3)
+    await readingAction(b, 'Check saved places')
+    await expect(
+      b.getByRole('button', {name: 'Check saved places', exact: true}),
+    ).toBeEnabled()
+    const before = await cloud(),
+      beforeLocal = await local(b),
+      beforeWrites = writes.length
+    await chooseSource(b, aId)
+    const labels = await chooseSave(b, 'Older save')
+    await expect(
+      b.getByRole('combobox', {name: 'Source of saved place', exact: true}),
+    ).toContainText('Fixture phone reading profile')
+    assert.deepEqual(await local(b), beforeLocal)
+    assert.deepEqual(await cloud(), before)
+    assert.equal(writes.length, beforeWrites)
+    const chosen = aSaves[2]
+    // A newer source head must not replace the record already selected on B.
+    await closeReadingPanel(a)
+    await phoneCheckpoint(a, 550)
+    await readingAction(a, 'Check other device')
+    await expect(
+      a.getByRole('button', {name: 'Keep mine', exact: true}),
+    ).toBeEnabled()
+    await readingAction(a, 'Keep mine')
+    await expect(
+      a.getByRole('button', {name: 'Save my place', exact: true}),
+    ).toBeEnabled()
+    // That write expired the oldest save, so recovery must fail rather than adopt it.
+    const advanced = await cloud()
+    await readingAction(b, 'Resume saved place')
+    await expect(b.getByTestId('skyanchor-resume-result')).toContainText(
+      'expired or was deleted',
+    )
+    assert.deepEqual(await local(b), beforeLocal)
+    assert.deepEqual(await cloud(), advanced)
+    await readingAction(b, 'Check saved places')
+    await expect(
+      b.getByRole('button', {name: 'Check saved places', exact: true}),
+    ).toBeEnabled()
+    await chooseSave(b, 'Previous save')
+    const chosenCurrent = (await history(aId))[1]
+    const beforeRestore = await cloud(),
+      putsBeforeRestore = writes.length
+    await readingAction(b, 'Resume saved place')
+    await expect(b.getByTestId('skyanchor-resume-result')).toContainText(
+      'Restored this saved place locally',
+    )
+    await expect
+      .poll(async () => JSON.stringify(await local(b)))
+      .toBe(chosenCurrent.state)
+    const error = await placement(b, JSON.parse(chosenCurrent.state))
+    assert.deepEqual(await cloud(), beforeRestore)
+    assert.equal(writes.length, putsBeforeRestore)
+    await scrollReading(b, 90)
+    await b.waitForTimeout(1200)
+    await b.evaluate(() => dispatchEvent(new Event('focus')))
+    await b.waitForTimeout(500)
+    assert.deepEqual(await cloud(), beforeRestore)
+    assert.equal(writes.length, putsBeforeRestore)
+    await b.reload()
+    await b.getByTestId('skyanchor-reading-button').waitFor()
+    await readingPanel(b)
+    await expect(b.getByTestId('skyanchor-source-state')).toContainText(
+      'Restored saved place is local only',
+    )
+    await closeReadingPanel(b)
+    await scrollReading(b, 70)
+    await b.waitForTimeout(1100)
+    assert.deepEqual(await cloud(), beforeRestore)
+    // Device history includes this browser's own earlier saves, not only others.
+    await readingAction(b, 'Check saved places')
+    await expect(
+      b.getByRole('button', {name: 'Check saved places', exact: true}),
+    ).toBeEnabled()
+    await chooseSource(b, bId)
+    await expect(
+      b.getByRole('combobox', {name: 'Source of saved place', exact: true}),
+    ).toContainText('This browser')
+    await chooseSource(b, aId)
+    const historicalRestorePuts = writes.length - putsBeforeRestore
+    assert.equal(historicalRestorePuts, 0)
+    await readingAction(c, 'Check other device')
+    await readingAction(c, 'Resume other device')
+    await expect(c.getByTestId('skyanchor-resume-result')).toContainText(
+      'Confirmed locally.',
+    )
+    await expect
+      .poll(async () => JSON.stringify(await local(c)))
+      .toBe(beforeRestore.place.state)
+    await readingPanel(c)
+    await expect(c.getByTestId('skyanchor-source-state')).toContainText(
+      'Current local place confirmed shared',
+    )
+    await closeReadingPanel(c)
+    await scrollReading(c, 350)
+    const cShared = await confirmed(c, beforeRestore.place.revision)
+    // Sharing a local historical view requires a fresh, explicit shared-head decision.
+    await readingAction(b, 'Save my place')
+    await expect(
+      b.getByText(
+        'Latest shared changed. Review it and choose Keep mine again to share this local view.',
+        {exact: true},
+      ),
+    ).toBeVisible()
+    assert.equal(
+      writes.length - putsBeforeRestore,
+      1,
+      'Only C has written; B must not silently overwrite it',
+    )
+    await readingAction(b, 'Keep mine')
+    await expect(
+      b.getByRole('button', {name: 'Keep mine', exact: true}),
+    ).toHaveCount(0)
+    const explicitlyShared = (await cloud()).place
+    assert.ok(explicitlyShared.revision > cShared.revision)
+    assert.equal(explicitlyShared.device, bId)
+    assert.equal(explicitlyShared.state, JSON.stringify(await local(b)))
+    assert.equal(
+      await b.evaluate(
+        did => localStorage.getItem('skyanchor:historic-local:' + did),
+        did,
+      ),
+      null,
+    )
+    // A tombstone after a list read must reject the cached save before movement.
+    await readingAction(c, 'Check other device')
+    await readingAction(c, 'Resume other device')
+    await expect(c.getByTestId('skyanchor-resume-result')).toContainText(
+      'Confirmed locally.',
+    )
+    await expect
+      .poll(async () => JSON.stringify(await local(c)))
+      .toBe(explicitlyShared.state)
+    await readingPanel(c)
+    await expect(c.getByTestId('skyanchor-source-state')).toContainText(
+      'Current local place confirmed shared',
+    )
+    await readingAction(c, 'Delete cloud progress and disconnect')
+    await expect(
+      c.getByText(
+        'Cloud progress deleted and sync disconnected. Your local reading place is unchanged.',
+        {exact: true},
+      ),
+    ).toBeVisible()
+    const deleted = await cloud(),
+      localBeforeDeleteRestore = await local(b)
+    assert.equal(deleted.place.state, null)
+    await readingAction(b, 'Resume saved place')
+    await expect(b.getByTestId('skyanchor-resume-result')).toContainText(
+      'Cloud progress was deleted',
+    )
+    assert.deepEqual(await local(b), localBeforeDeleteRestore)
+    assert.deepEqual(await cloud(), deleted)
+    assert.equal((await history(aId)).length, 0)
+    assert.ok(chosen.revision < chosenCurrent.revision)
+    assert.deepEqual(errors, [])
+    report.deviceCheckpoints = {
+      profiles: 3,
+      retained: 3,
+      labels,
+      placementError: error,
+      rejectedExpired: true,
+      rejectedTombstone: true,
+      historicalRestorePuts,
+      explicitSharingCAS: true,
+    }
+    report.checks.push(
+      'Three production browser profiles: renamed source, three timestamped saves, no-write selection, expired immutable choice, exact local historical restore, durable autosave pause, own-browser history and deletion-race rejection',
+    )
+  } finally {
+    await Promise.all(contexts.map(context => context.close()))
+  }
+}
+
 export async function verifyScrollInput({
   phoneBrowser,
   mockUpstream,

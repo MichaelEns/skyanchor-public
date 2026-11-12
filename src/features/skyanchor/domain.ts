@@ -19,6 +19,7 @@ export function sameReadingPlace(
 
 export type ResumeOptions = {
   signal: AbortSignal
+  verify?: () => Promise<void>
   progress: (
     pages: number,
     phase?: 'history' | 'revalidate' | 'placement',

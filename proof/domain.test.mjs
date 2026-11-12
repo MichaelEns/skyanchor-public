@@ -1,5 +1,7 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
+import path from 'node:path'
+import {build} from 'esbuild'
 import {
   occurrenceKey,
   chooseAnchor,
@@ -17,6 +19,94 @@ import {
 } from '../src/features/skyanchor/domain.ts'
 
 const uri = 'at://did:plc:aaaaaaaaaaaaaaaaaaaaaaaa/app.bsky.feed.post/fixture'
+test('Private checkpoint parsing binds owner/feed/device, immutable revisions and bounded response bytes', async () => {
+  const built = await build({
+    entryPoints: [path.join('src', 'features', 'skyanchor', 'checkpoints.ts')],
+    bundle: true,
+    format: 'esm',
+    write: false,
+  })
+  const {
+    normalizedDeviceName,
+    defaultDeviceName,
+    validDeviceList,
+    validDeviceHistory,
+    boundedSyncJson,
+  } = await import(
+    'data:text/javascript;base64,' +
+      Buffer.from(built.outputFiles[0].text).toString('base64')
+  )
+  const did = 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa',
+    device = '00000000-0000-4000-8000-000000000001'
+  const state = {
+    version: 1,
+    anchor: occurrenceKey(uri),
+    offset: -24,
+    neighbors: [],
+  }
+  const history = {
+    did,
+    feed: 'following',
+    device,
+    saves: [
+      {revision: 5, state, updated: 100},
+      {revision: 3, state, updated: 99},
+    ],
+  }
+  assert.equal(validDeviceHistory(history, did, 'following', device), true)
+  for (const changes of [
+    {did: 'other'},
+    {feed: 'author|invalid'},
+    {device: 'other'},
+    {saves: [...history.saves].reverse()},
+    {saves: Array(4).fill(history.saves[0])},
+    {saves: [{...history.saves[0], state: {...state, offset: Infinity}}]},
+    {saves: [{...history.saves[0], updated: -1}]},
+  ])
+    assert.equal(
+      validDeviceHistory({...history, ...changes}, did, 'following', device),
+      false,
+    )
+  const list = {
+    did,
+    feed: 'following',
+    devices: [{device, label: 'Reader', updated: 0, lastSaved: 100, count: 2}],
+  }
+  assert.equal(validDeviceList(list, did, 'following'), true)
+  for (const devices of [
+    [{...list.devices[0], label: undefined}],
+    [...list.devices, ...list.devices],
+    [{...list.devices[0], count: 0}],
+    Array(33).fill(list.devices[0]),
+  ])
+    assert.equal(validDeviceList({...list, devices}, did, 'following'), false)
+  assert.equal(normalizedDeviceName('  Cafe\u0301  '), 'Café')
+  assert.equal(normalizedDeviceName('\nReader'), undefined)
+  assert.equal(defaultDeviceName(device), 'Browser - 0000')
+  assert.match(
+    defaultDeviceName(device, 'Version/20 Safari/600 iPhone'),
+    /^Safari on iPhone/,
+  )
+  let cancelled = false
+  await assert.rejects(
+    boundedSyncJson(
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(new Uint8Array(100))
+          },
+          cancel() {
+            cancelled = true
+          },
+        }),
+      ),
+      99,
+    ),
+    /bound/,
+  )
+  assert.equal(cancelled, true)
+  assert.deepEqual(await boundedSyncJson(Response.json(history), 4096), history)
+})
 test('Shared-place agreement requires the actual occurrence and offset, not matching neighbor metadata', () => {
   const place = {
     version: 1,

@@ -34,6 +34,27 @@ Choose Keep mine only on the browser whose current place you intend to share,
 not an old destination merely to clear its red dot. Background saves are best
 effort, not a guarantee.
 
+**Source of saved place** defaults to **Latest shared place**. Choose a named
+browser profile to see its latest save and two older distinct occurrences for
+this feed, including this browser's own saves. Times describe confirmed server
+saves, never post age or last device use: a recent save can point to an old post.
+Selecting or checking does not move your feed. **Resume saved place** restores
+the exact selected occurrence locally, leaving latest shared unchanged and
+automatic sharing paused, even after reopening. Explicit **Save my place** or
+**Keep mine** is required to share that view; a changed shared revision requires
+another decision.
+
+Browsers cannot read your OS machine name. Generated labels describe only a
+browser/platform family and a short random profile-ID suffix. Rename this
+browser in Reading place; names stay private to the account and renewals do not
+replace them. Tabs share a profile ID; separate browser/PWA storage contexts may
+not. At most 32 profiles can register per account, without eviction. History is
+a rolling three distinct occurrences per profile/feed, not an archive; another
+save of the same occurrence replaces its offset/time. Deleted or moderated
+posts may be unrecoverable. **Delete cloud progress and disconnect** purges all
+profiles' history for the active feed only, retaining the tombstone, names and
+other feeds. Signout clears local reading data, not cloud names/history.
+
 When returning to an older phone view, **Check other device** compares the
 visible occurrence and offset with the confirmed shared place, not just the
 accepted revision or browser label. A difference offers **Resume other device**

@@ -1,9 +1,15 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {randomUUID} from 'node:crypto'
+import {createHash, randomUUID} from 'node:crypto'
 import {readFileSync} from 'node:fs'
 import path from 'node:path'
-import {workerRuntime, context, didA, didB} from './runtime.mjs'
+import {
+  workerRuntime,
+  context,
+  didA,
+  didB,
+  checkpointMigrationStatements,
+} from './runtime.mjs'
 import {syncAuthService} from '../src/features/skyanchor/auth-service.ts'
 
 test('Sync verifier accepts only canonical Bluesky origins and binds regional tokens to the issuing service', async () => {
@@ -162,6 +168,437 @@ const place = uri => ({
   anchor: `at://${uri}/app.bsky.feed.post/fixture|repost:-|reply:-|context:at://${uri}/app.bsky.feed.post/fixture`,
   offset: -24.5,
   neighbors: [],
+})
+
+test('Checkpoint migration preserves exact 0001/0002 rows, active session and clock; backfills only confirmed places', async () => {
+  const {runtime, db, dispose} = await workerRuntime(
+    'https://skyanchor.test',
+    undefined,
+    true,
+    undefined,
+    false,
+  )
+  try {
+    const device = randomUUID(),
+      other = randomUUID(),
+      cookie = randomUUID(),
+      csrf = randomUUID()
+    const feed = 'author|' + didB + '|posts_with_replies'
+    const serialized = JSON.stringify(place(didA), null, 1)
+    await db.batch([
+      db
+        .prepare('INSERT INTO places VALUES (?, ?, 41, ?, ?, 1234)')
+        .bind(didA, 'following', device, serialized),
+      db
+        .prepare('INSERT INTO places VALUES (?, ?, 42, ?, ?, 1235)')
+        .bind(didA, feed, other, serialized),
+      db
+        .prepare('INSERT INTO places VALUES (?, ?, 43, ?, NULL, 1236)')
+        .bind(didB, 'following', other),
+      db.prepare(
+        "UPDATE clock SET revision = 50, nonce = 'unchanged' WHERE id = 1",
+      ),
+      db
+        .prepare('INSERT INTO sessions VALUES (?, ?, ?, ?, ?)')
+        .bind(
+          createHash('sha256').update(cookie).digest('hex'),
+          didA,
+          csrf,
+          device,
+          Date.now() + 100000,
+        ),
+    ])
+    const bytes = async () =>
+      JSON.stringify(
+        await Promise.all(
+          [
+            'places ORDER BY did, feed',
+            'sessions ORDER BY token_hash',
+            'clock',
+          ].map(
+            async table =>
+              (await db.prepare('SELECT * FROM ' + table).all()).results,
+          ),
+        ),
+      )
+    const before = await bytes()
+    await assert.rejects(
+      db.batch([
+        ...checkpointMigrationStatements().map(sql => db.prepare(sql)),
+        db.prepare('INSERT INTO absent_table VALUES (1)'),
+      ]),
+    )
+    assert.equal(await bytes(), before)
+    await db.batch(checkpointMigrationStatements().map(sql => db.prepare(sql)))
+    assert.equal(await bytes(), before)
+    assert.equal(
+      (await db.prepare('SELECT COUNT(*) AS n FROM reading_history').first()).n,
+      2,
+    )
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT state FROM reading_history WHERE feed = ?')
+          .bind(feed)
+          .first()
+      ).state,
+      serialized,
+    )
+    const client = context(runtime)
+    const headers = {
+      cookie: '__Host-skyanchor=' + cookie,
+      'x-skyanchor-csrf': csrf,
+    }
+    assert.equal(
+      (await client.call('place', 'GET', undefined, headers)).value.revision,
+      41,
+    )
+    const list = await client.call('devices', 'GET', undefined, headers)
+    assert.equal(list.status, 200)
+    assert.equal(list.value.devices.length, 2)
+    assert.ok(
+      list.value.devices.every(item => item.label.startsWith('Browser-')),
+    )
+    // An old Worker can still tombstone progress after rolling back code only.
+    await db
+      .prepare(
+        "UPDATE places SET state = NULL, revision = 51 WHERE did = ? AND feed = 'following'",
+      )
+      .bind(didA)
+      .run()
+    assert.equal(
+      (
+        await db
+          .prepare(
+            "SELECT COUNT(*) AS n FROM reading_history WHERE feed = 'following'",
+          )
+          .first()
+      ).n,
+      0,
+    )
+    assert.equal(
+      (
+        await db
+          .prepare('SELECT COUNT(*) AS n FROM reading_history WHERE feed = ?')
+          .bind(feed)
+          .first()
+      ).n,
+      1,
+    )
+  } finally {
+    await dispose()
+  }
+})
+
+test('Browser saves retain three distinct occurrences with server times; rejected CAS and feed deletion are atomic', async () => {
+  const {runtime, db, token, dispose} = await workerRuntime()
+  try {
+    const a = context(runtime),
+      b = context(runtime),
+      outsider = context(runtime)
+    const deviceA = randomUUID(),
+      deviceB = randomUUID()
+    for (const [client, device, did] of [
+      [a, deviceA, didA],
+      [b, deviceB, didA],
+      [outsider, randomUUID(), didB],
+    ])
+      assert.equal(
+        (
+          await client.call(
+            'session',
+            'POST',
+            {device},
+            {authorization: 'Bearer ' + token(did)},
+          )
+        ).status,
+        200,
+      )
+    const query = 'history?device=' + deviceA
+    let revision = 0
+    const save = async (client, value, endpoint = 'place') => {
+      const saved = await client.call(endpoint, 'PUT', {revision, state: value})
+      assert.equal(saved.status, 200)
+      revision = saved.value.revision
+      return saved.value
+    }
+    const positions = Array.from({length: 5}, (_, i) => ({
+      ...place(didA),
+      anchor: place(didA).anchor.replaceAll('fixture', 'checkpoint' + i),
+      offset: -i - 0.5,
+    }))
+    const confirmations = []
+    for (const p of positions) confirmations.push(await save(a, p))
+    let history = (await a.call(query)).value.saves
+    assert.deepEqual(
+      history.map(item => item.revision),
+      confirmations
+        .slice(-3)
+        .reverse()
+        .map(item => item.revision),
+    )
+    assert.ok(
+      history.every(item => item.updated > 0 && item.updated <= Date.now()),
+    )
+    const before = JSON.stringify(
+      (
+        await db
+          .prepare('SELECT * FROM reading_history ORDER BY revision')
+          .all()
+      ).results,
+    )
+    const clock = await db.prepare('SELECT * FROM clock').first()
+    assert.equal(
+      (await b.call('place', 'PUT', {revision: 0, state: positions[0]})).status,
+      409,
+    )
+    assert.equal(
+      JSON.stringify(
+        (
+          await db
+            .prepare('SELECT * FROM reading_history ORDER BY revision')
+            .all()
+        ).results,
+      ),
+      before,
+    )
+    assert.deepEqual(await db.prepare('SELECT * FROM clock').first(), clock)
+    const previous = history.slice(1)
+    await save(a, {...positions[4], offset: -200})
+    history = (await a.call(query)).value.saves
+    assert.equal(
+      history.length,
+      3,
+      'Offset churn replaces only this occurrence',
+    )
+    assert.deepEqual(history.slice(1), previous)
+    assert.equal(history[0].state.offset, -200)
+    await save(b, positions[0])
+    const feed = 'author|' + didB + '|posts_with_media'
+    assert.equal(
+      (
+        await a.call('place?feed=' + encodeURIComponent(feed), 'PUT', {
+          revision: 0,
+          state: positions[0],
+        })
+      ).status,
+      200,
+    )
+    const rows = await db
+      .prepare('SELECT * FROM reading_history ORDER BY revision')
+      .all()
+    assert.equal((await a.call('place', 'DELETE', {revision: 0})).status, 409)
+    assert.deepEqual(
+      (
+        await db
+          .prepare('SELECT * FROM reading_history ORDER BY revision')
+          .all()
+      ).results,
+      rows.results,
+    )
+    assert.equal((await outsider.call(query)).status, 404)
+    assert.equal(
+      (await a.call(query, 'GET', undefined, {'x-skyanchor-csrf': ''})).status,
+      403,
+    )
+    assert.equal((await context(runtime).call(query)).status, 401)
+    for (const endpoint of [
+      'devices?did=' + didB,
+      query + '&device=' + deviceB,
+      query + '&owner=' + didB,
+      'history?device=invalid',
+      'history',
+      'device?device=' + deviceB,
+      query + '&feed=following&feed=following',
+    ])
+      assert.equal((await a.call(endpoint)).status, 400, endpoint)
+    const deleted = await a.call('place', 'DELETE', {revision})
+    assert.equal(deleted.status, 200)
+    assert.equal(deleted.value.state, null)
+    assert.ok(deleted.value.revision > revision)
+    assert.equal((await a.call(query)).value.saves.length, 0)
+    assert.equal(
+      (await b.call('history?device=' + deviceB)).value.saves.length,
+      0,
+    )
+    assert.equal(
+      (await a.call(query + '&feed=' + encodeURIComponent(feed))).value.saves
+        .length,
+      1,
+    )
+    assert.equal((await a.call('devices')).value.devices.length, 2)
+    const expected = deleted.value.revision
+    const concurrent = await Promise.all(
+      [a, b].map((client, i) =>
+        client.call('place', 'PUT', {revision: expected, state: positions[i]}),
+      ),
+    )
+    assert.deepEqual(concurrent.map(item => item.status).sort(), [200, 409])
+    assert.equal(
+      (
+        await db
+          .prepare(
+            "SELECT COUNT(*) AS n FROM reading_history WHERE did = ? AND feed = 'following'",
+          )
+          .bind(didA)
+          .first()
+      ).n,
+      1,
+    )
+    assert.ok(JSON.stringify((await a.call(query)).value).length < 65_536)
+    const atomicBytes = async () =>
+      JSON.stringify(
+        await Promise.all(
+          [
+            'places ORDER BY did, feed',
+            'reading_history ORDER BY revision',
+            'clock',
+          ].map(
+            async table =>
+              (await db.prepare('SELECT * FROM ' + table).all()).results,
+          ),
+        ),
+      )
+    const atomicBefore = await atomicBytes()
+    await db
+      .prepare(
+        "CREATE TRIGGER fixture_history_failure BEFORE INSERT ON reading_history BEGIN SELECT RAISE(ABORT, 'fixture transaction failure'); END",
+      )
+      .run()
+    const head = (await a.call('place')).value.revision
+    assert.equal(
+      (await a.call('place', 'PUT', {revision: head, state: positions[4]}))
+        .status,
+      503,
+    )
+    assert.equal(
+      await atomicBytes(),
+      atomicBefore,
+      'A history failure must roll back place, pruning and clock together',
+    )
+  } finally {
+    await dispose()
+  }
+})
+
+test('Profile rename is owner/session-only and survives legacy renewal; device capacity never evicts existing data', async () => {
+  const {runtime, db, token, dispose} = await workerRuntime()
+  try {
+    const a = context(runtime),
+      b = context(runtime)
+    const device = randomUUID(),
+      authorization = 'Bearer ' + token(didA)
+    assert.equal(
+      (
+        await a.call(
+          'session',
+          'POST',
+          {device, deviceName: 'Safari on iPhone - test'},
+          {authorization},
+        )
+      ).status,
+      200,
+    )
+    for (const label of [
+      '',
+      ' ',
+      'a'.repeat(65),
+      '😀'.repeat(65),
+      '\u200bhidden',
+      'a\nb',
+      '<script>alert(1)</script>',
+      '\ud800',
+    ])
+      assert.equal((await a.call('device', 'PUT', {label})).status, 400)
+    assert.equal(
+      (await a.call('device', 'PUT', {label: ' Reading browser '})).value.label,
+      'Reading browser',
+    )
+    assert.equal(
+      (await a.call('device', 'PUT', {label: 'Bad', device: randomUUID()}))
+        .status,
+      400,
+    )
+    assert.equal(
+      (
+        await a.call(
+          'session',
+          'POST',
+          {device, deviceName: 'Default'},
+          {authorization},
+        )
+      ).status,
+      200,
+    )
+    assert.equal(
+      (await a.call('session', 'POST', {device}, {authorization})).status,
+      200,
+    )
+    assert.equal(
+      (await a.call('devices')).value.devices[0].label,
+      'Reading browser',
+    )
+    assert.equal(
+      (
+        await b.call(
+          'session',
+          'POST',
+          {device},
+          {authorization: 'Bearer ' + token(didB)},
+        )
+      ).status,
+      200,
+    )
+    assert.notEqual(
+      (await b.call('devices')).value.devices[0].label,
+      'Reading browser',
+    )
+    const saved = await a.call('place', 'PUT', {
+      revision: 0,
+      state: place(didA),
+    })
+    assert.equal(saved.status, 200)
+    for (let i = 1; i < 32; i++)
+      await db
+        .prepare('INSERT INTO device_registry VALUES (?, ?, ?, ?)')
+        .bind(didA, randomUUID(), 'Fixture browser ' + i, 1)
+        .run()
+    const before = await db.prepare('SELECT * FROM places').all()
+    assert.equal(
+      (await a.call('session', 'POST', {device: randomUUID()}, {authorization}))
+        .status,
+      422,
+    )
+    assert.deepEqual(
+      (await db.prepare('SELECT * FROM places').all()).results,
+      before.results,
+    )
+    assert.equal(
+      (await a.call('place')).status,
+      200,
+      'Capacity error must not revoke the existing session',
+    )
+    assert.equal((await a.call('devices')).value.devices.length, 32)
+    assert.equal(
+      (await a.call('session', 'POST', {device}, {authorization})).status,
+      200,
+    )
+    await db
+      .prepare('INSERT INTO device_registry VALUES (?, ?, ?, ?)')
+      .bind(didA, randomUUID(), 'Retained legacy browser', 1)
+      .run()
+    assert.equal((await a.call('devices')).status, 422)
+    assert.equal(
+      (await a.call('history?device=' + device)).value.saves.length,
+      1,
+    )
+    assert.equal(
+      (await a.call('session', 'POST', {device}, {authorization})).status,
+      200,
+    )
+  } finally {
+    await dispose()
+  }
 })
 
 test('Author migration is atomic and copy-preserving with progress, tombstones, clock and stale legacy clients', async () => {

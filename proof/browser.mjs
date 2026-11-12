@@ -16,6 +16,7 @@ import {
   verifyHandoff,
   verifyReverseHandoff,
   verifyScrollInput,
+  verifyDeviceCheckpoints,
 } from './handoff.mjs'
 import {verifyProfileReading} from './profile-reading.mjs'
 import {verifyAuthContrast} from './auth-contrast.mjs'
@@ -1210,6 +1211,19 @@ async function runBrowserProof() {
     report.passed = true
     return
   }
+  if (process.argv.includes('--device-checkpoints-only')) {
+    await verifyDeviceCheckpoints({
+      desktopBrowser,
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
+  }
   if (process.argv.includes('--scroll-input-only')) {
     await verifyScrollInput({
       phoneBrowser,
@@ -1223,6 +1237,14 @@ async function runBrowserProof() {
     return
   }
   if (process.argv.includes('--handoff-only')) {
+    await verifyDeviceCheckpoints({
+      desktopBrowser,
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+    })
     await verifyAutomaticSource({
       desktopBrowser,
       phoneBrowser,
@@ -2212,6 +2234,14 @@ async function runBrowserProof() {
     await closeReadingPanel(page)
     await closeReadingPanel(phonePage)
   }
+  await verifyDeviceCheckpoints({
+    desktopBrowser,
+    phoneBrowser,
+    mockUpstream,
+    signIn,
+    worker,
+    report,
+  })
   await verifyAutomaticSource({
     desktopBrowser,
     phoneBrowser,
