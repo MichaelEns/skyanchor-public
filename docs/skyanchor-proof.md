@@ -128,3 +128,15 @@ The unchanged row/clock assertion uses that confirmed baseline, not an enabled
 Save button. Generated production WebKit iPhone and desktop Windows labels are
 checked before rename; actual Edge execution remains a separate approved
 parent validation, not a spoofed-UA claim.
+
+The complete browser sequence retains earlier Return moderation/deletion
+fixtures. Its hidden shared URI
+`at://did:plc:aaaaaaaaaaaaaaaaaaaaaaaa/app.bsky.feed.post/post19`
+previously contaminated the device scenario despite a different signed-in
+account: public post records were still shared. Device acceptance now owns a
+consistent feed/reply/revalidation URI set under its synthetic scenario author.
+The receipt records the original `!hide` flag and the isolated record's actual
+revalidation labels. Dedicated context-local hidden and deleted flags reject
+the same chosen historical occurrence before successful recovery, preserving
+local/Return bytes, URL, history, full cloud row/clock and zero receiving PUTs.
+No shared moderation flags are cleared and application moderation is unchanged.

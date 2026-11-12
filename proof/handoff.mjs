@@ -15,8 +15,14 @@ export async function verifyDeviceCheckpoints({
   worker,
   report,
   holdApi,
+  entries,
 }) {
   const did = 'did:plc:mmmmmmmmmmmmmmmmmmmmmmmm'
+  const originalAuthor = entries[0].post.author.did
+  const scenarioTimeline = JSON.parse(
+    JSON.stringify(entries).replaceAll(originalAuthor, did),
+  )
+  const controlsByPage = new Map()
   const contexts = [],
     writes = [],
     errors = []
@@ -58,8 +64,10 @@ export async function verifyDeviceCheckpoints({
       serviceWorkers: 'block',
     })
     contexts.push(context)
-    await mockUpstream(context, did)
+    const controls = await mockUpstream(context, did)
+    controls.setTimeline(scenarioTimeline)
     const page = await context.newPage()
+    controlsByPage.set(page, controls)
     page.on('pageerror', error => errors.push(error.message))
     page.on('request', request => {
       if (new URL(request.url()).pathname !== '/api/skyanchor/place') return
@@ -376,6 +384,61 @@ export async function verifyDeviceCheckpoints({
     const chosenCurrent = (await history(aId))[1]
     const beforeRestore = await cloud(),
       putsBeforeRestore = writeCount(b)
+    const selectedUri = JSON.parse(chosenCurrent.state).anchor.split('|')[0]
+    assert.ok(selectedUri.startsWith('at://' + did + '/'))
+    const bControls = controlsByPage.get(b)
+    const localBytes = () =>
+      b.evaluate(
+        key => ({
+          snapshot: localStorage.getItem(key),
+          return: localStorage.getItem(
+            key.replace('skyanchor:following:', 'skyanchor:return:'),
+          ),
+          url: location.href,
+        }),
+        key,
+      )
+    const beforeRejected = await localBytes()
+    const historyBeforeRejected = await history(aId)
+    const rejectedRecords = []
+    for (const reason of ['moderated', 'deleted']) {
+      if (reason === 'moderated')
+        bControls.setRecordModerated(selectedUri, true)
+      else bControls.setRecordDeleted(selectedUri, true)
+      const responsesBefore = bControls.revalidationResponses.length
+      await readingAction(b, 'Resume saved place')
+      await expect(b.getByTestId('skyanchor-resume-result')).toContainText(
+        'Could not restore the exact saved occurrence.',
+      )
+      if (reason === 'moderated')
+        await expect(b.getByTestId('skyanchor-resume-result')).toContainText(
+          'missing or excluded by current moderation',
+        )
+      const revalidation =
+        bControls.revalidationResponses.slice(responsesBefore)
+      const response = revalidation.find(item =>
+        item.requested.includes(selectedUri),
+      )
+      assert.ok(
+        response,
+        'Historical recovery must revalidate the exact selected URI',
+      )
+      if (reason === 'moderated')
+        assert.ok(
+          response.posts
+            .find(item => item.uri === selectedUri)
+            .labels.some(label => label.val === '!hide'),
+        )
+      else assert.ok(!response.posts.some(item => item.uri === selectedUri))
+      assert.deepEqual(await localBytes(), beforeRejected)
+      assert.deepEqual(await cloud(), beforeRestore)
+      assert.deepEqual(await history(aId), historyBeforeRejected)
+      assert.equal(writeCount(b), putsBeforeRestore)
+      rejectedRecords.push({reason, uri: selectedUri, revalidation})
+      if (reason === 'moderated')
+        bControls.setRecordModerated(selectedUri, false)
+      else bControls.setRecordDeleted(selectedUri, false)
+    }
     await readingAction(b, 'Resume saved place')
     await expect(b.getByTestId('skyanchor-resume-result')).toContainText(
       'Restored this saved place locally',
@@ -414,6 +477,13 @@ export async function verifyDeviceCheckpoints({
     await chooseSource(b, aId)
     const historicalRestorePuts = writeCount(b) - putsBeforeRestore
     assert.equal(historicalRestorePuts, 0)
+    const cControls = controlsByPage.get(c)
+    const chosenSharedUri = JSON.parse(beforeRestore.place.state).anchor.split(
+      '|',
+    )[0]
+    const originalSharedUri = chosenSharedUri.replace(did, originalAuthor)
+    const originalSharedRecord = cControls.sharedRecordState(originalSharedUri)
+    const cResponsesBefore = cControls.revalidationResponses.length
     await readingAction(c, 'Check other device')
     await readingAction(c, 'Resume other device')
     await expect(c.getByTestId('skyanchor-resume-result')).toContainText(
@@ -426,6 +496,17 @@ export async function verifyDeviceCheckpoints({
     await expect(c.getByTestId('skyanchor-source-state')).toContainText(
       'Current local place confirmed shared',
     )
+    const cRevalidation = cControls.revalidationResponses
+      .slice(cResponsesBefore)
+      .find(item => item.requested.includes(chosenSharedUri))
+    assert.ok(cRevalidation)
+    assert.ok(cRevalidation.posts.some(item => item.uri === chosenSharedUri))
+    assert.deepEqual(
+      cRevalidation.posts.find(item => item.uri === chosenSharedUri).labels,
+      [],
+    )
+    assert.ok(cRevalidation.isolatedTimeline)
+    assert.deepEqual(await cloud(), beforeRestore)
     await closeReadingPanel(c)
     await scrollReading(c, 350)
     const cShared = await confirmed(c, beforeRestore.place.revision)
@@ -506,6 +587,10 @@ export async function verifyDeviceCheckpoints({
       receivingWritesWhileSourceHeld,
       sourcePendingWhileHeld,
       requests: [...requests.values()],
+      originalSharedRecord,
+      isolatedSharedUri: chosenSharedUri,
+      isolatedSharedRevalidation: cRevalidation,
+      rejectedRecords,
     }
     report.checks.push(
       'Three production browser profiles: renamed source, three timestamped saves, no-write selection, expired immutable choice, exact local historical restore, durable autosave pause, own-browser history and deletion-race rejection',
