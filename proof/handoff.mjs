@@ -1922,8 +1922,7 @@ export async function verifyHandoff({
       const count = await a.locator('[data-skyanchor-key]').count()
       if (await a.locator('[data-skyanchor-key*="/post470|"]').count()) break
       const controls = contexts[0].fixture.controls
-      const next = controls.holdTimeline(30, count)
-      try {
+      {
         if (count === 180) {
           passiveCorrection = await a.evaluate(() => {
             const before = window.fixturePaginationSample(
@@ -1962,6 +1961,11 @@ export async function verifyHandoff({
         const readyForWheel = await a.evaluate(() =>
           window.fixturePaginationSample('focused-before-owned-wheel'),
         )
+        const targetKey = readyForWheel.last
+        const targetIndex = history.findIndex(item =>
+          targetKey.startsWith(item.post.uri + '|'),
+        )
+        assert.ok(targetIndex >= 0)
         const viewport = a.viewportSize()
         await a.mouse.move(viewport.width / 2, viewport.height / 2)
         await a.mouse.wheel(
@@ -1982,42 +1986,56 @@ export async function verifyHandoff({
         )
         await expect
           .poll(() =>
-            a.evaluate(() => {
+            a.evaluate(key => {
               const sample = window.fixturePaginationSample('owned-wheel')
-              return (
-                sample.lastBottom <= sample.height + 2 &&
-                sample.lastBottom > sample.header &&
-                sample.maxY - sample.y <= sample.height
-              )
-            }),
+              const target = [
+                ...document.querySelectorAll('[data-skyanchor-key]'),
+              ].find(node => node.dataset.skyanchorKey === key)
+              return target?.getBoundingClientRect().bottom <= sample.height + 2
+            }, targetKey),
           )
           .toBe(true)
         await expect
           .poll(() =>
-            controls.timelineRequests.some(
-              request => request.index === count && request.limit === 30,
+            controls.timelineResponses.some(
+              response =>
+                response.index <= targetIndex + 1 &&
+                response.index + response.limit > targetIndex + 1 &&
+                response.limit === 30,
             ),
           )
           .toBe(true)
         await expect
-          .poll(() =>
-            a.evaluate(
-              () =>
-                window.fixturePaginationSample('owned-wheel-loading').loading
-                  .length,
-            ),
-          )
-          .toBeGreaterThan(0)
+          .poll(() => a.locator('[data-skyanchor-key]').count())
+          .toBeGreaterThan(readyForWheel.count)
         const end = await a.evaluate(() =>
-          window.fixturePaginationSample('owned-wheel-requested'),
+          window.fixturePaginationSample('owned-wheel-appended'),
         )
-        pagination.push({count, beforeWheel, readyForWheel, wheel, end})
-      } finally {
-        next.release()
+        assert.ok(end.y > readyForWheel.y)
+        const targetBottom = await a
+          .locator('[data-skyanchor-key]')
+          .evaluateAll(
+            (nodes, key) =>
+              nodes
+                .find(node => node.dataset.skyanchorKey === key)
+                ?.getBoundingClientRect().bottom,
+            targetKey,
+          )
+        pagination.push({
+          count,
+          beforeWheel,
+          readyForWheel,
+          wheel,
+          targetKey,
+          targetIndex,
+          targetBottom,
+          completion: 'real data appended',
+          responses: controls.timelineResponses.filter(
+            response => response.index > targetIndex && response.limit === 30,
+          ),
+          end,
+        })
       }
-      await expect
-        .poll(() => a.locator('[data-skyanchor-key]').count())
-        .toBeGreaterThan(count)
     }
     report.deepPagination = {
       input: 'trusted mouse wheel',
