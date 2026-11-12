@@ -11,16 +11,25 @@ function readingFixture({
   scrollbarLeft = false,
   horizontalScrollbar = false,
   overlayScrollbar = false,
+  initialPlace,
 } = {}) {
   const frames = []
+  let nextFrame = 0
+  const cancelledFrames = new Set()
   const events = new Map()
   const saved = []
   const dispatched = []
-  const cleanups = []
+  const effects = []
+  const layoutEffects = []
+  let effectIndex = 0
+  let layoutIndex = 0
+  let pendingEffects = []
+  let pendingLayouts = []
   const refs = []
   let refIndex = 0
   let rowTop = 5
   let epoch = 0
+  let routeKey = 'home-entry'
   let headerBottom = naturalHeader ? 347 : 143
   const owner = 'did:plc:aaaaaaaaaaaaaaaaaaaaaaaa'
   let renderedOwner = owner
@@ -52,7 +61,9 @@ function readingFixture({
     addEventListener(name, callback) {
       events.set(name, callback)
     },
-    removeEventListener() {},
+    removeEventListener(name, callback) {
+      if (events.get(name) === callback) events.delete(name)
+    },
   }
   const window = {
     scrollY: 1000,
@@ -67,7 +78,9 @@ function readingFixture({
     addEventListener(name, callback) {
       events.set(name, callback)
     },
-    removeEventListener() {},
+    removeEventListener(name, callback) {
+      if (events.get(name) === callback) events.delete(name)
+    },
     dispatchEvent(event) {
       dispatched.push(event.detail)
     },
@@ -130,10 +143,15 @@ function readingFixture({
       }),
       HTMLElement: FixtureElement,
       requestAnimationFrame(callback) {
-        frames.push(callback)
-        return frames.length
+        const id = ++nextFrame
+        frames.push(() => {
+          if (!cancelledFrames.has(id)) callback()
+        })
+        return id
       },
-      cancelAnimationFrame: noop,
+      cancelAnimationFrame(id) {
+        cancelledFrames.add(id)
+      },
       ResizeObserver: class {
         observe() {}
         disconnect() {}
@@ -146,16 +164,39 @@ function readingFixture({
             useRef: current =>
               refs[refIndex++] ?? (refs[refIndex - 1] = {current}),
             useState: initial => [initial, noop],
-            useEffect: effect => {
-              const cleanup = effect()
-              if (cleanup) cleanups.push(cleanup)
+            useEffect: (effect, deps) => {
+              const index = effectIndex++
+              const previous = effects[index]
+              if (
+                previous &&
+                deps?.every((dep, i) => Object.is(dep, previous.deps?.[i]))
+              )
+                return
+              pendingEffects.push(() => {
+                previous?.cleanup?.()
+                const cleanup = effect()
+                effects[index] = {deps, cleanup}
+              })
             },
-            useLayoutEffect: effect => effect(),
+            useLayoutEffect: (effect, deps) => {
+              const index = layoutIndex++
+              const previous = layoutEffects[index]
+              if (
+                previous &&
+                deps?.every((dep, i) => Object.is(dep, previous.deps?.[i]))
+              )
+                return
+              pendingLayouts.push(() => {
+                previous?.cleanup?.()
+                const cleanup = effect()
+                layoutEffects[index] = {deps, cleanup}
+              })
+            },
           }
         if (name === '@lingui/react/macro')
           return {useLingui: () => ({t: strings => strings[0]})}
         if (name === '@react-navigation/native')
-          return {useRoute: () => ({key: 'home-entry'})}
+          return {useRoute: () => ({key: routeKey})}
         if (name === 'react-dom') return {flushSync: action => action()}
         if (name === '#/logger')
           return {
@@ -168,7 +209,8 @@ function readingFixture({
           chooseAnchor: place => ({key: place.anchor, fallback: false}),
           ReadingCapacityError: class extends Error {},
           readingEpoch: () => epoch,
-          readSnapshot: () => undefined,
+          readSnapshot: () =>
+            initialPlace ? {place: initialPlace} : undefined,
         }
       },
     },
@@ -184,7 +226,19 @@ function readingFixture({
       saved.push(JSON.parse(JSON.stringify(place)))
     },
   }
-  const hook = exports.useReadingPlace(options)
+  function renderHook(overrides = {}) {
+    if (overrides.routeKey) routeKey = overrides.routeKey
+    refIndex = 0
+    effectIndex = 0
+    layoutIndex = 0
+    const result = exports.useReadingPlace({...options, ...overrides})
+    for (const effect of pendingLayouts) effect()
+    pendingLayouts = []
+    for (const effect of pendingEffects) effect()
+    pendingEffects = []
+    return result
+  }
+  const hook = renderHook()
   return {
     hook,
     events,
@@ -255,15 +309,23 @@ function readingFixture({
       )
     },
     focusAgain(overrides = {}) {
-      refIndex = 0
-      exports.useReadingPlace({...options, enabled: false})
-      refIndex = 0
-      return exports.useReadingPlace({...options, ...overrides})
+      renderHook({enabled: false})
+      return renderHook(overrides)
+    },
+    disable() {
+      return renderHook({enabled: false})
+    },
+    remount(overrides = {}) {
+      for (const effect of layoutEffects) effect.cleanup?.()
+      for (const effect of effects) effect.cleanup?.()
+      refs.length = 0
+      layoutEffects.length = 0
+      effects.length = 0
+      return renderHook(overrides)
     },
     switchOwner(did) {
       renderedOwner = did
-      refIndex = 0
-      return exports.useReadingPlace({...options, did})
+      return renderHook({did})
     },
     restoreEntry(routeKey = 'home-entry') {
       const detail = {routeKey, handled: false}
@@ -271,12 +333,117 @@ function readingFixture({
       return detail.handled
     },
     cleanup() {
-      for (const cleanup of cleanups) cleanup()
+      for (const effect of layoutEffects) effect.cleanup?.()
+      for (const effect of effects) effect.cleanup?.()
     },
   }
 }
 
 const targetPlace = {version: 1, anchor: 'target', offset: -42, neighbors: []}
+
+test('Back reactivation releases correction before continued touch momentum and saves the newer viewport', () => {
+  const fixture = readingFixture()
+  fixture.move(45)
+  fixture.depart()
+  fixture.move(500)
+  fixture.focusAgain()
+  fixture.flush()
+  assert.equal(fixture.rowTop, 45)
+  fixture.scrollBy(30)
+  fixture.flush()
+  assert.equal(fixture.saved.at(-1)?.offset, -128)
+  fixture.advance(200)
+  fixture.events.get('resize')()
+  assert.equal(
+    fixture.rowTop,
+    15,
+    'Late layout cannot restore the old departure',
+  )
+})
+
+test('A remounted entry uses its exact departure rather than the older durable checkpoint and continues saving', () => {
+  const fixture = readingFixture({initialPlace: targetPlace})
+  fixture.flush()
+  fixture.move(45)
+  fixture.depart()
+  fixture.move(500)
+  fixture.remount()
+  fixture.flush()
+  assert.equal(fixture.rowTop, 45)
+  assert.deepEqual(fixture.saved, [])
+  fixture.scrollBy(30)
+  fixture.flush()
+  assert.equal(fixture.saved.at(-1)?.offset, -128)
+})
+
+test('Resumed reading invalidates a cancelled departure before a later activation', () => {
+  const fixture = readingFixture()
+  fixture.move(45)
+  fixture.depart()
+  fixture.events.get('wheel')()
+  fixture.scrollBy(30)
+  fixture.flush()
+  fixture.advance(200)
+  fixture.move(500)
+  fixture.focusAgain()
+  fixture.flush()
+  assert.equal(
+    fixture.rowTop,
+    15,
+    'A cancelled navigation cannot resurrect its old departure',
+  )
+})
+
+test('An expired departure cannot claim semantic restoration or block the entry pixel fallback', () => {
+  const fixture = readingFixture({initialPlace: targetPlace})
+  fixture.flush()
+  fixture.move(45)
+  fixture.depart()
+  fixture.expire()
+  fixture.move(500)
+  fixture.focusAgain()
+  assert.equal(fixture.rowTop, 500)
+  assert.equal(fixture.restoreEntry(), false)
+})
+
+test('Departure restoration is isolated to the original history entry and feed', () => {
+  for (const overrides of [
+    {routeKey: 'another-home-entry'},
+    {feed: 'author:did:plc:aaaaaaaaaaaaaaaaaaaaaaaa:posts'},
+  ]) {
+    const fixture = readingFixture()
+    fixture.move(45)
+    fixture.depart()
+    fixture.move(500)
+    fixture.remount(overrides)
+    fixture.flush()
+    assert.equal(fixture.rowTop, 500)
+    assert.equal(fixture.restoreEntry(overrides.routeKey), false)
+  }
+})
+
+test('Disabled source cleanup cancels queued captures and removes gesture/blur listeners before refocus', () => {
+  const fixture = readingFixture()
+  fixture.events.get('touchstart')()
+  fixture.move(45)
+  fixture.events.get('scroll')()
+  fixture.disable()
+  fixture.flush()
+  assert.deepEqual(fixture.saved, [])
+  for (const event of [
+    'scroll',
+    'touchstart',
+    'touchend',
+    'blur',
+    'skyanchor-before-navigation',
+  ])
+    assert.equal(fixture.events.has(event), false, event)
+  fixture.move(500)
+  fixture.focusAgain()
+  fixture.scrollBy(30)
+  fixture.flush()
+  assert.equal(fixture.saved.at(-1)?.offset, 327)
+})
 
 test('Immediate departure snapshot observes the current DOM before queued scroll capture, without saving progress', () => {
   const fixture = readingFixture()

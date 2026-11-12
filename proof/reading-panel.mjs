@@ -150,6 +150,353 @@ export async function verifyReadingPanel(page, report, feed = 'following') {
   )
 }
 
+export async function verifyThreadBack({
+  desktopBrowser,
+  phoneBrowser,
+  mockUpstream,
+  signIn,
+  report,
+  installViewportFixture,
+  worker,
+  entries,
+}) {
+  for (const [index, browser] of [desktopBrowser, phoneBrowser].entries()) {
+    const context = await browser.newContext({
+      ...(index
+        ? devices['iPhone 13']
+        : {viewport: {width: 1280, height: 900}}),
+      ignoreHTTPSErrors: true,
+      serviceWorkers: 'block',
+    })
+    try {
+      if (index) {
+        await context.addInitScript(installViewportFixture)
+        await context.addInitScript(() => {
+          Object.defineProperty(navigator, 'platform', {get: () => 'iPhone'})
+        })
+      }
+      const did = index
+        ? 'did:plc:hhhhhhhhhhhhhhhhhhhhhhhh'
+        : 'did:plc:iiiiiiiiiiiiiiiiiiiiiiii'
+      const controls = await mockUpstream(context, did)
+      const timeline = entries
+        .filter(item => !item.reply)
+        .map(item => ({
+          ...item,
+          post: {
+            ...item.post,
+            uri: item.post.uri.replace(
+              /\/post(\d+)$/,
+              (_, number) => `/post${6000 + Number(number)}`,
+            ),
+          },
+        }))
+      controls.setTimeline(timeline)
+      const reply = timeline.find(item =>
+        item.post.uri.endsWith('/post6023'),
+      ).post
+      controls.setThreadReply(reply)
+      const page = await context.newPage()
+      const writes = []
+      const failures = []
+      page.on('pageerror', error => failures.push(error.message))
+      let navigationOnly = false
+      page.on('request', request => {
+        if (
+          navigationOnly &&
+          new URL(request.url()).pathname.startsWith('/api/skyanchor/') &&
+          request.method() !== 'GET'
+        )
+          writes.push(request.method())
+      })
+      await signIn(page)
+      await page.evaluate(() => {
+        window.fixtureThreadDepartures = 0
+        addEventListener(
+          'skyanchor-before-navigation',
+          () => window.fixtureThreadDepartures++,
+        )
+      })
+      const cloudBytes = async () => ({
+        place: await worker.db
+          .prepare("SELECT * FROM places WHERE did = ? AND feed = 'following'")
+          .bind(did)
+          .first(),
+        clock: await worker.db
+          .prepare('SELECT revision, nonce FROM clock WHERE id = 1')
+          .first(),
+      })
+      const measure = () =>
+        page.evaluate(() => {
+          const header = document.querySelector(
+            '[data-testid="mobileHomeHeader"]',
+          )
+          const bottom = header?.getClientRects().length
+            ? header.getBoundingClientRect().bottom
+            : 0
+          const rows = [...document.querySelectorAll('[data-skyanchor-key]')]
+          const row = rows.find(
+            node =>
+              node.getClientRects().length &&
+              node.getBoundingClientRect().bottom > bottom + 1,
+          )
+          return {
+            key: row?.dataset.skyanchorKey,
+            offset: row?.getBoundingClientRect().top - bottom,
+          }
+        })
+      const local = () =>
+        page.evaluate(() => {
+          const entry = Object.entries(localStorage).find(([key]) =>
+            key.startsWith('skyanchor:following:v1:'),
+          )
+          return entry ? JSON.parse(entry[1]).place : null
+        })
+      const protectedBytes = () =>
+        page.evaluate(() =>
+          Object.fromEntries(
+            Object.entries(localStorage).filter(([key]) =>
+              /^skyanchor:(return|revision|history|sharing)/.test(key),
+            ),
+          ),
+        )
+      await page
+        .getByTestId('postText')
+        .filter({hasText: 'Fixture post 20.'})
+        .first()
+        .scrollIntoViewIfNeeded()
+      await scrollReading(page, 61)
+      await expect
+        .poll(async () => (await local())?.anchor === (await measure()).key)
+        .toBe(true)
+      const old = await local()
+      await readingAction(page, 'Connect private sync')
+      await closeReadingPanel(page)
+      const initialHistory = await page.evaluate(() => history.length)
+      for (const [visit, kind] of [
+        'card',
+        'timestamp',
+        'card',
+        'keyboard',
+      ].entries()) {
+        await scrollReading(page, -183 - visit * 47)
+        const panel = await readingPanel(page)
+        const keepMine = panel.getByRole('button', {
+          name: 'Keep mine',
+          exact: true,
+        })
+        await panel
+          .getByRole('button', {
+            name: (await keepMine.isVisible()) ? 'Keep mine' : 'Save my place',
+            exact: true,
+          })
+          .click()
+        await expect
+          .poll(
+            async () => {
+              const place = await local()
+              return (await cloudBytes()).place?.state === JSON.stringify(place)
+            },
+            {
+              message:
+                'Fixture reading must be confirmed before measuring navigation-only writes',
+            },
+          )
+          .toBe(true)
+        await expect(panel).toContainText(
+          'Current local place confirmed shared',
+        )
+        await closeReadingPanel(page)
+        const cloudBefore = await cloudBytes()
+        const protectedBefore = await protectedBytes()
+        const departure = await measure()
+        assert.ok(departure.key)
+        const tapKey = await page
+          .locator('[data-skyanchor-key]')
+          .evaluateAll(nodes => {
+            const row = nodes.find(node => {
+              const rect = node.getBoundingClientRect()
+              return (
+                node.getClientRects().length &&
+                rect.top >= 160 &&
+                rect.bottom < innerHeight - 80
+              )
+            })
+            if (!row)
+              throw new Error(
+                'Fixture requires a fully visible post for native activation',
+              )
+            return row.dataset.skyanchorKey
+          })
+        const row = page.locator(`[data-skyanchor-key="${tapKey}"]`)
+        const target =
+          kind === 'card'
+            ? row.getByTestId('postText').first()
+            : row.locator('a[href*="/post/"]').first()
+        if (visit === 0) {
+          const sourceURL = page.url()
+          await page.evaluate(() =>
+            document.addEventListener(
+              'click',
+              event => event.preventDefault(),
+              {once: true, capture: true},
+            ),
+          )
+          if (index) await target.tap()
+          else await target.click()
+          assert.equal(
+            page.url(),
+            sourceURL,
+            'Cancelled activation stays at the source',
+          )
+          assert.equal(
+            await page.evaluate(() => window.fixtureThreadDepartures),
+            0,
+          )
+          if (!index) {
+            const popupPromise = page.waitForEvent('popup')
+            await row
+              .locator('a[href*="/post/"]')
+              .first()
+              .click({modifiers: ['Control']})
+            const popup = await popupPromise
+            await popup.close()
+            assert.equal(
+              page.url(),
+              sourceURL,
+              'New-tab activation cannot depart the source',
+            )
+            assert.equal(
+              await page.evaluate(() => window.fixtureThreadDepartures),
+              0,
+            )
+          }
+        }
+        navigationOnly = true
+        if (kind === 'keyboard') {
+          await target.focus()
+          await page.keyboard.press('Enter')
+        } else if (index) await target.tap()
+        else await target.click()
+        await page.waitForURL(/\/post\//)
+        await page
+          .getByTestId('postThreadItem-by-reader.test')
+          .filter({visible: true})
+          .first()
+          .waitFor()
+        if (visit === 1) {
+          const firstThread = page.url()
+          await page
+            .locator('a[href*="/post/post6023"]')
+            .filter({visible: true})
+            .first()
+            .click()
+          await page.waitForURL(/\/post\/post6023/)
+          await page.goBack()
+          await page.waitForURL(firstThread)
+        }
+        if (visit >= 2) {
+          await page
+            .getByRole('button', {name: 'Go back', exact: true})
+            .filter({visible: true})
+            .first()
+            .click()
+        } else {
+          if (index)
+            await page.evaluate(() => dispatchEvent(new Event('touchstart')))
+          await page.goBack()
+        }
+        await page.getByTestId('skyanchor-reading-button').waitFor()
+        await page.waitForTimeout(300)
+        const restored = await measure()
+        assert.equal(
+          restored.key,
+          departure.key,
+          `${kind} Back restores the visible occurrence`,
+        )
+        assert.ok(
+          Math.abs(restored.offset - departure.offset) <= 2,
+          `Back offset: ${JSON.stringify({departure, restored})}`,
+        )
+        assert.deepEqual(await protectedBytes(), protectedBefore)
+        assert.deepEqual(await cloudBytes(), cloudBefore)
+        // No new contact: this is continued native viewport movement after POP,
+        // not a new wheel/touchstart that would reset a stuck correction.
+        if (index)
+          await page.evaluate(() => dispatchEvent(new Event('touchend')))
+        for (const delta of [11, 9, 13, 7, 17]) {
+          await page.evaluate(delta => window.scrollBy(0, delta), delta)
+          await page.waitForTimeout(80)
+        }
+        await page.waitForTimeout(300)
+        const continued = await measure()
+        await expect
+          .poll(
+            async () => {
+              const place = await local()
+              return (
+                place?.anchor === continued.key &&
+                Math.abs(place.offset - continued.offset) <= 2
+              )
+            },
+            {
+              message:
+                'Reading after Back must autosave, without a new touchstart',
+            },
+          )
+          .toBe(true)
+        await page
+          .locator('[data-skyanchor-key]')
+          .first()
+          .evaluate(node => {
+            const late = document.createElement('div')
+            late.dataset.fixtureThreadLate = 'true'
+            late.style.height = '97px'
+            node.prepend(late)
+          })
+        await page.waitForTimeout(300)
+        const late = await measure()
+        assert.equal(late.key, continued.key)
+        assert.ok(
+          Math.abs(late.offset - continued.offset) <= 2,
+          'Late layout must follow resumed reading, not the previous departure/checkpoint',
+        )
+        await page
+          .locator('[data-fixture-thread-late]')
+          .evaluate(node => node.remove())
+        await page.waitForTimeout(300)
+        assert.deepEqual(
+          await cloudBytes(),
+          cloudBefore,
+          'Back, passive continued momentum and layout cannot grant cloud sharing intent',
+        )
+        assert.deepEqual(await protectedBytes(), protectedBefore)
+        report.measurements.push({
+          name: `${index ? 'WebKit' : 'Chromium'} native ${kind} repeated Back ${visit}`,
+          departure,
+          restored,
+          continued,
+          late,
+          thresholdCSSPx: 2,
+        })
+        navigationOnly = false
+      }
+      assert.notEqual((await local()).anchor, old.anchor)
+      assert.deepEqual(writes, [], 'Navigation alone cannot write private sync')
+      assert.deepEqual(failures, [])
+      assert.equal(
+        await page.evaluate(() => history.length),
+        initialHistory + 1,
+      )
+      report.checks.push(
+        `${index ? 'Phone WebKit' : 'Chromium'} native card/timestamp and keyboard activation, nested history POP and app Back restore exact occurrence/offset; continued momentum autosaves and late layout follows current reading, without Return/history/cloud writes.`,
+      )
+    } finally {
+      await context.close()
+    }
+  }
+}
+
 export async function verifyNewContent({
   desktopBrowser,
   phoneBrowser,

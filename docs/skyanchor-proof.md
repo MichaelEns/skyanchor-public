@@ -13,6 +13,33 @@ immediate Back, cancellation, viewport geometry, regional PDS handoff and
 contrast expectations. They do not authenticate a real account or claim
 physical-device acceptance.
 
+`pnpm skyanchor:e2e --thread-back-only` runs the production thread-return
+regression in desktop Chromium and phone-sized WebKit. It uses native card-body
+click/tap, timestamp and keyboard activation, nested browser history POP and the
+app Back button. Each return checks the first visible occurrence and its
+header-relative offset within two pixels. Continued viewport movement without
+a new touchstart models momentum after a browser-owned swipe; it must update
+the local checkpoint, and late row growth must preserve that newer viewport.
+This is controlled browser coverage, not a physical iPhone swipe test.
+Confirmed synthetic cloud row/clock, Return/history bytes and private write
+counts must remain unchanged during navigation and passive restoration. Setup
+explicitly confirms sharing between visits; the regression does not grant
+sharing intent to passive movement or bypass remote/history restore pauses.
+Its isolated post/reply URIs cannot inherit the full runner's earlier shared
+moderation/deletion flags; those original fixtures remain unchanged.
+
+On the unchanged production artifact, the first card/Back restored correctly
+but subsequent movement failed the local-autosave assertion. The hook's passive
+lifetime cleanup cancelled the correction RAF newly scheduled by reactivation's
+layout effect, leaving `correcting` stuck. Its old desired anchor could then
+win again on resize/layout. Lifetime teardown now runs in the layout phase,
+before the new correction is scheduled. Hook proofs model dependency cleanup
+and actual RAF cancellation, including retained/remounted entries, an older
+durable checkpoint, cancelled departures, stale epochs and account/feed/entry
+isolation. Cancelled/new-tab native activations must not capture a departure;
+resumed reading invalidates any abandoned departure, and an unavailable
+semantic correction cannot suppress the route's pixel fallback.
+
 `pnpm skyanchor:e2e --profile-only` runs the complete profile proof against the
 existing export after establishing confirmed Following sync. Profile source
 movement uses wheel input (Chromium) or synthetic touch around real viewport

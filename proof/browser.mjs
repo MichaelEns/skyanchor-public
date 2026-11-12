@@ -30,6 +30,7 @@ import {
   verifyNewContent,
   legacyReturnFixture,
   scrollReading,
+  verifyThreadBack,
 } from './reading-panel.mjs'
 
 const require = createRequire(import.meta.url)
@@ -367,6 +368,7 @@ async function mockUpstream(context, owner = didA) {
   const issuedAccess = []
   let failRefresh = false
   let timeline
+  let threadReply = entries[22].post
   let timelineHold
   const timelineRequests = []
   const timelineResponses = []
@@ -802,14 +804,15 @@ async function mockUpstream(context, owner = didA) {
               mutedByViewer: false,
             },
           },
-          ...(timeline !== undefined && !anchor.endsWith('/post23')
+          ...(timeline !== undefined &&
+          !anchor.endsWith('/' + threadReply.uri.split('/').at(-1))
             ? [
                 {
-                  uri: entries[22].post.uri,
+                  uri: threadReply.uri,
                   depth: 1,
                   value: {
                     $type: 'app.bsky.unspecced.defs#threadItemPost',
-                    post: entries[22].post,
+                    post: threadReply,
                     moreParents: false,
                     moreReplies: 0,
                     opThread: false,
@@ -901,6 +904,9 @@ async function mockUpstream(context, owner = didA) {
     issuedAccess,
     setTimeline: value => {
       timeline = value
+    },
+    setThreadReply: value => {
+      threadReply = value
     },
     timelineRequests,
     timelineResponses,
@@ -1326,6 +1332,21 @@ async function runBrowserProof() {
       entries,
       post,
       installViewportFixture,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
+  }
+  if (process.argv.includes('--thread-back-only')) {
+    await verifyThreadBack({
+      desktopBrowser,
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      report,
+      installViewportFixture,
+      worker,
+      entries,
     })
     assert.deepEqual(unexpected, [])
     report.passed = true
@@ -2342,6 +2363,16 @@ async function runBrowserProof() {
     entries,
     post,
     installViewportFixture,
+  })
+  await verifyThreadBack({
+    desktopBrowser,
+    phoneBrowser,
+    mockUpstream,
+    signIn,
+    report,
+    installViewportFixture,
+    worker,
+    entries,
   })
   report.composer = [
     await verifyComposer(page, false),
