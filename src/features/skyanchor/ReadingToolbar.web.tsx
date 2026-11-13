@@ -879,9 +879,17 @@ export function ReadingToolbar({
   }, [account.did])
   useEffect(() => {
     if (!csrf || !enabled) return
+    let foregroundChecking = false
     const foreground = () => {
-      if (document.visibilityState === 'visible' && activeRuns.current === 0)
-        void live.current.run(live.current.checkRemote)
+      if (document.visibilityState !== 'visible' || foregroundChecking) return
+      foregroundChecking = true
+      void live.current.run(async () => {
+        try {
+          await live.current.checkRemote()
+        } finally {
+          foregroundChecking = false
+        }
+      })
     }
     window.addEventListener('focus', foreground)
     window.addEventListener('online', foreground)

@@ -90,7 +90,9 @@ A held initial session response times out at the existing deadline. On unchanged
 source, subsequent focus/visibility/pageshow events sent no new request because
 disconnected recovery listened only for online. Consented, enabled foreground
 recovery now retries once per event burst, coalescing an in-flight renewal.
-Connected foreground checks likewise do not overlap active work. Failure stays
+Connected foreground checks do not overlap each other, but may supersede an
+older explicit/initial check so a held stale response cannot erase a fresh
+remote offer. Failure stays
 explicit; there is no timer retry loop, auto-Resume or new sharing intent.
 The proof preserves local/Return/history/revision bytes, shared rows and clock
 through recovery and automatic name upgrade. Its timeout is a controlled held
