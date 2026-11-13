@@ -137,6 +137,23 @@ function parseYouTubeStart(t: string | null) {
   return Number(h) * 3600 + Number(m) * 60 + Number(s)
 }
 
+function youTubePlayerUri(videoId: string, seek: number, url: URL) {
+  if (!IS_WEB) {
+    return `${IFRAME_HOST}/iframe/youtube.html?videoId=${videoId}&start=${seek}`
+  }
+  if (
+    !['http:', 'https:'].includes(url.protocol) ||
+    url.username ||
+    url.password ||
+    url.port ||
+    !/^[A-Za-z0-9_-]{11}$/.test(videoId)
+  ) {
+    return undefined
+  }
+  const start = Number.isSafeInteger(seek) && seek >= 0 ? seek : 0
+  return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&playsinline=1&rel=0&start=${start}`
+}
+
 export function parseEmbedPlayerFromUrl(
   url: string,
 ): EmbedPlayerParams | undefined {
@@ -152,11 +169,12 @@ export function parseEmbedPlayerFromUrl(
     const videoId = urlp.pathname.split('/')[1]
     const seek = parseYouTubeStart(urlp.searchParams.get('t'))
 
-    if (videoId) {
+    const playerUri = videoId && youTubePlayerUri(videoId, seek, urlp)
+    if (playerUri) {
       return {
         type: 'youtube_video',
         source: 'youtube',
-        playerUri: `${IFRAME_HOST}/iframe/youtube.html?videoId=${videoId}&start=${seek}`,
+        playerUri,
       }
     }
   }
@@ -176,12 +194,13 @@ export function parseEmbedPlayerFromUrl(
         : (urlp.searchParams.get('v') as string)
     const seek = parseYouTubeStart(urlp.searchParams.get('t'))
 
-    if (videoId) {
+    const playerUri = videoId && youTubePlayerUri(videoId, seek, urlp)
+    if (playerUri) {
       return {
         type: isShorts ? 'youtube_short' : 'youtube_video',
         source: isShorts ? 'youtubeShorts' : 'youtube',
         hideDetails: isShorts ? true : undefined,
-        playerUri: `${IFRAME_HOST}/iframe/youtube.html?videoId=${videoId}&start=${seek}`,
+        playerUri,
       }
     }
   }
