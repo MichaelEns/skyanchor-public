@@ -78,6 +78,28 @@ The owned request remains busy at 14,999 ms, aborts with the timeout notice at
 15,000 ms, and preserves saved bytes and the full D1 row/clock. Only then is the
 hold released and the clock resumed for an explicit, successful Check retry.
 
+`pnpm skyanchor:e2e --sync-recovery-only` adds two production WebKit regressions.
+A synthetic old automatic `Browser-*` registry name and still-valid connected
+session previously survived Check saved places unchanged: only session POST
+upgraded the name, while ordinary device GET and session reuse did not. Check
+now performs one authenticated renewal and rereads devices when this browser's
+automatic name differs from its detected family. Custom names remain untouched;
+no schema or device/history reset is involved.
+
+A held initial session response times out at the existing deadline. On unchanged
+source, subsequent focus/visibility/pageshow events sent no new request because
+disconnected recovery listened only for online. Consented, enabled foreground
+recovery now retries once per event burst, coalescing an in-flight renewal.
+Connected foreground checks likewise do not overlap active work. Failure stays
+explicit; there is no timer retry loop, auto-Resume or new sharing intent.
+The proof preserves local/Return/history/revision bytes, shared rows and clock
+through recovery and automatic name upgrade. Its timeout is a controlled held
+response, not evidence about the physical iPhone's network or prior timeout.
+After release, open Reading place and retry Check other device if connected,
+or Reconnect private sync if needed; Check saved places refreshes automatic
+names. Keep custom names and stored/sign-in state. Resolve a differing shared
+place explicitly with Resume other device or Keep mine on the intended source.
+
 The separate automatic-source proof uses a WebKit phone and two fresh desktop
 profiles with three distinct synthetic browser IDs. No source Save helper or
 injected reading row seeds this path. Actual scrolling before Connect must

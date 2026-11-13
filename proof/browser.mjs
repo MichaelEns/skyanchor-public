@@ -17,6 +17,7 @@ import {
   verifyReverseHandoff,
   verifyScrollInput,
   verifyDeviceCheckpoints,
+  verifySyncRecovery,
 } from './handoff.mjs'
 import {verifyProfileReading} from './profile-reading.mjs'
 import {verifyAuthContrast} from './auth-contrast.mjs'
@@ -1230,6 +1231,18 @@ async function runBrowserProof() {
       .waitFor({timeout: 30_000})
     await current.waitForTimeout(500)
   }
+  if (process.argv.includes('--sync-recovery-only')) {
+    await verifySyncRecovery({
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
+  }
   if (process.argv.includes('--reverse-only')) {
     await verifyReverseHandoff({
       desktopBrowser,
@@ -1245,6 +1258,13 @@ async function runBrowserProof() {
     return
   }
   if (process.argv.includes('--device-checkpoints-only')) {
+    await verifySyncRecovery({
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+    })
     await verifyDeviceCheckpoints({
       desktopBrowser,
       phoneBrowser,
