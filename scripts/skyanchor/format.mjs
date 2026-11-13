@@ -20,6 +20,8 @@ files.push(
   path.join('proof', 'auth-contrast.mjs'),
   path.join('proof', 'viewport.mjs'),
   path.join('proof', 'viewport.test.mjs'),
+  path.join('proof', 'youtube.mjs'),
+  path.join('proof', 'youtube.test.mjs'),
   path.join('proof', 'assets.test.mjs'),
   path.join('proof', 'runtime.mjs'),
   path.join('proof', 'domain.test.mjs'),

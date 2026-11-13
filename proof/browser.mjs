@@ -11,6 +11,7 @@ import * as digest from 'multiformats/hashes/digest'
 import {workerRuntime, didA, didB} from './runtime.mjs'
 import {buildInputs} from '../scripts/skyanchor/inputs.mjs'
 import {verifyComposer} from './composer.mjs'
+import {verifyYouTube} from './youtube.mjs'
 import {
   verifyAutomaticSource,
   verifyHandoff,
@@ -177,6 +178,7 @@ const server = https.createServer(
           .readFileSync(path.join(dist, '_headers'), 'utf8')
           .match(/Content-Security-Policy: (.+)/)[1],
         'x-content-type-options': 'nosniff',
+        'referrer-policy': 'no-referrer',
       })
       response.end(
         url.pathname === '/sw.js' && serviceWorkerRevision
@@ -1231,6 +1233,25 @@ async function runBrowserProof() {
       .first()
       .waitFor({timeout: 30_000})
     await current.waitForTimeout(500)
+  }
+  if (
+    process.argv.includes('--youtube-only') ||
+    process.argv.includes('--youtube-real-only')
+  ) {
+    await verifyYouTube({
+      desktopBrowser,
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      entries,
+      origin,
+      report,
+      real: process.argv.includes('--youtube-real-only'),
+    })
+    if (!process.argv.includes('--youtube-real-only'))
+      assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
   }
   if (process.argv.includes('--sync-recovery-only')) {
     await verifySyncRecovery({
@@ -2597,6 +2618,16 @@ async function runBrowserProof() {
   report.checks.push(
     'Logged-out Chromium app root registers PWA; manifest/icons, private API denied/no-store, zero caches, capture-failure refusal, waiting update prompt and explicit activation/reload passed. Exported SW carries the production input hash; the fixture appends a second revision to simulate a subsequent release without changing app inputs.',
   )
+  await verifyYouTube({
+    desktopBrowser,
+    phoneBrowser,
+    mockUpstream,
+    signIn,
+    entries,
+    origin,
+    report,
+  })
+  assert.deepEqual(unexpected, [])
   report.fixtureTrust =
     'Chromium trusts only the ephemeral fixture key SPKI; no global certificate bypass, persisted key or system trust-store change. Does not prove production certificate installation.'
   report.passed = true
