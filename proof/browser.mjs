@@ -17,6 +17,7 @@ import {
   verifyReverseHandoff,
   verifyScrollInput,
   verifyDeviceCheckpoints,
+  verifySyncRecovery,
 } from './handoff.mjs'
 import {verifyProfileReading} from './profile-reading.mjs'
 import {verifyAuthContrast} from './auth-contrast.mjs'
@@ -30,6 +31,7 @@ import {
   verifyNewContent,
   legacyReturnFixture,
   scrollReading,
+  verifyThreadBack,
 } from './reading-panel.mjs'
 
 const require = createRequire(import.meta.url)
@@ -367,6 +369,7 @@ async function mockUpstream(context, owner = didA) {
   const issuedAccess = []
   let failRefresh = false
   let timeline
+  let threadReply = entries[22].post
   let timelineHold
   const timelineRequests = []
   const timelineResponses = []
@@ -802,14 +805,15 @@ async function mockUpstream(context, owner = didA) {
               mutedByViewer: false,
             },
           },
-          ...(timeline !== undefined && !anchor.endsWith('/post23')
+          ...(timeline !== undefined &&
+          !anchor.endsWith('/' + threadReply.uri.split('/').at(-1))
             ? [
                 {
-                  uri: entries[22].post.uri,
+                  uri: threadReply.uri,
                   depth: 1,
                   value: {
                     $type: 'app.bsky.unspecced.defs#threadItemPost',
-                    post: entries[22].post,
+                    post: threadReply,
                     moreParents: false,
                     moreReplies: 0,
                     opThread: false,
@@ -901,6 +905,9 @@ async function mockUpstream(context, owner = didA) {
     issuedAccess,
     setTimeline: value => {
       timeline = value
+    },
+    setThreadReply: value => {
+      threadReply = value
     },
     timelineRequests,
     timelineResponses,
@@ -1224,6 +1231,18 @@ async function runBrowserProof() {
       .waitFor({timeout: 30_000})
     await current.waitForTimeout(500)
   }
+  if (process.argv.includes('--sync-recovery-only')) {
+    await verifySyncRecovery({
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
+  }
   if (process.argv.includes('--reverse-only')) {
     await verifyReverseHandoff({
       desktopBrowser,
@@ -1326,6 +1345,21 @@ async function runBrowserProof() {
       entries,
       post,
       installViewportFixture,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
+  }
+  if (process.argv.includes('--thread-back-only')) {
+    await verifyThreadBack({
+      desktopBrowser,
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      report,
+      installViewportFixture,
+      worker,
+      entries,
     })
     assert.deepEqual(unexpected, [])
     report.passed = true
@@ -2288,6 +2322,13 @@ async function runBrowserProof() {
     await closeReadingPanel(page)
     await closeReadingPanel(phonePage)
   }
+  await verifySyncRecovery({
+    phoneBrowser,
+    mockUpstream,
+    signIn,
+    worker,
+    report,
+  })
   await verifyDeviceCheckpoints({
     desktopBrowser,
     phoneBrowser,
@@ -2342,6 +2383,16 @@ async function runBrowserProof() {
     entries,
     post,
     installViewportFixture,
+  })
+  await verifyThreadBack({
+    desktopBrowser,
+    phoneBrowser,
+    mockUpstream,
+    signIn,
+    report,
+    installViewportFixture,
+    worker,
+    entries,
   })
   report.composer = [
     await verifyComposer(page, false),

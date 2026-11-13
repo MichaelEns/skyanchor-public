@@ -7,6 +7,187 @@ import {
   scrollReading,
 } from './reading-panel.mjs'
 
+export async function verifySyncRecovery({
+  phoneBrowser,
+  mockUpstream,
+  signIn,
+  worker,
+  report,
+}) {
+  const did = 'did:plc:rrrrrrrrrrrrrrrrrrrrrrrr'
+  const contexts = []
+  const failures = []
+  const evidence = (report.syncRecovery = {})
+  const preserved = async page => ({
+    local: await page.evaluate(did => {
+      const prefixes = [
+        'skyanchor:following:v1:',
+        'skyanchor:return:v1:',
+        'skyanchor:historic-local:',
+        'skyanchor:revision:',
+      ]
+      return Object.fromEntries(
+        Object.keys(localStorage)
+          .filter(key => prefixes.some(prefix => key.startsWith(prefix + did)))
+          .sort()
+          .map(key => [key, localStorage.getItem(key)]),
+      )
+    }, did),
+    places: (
+      await worker.db
+        .prepare('SELECT * FROM places WHERE did = ?')
+        .bind(did)
+        .all()
+    ).results,
+    history: (
+      await worker.db
+        .prepare('SELECT * FROM reading_history WHERE did = ?')
+        .bind(did)
+        .all()
+    ).results,
+    clock: await worker.db.prepare('SELECT * FROM clock').first(),
+  })
+  async function fresh() {
+    const context = await phoneBrowser.newContext({
+      ...browserDevices['iPhone 13'],
+      ignoreHTTPSErrors: true,
+      serviceWorkers: 'block',
+    })
+    contexts.push(context)
+    await mockUpstream(context, did)
+    const page = await context.newPage()
+    await signIn(page, 'reader.test')
+    return page
+  }
+  try {
+    const named = await fresh()
+    await readingAction(named, 'Connect private sync')
+    await expect(
+      named.getByRole('button', {name: 'Check saved places', exact: true}),
+    ).toBeEnabled()
+    const id = await named.evaluate(() =>
+      localStorage.getItem('skyanchor:device'),
+    )
+    const label = async () =>
+      worker.db
+        .prepare(
+          'SELECT label, label_kind AS labelKind FROM device_registry WHERE did = ? AND device = ?',
+        )
+        .bind(did, id)
+        .first()
+    await worker.db
+      .prepare(
+        "UPDATE device_registry SET label = ?, label_kind = 'default' WHERE did = ? AND device = ?",
+      )
+      .bind('Browser-' + id.slice(0, 4), did, id)
+      .run()
+    const beforeName = await preserved(named)
+    await readingAction(named, 'Check saved places')
+    await expect(
+      named.getByRole('button', {name: 'Check saved places', exact: true}),
+    ).toBeEnabled()
+    evidence.automaticName = await label()
+    try {
+      assert.match(
+        evidence.automaticName.label,
+        /^Safari on iPhone - /,
+        'A valid connected session must upgrade an old automatic Browser label without waiting for expiry',
+      )
+    } catch (error) {
+      failures.push(error)
+    }
+    assert.deepEqual(await preserved(named), beforeName)
+    await named
+      .getByRole('textbox', {name: 'Name this browser profile', exact: true})
+      .fill('Fixture custom reader')
+    await readingAction(named, 'Save browser name')
+    await expect(
+      named.getByText('This browser profile was renamed.', {exact: true}),
+    ).toBeVisible()
+    await readingAction(named, 'Reconnect private sync')
+    await expect(
+      named.getByRole('button', {name: 'Check saved places', exact: true}),
+    ).toBeEnabled()
+    assert.deepEqual(await label(), {
+      label: 'Fixture custom reader',
+      labelKind: 'user',
+    })
+    evidence.customNamePreserved = true
+
+    const recovering = await fresh()
+    await recovering.evaluate(did => {
+      localStorage.setItem('skyanchor:sync-enabled:' + did, '1')
+      localStorage.setItem('skyanchor:revision:' + did, '0')
+    }, did)
+    let release
+    const held = new Promise(resolve => {
+      release = resolve
+    })
+    let sessions = 0
+    const sessionRoute = async route => {
+      if (route.request().method() !== 'POST') return route.fallback()
+      sessions++
+      if (sessions > 1) return route.fallback()
+      await held
+      await route.abort('failed')
+    }
+    await recovering.context().route('**/api/skyanchor/session', sessionRoute)
+    try {
+      await recovering.reload()
+      await recovering.getByTestId('skyanchor-reading-button').waitFor()
+      await readingPanel(recovering)
+      await expect(recovering.getByTestId('skyanchor-toolbar')).toContainText(
+        'Private sync session timed out',
+        {timeout: 25000},
+      )
+      assert.equal(
+        sessions,
+        1,
+        'A timeout must not start an automatic retry loop',
+      )
+      const beforeRecovery = await preserved(recovering)
+      release()
+      await recovering.evaluate(() => {
+        dispatchEvent(new Event('focus'))
+        document.dispatchEvent(new Event('visibilitychange'))
+        dispatchEvent(new Event('pageshow'))
+      })
+      try {
+        await expect.poll(() => sessions, {timeout: 5000}).toBe(2)
+        await expect(
+          recovering.getByRole('button', {
+            name: 'Check other device',
+            exact: true,
+          }),
+        ).toBeEnabled()
+        await expect(
+          recovering.getByTestId('skyanchor-toolbar'),
+        ).not.toContainText('timed out')
+      } catch (error) {
+        failures.push(error)
+      }
+      evidence.foregroundSessionRequests = sessions
+      assert.deepEqual(await preserved(recovering), beforeRecovery)
+      evidence.localCloudHistoryPreserved = true
+    } finally {
+      release()
+      await recovering
+        .context()
+        .unroute('**/api/skyanchor/session', sessionRoute)
+    }
+    if (failures.length)
+      throw new AggregateError(
+        failures,
+        failures.map(error => error.message).join('\n'),
+      )
+    report.checks.push(
+      'WebKit valid-session automatic name upgrade preserves custom names; a timed-out reconnect retries once on foreground without changing local/Return/history/cloud state.',
+    )
+  } finally {
+    await Promise.all(contexts.map(context => context.close()))
+  }
+}
+
 export async function verifyDeviceCheckpoints({
   desktopBrowser,
   phoneBrowser,

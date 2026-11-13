@@ -273,9 +273,20 @@ export function ReadingToolbar({
     return value
   }
   async function loadDevices() {
-    const value = await privateRequest('devices')
+    let value = await privateRequest('devices')
     if (!validDeviceList(value, account.did, feed))
       throw new Error(l`Invalid saved-device response`)
+    const own = value.devices.find(item => item.device === device.current)
+    if (
+      own?.labelKind === 'default' &&
+      own.label !== defaultDeviceName(device.current, navigator.userAgent)
+    ) {
+      // Only the authenticated session exchange upgrades automatic names.
+      await renew()
+      value = await privateRequest('devices')
+      if (!validDeviceList(value, account.did, feed))
+        throw new Error(l`Invalid saved-device response`)
+    }
     setDevices(value.devices)
     setDeviceName(
       value.devices.find(item => item.device === device.current)?.label ?? '',
@@ -839,6 +850,7 @@ export function ReadingToolbar({
   useEffect(() => {
     const retry = () => {
       if (
+        document.visibilityState === 'visible' &&
         !live.current.csrf &&
         live.current.enabled &&
         !reconnecting.current &&
@@ -855,22 +867,40 @@ export function ReadingToolbar({
       }
     }
     window.addEventListener('online', retry)
-    return () => window.removeEventListener('online', retry)
+    window.addEventListener('focus', retry)
+    window.addEventListener('pageshow', retry)
+    document.addEventListener('visibilitychange', retry)
+    return () => {
+      window.removeEventListener('online', retry)
+      window.removeEventListener('focus', retry)
+      window.removeEventListener('pageshow', retry)
+      document.removeEventListener('visibilitychange', retry)
+    }
   }, [account.did])
   useEffect(() => {
     if (!csrf || !enabled) return
+    let foregroundChecking = false
     const foreground = () => {
-      if (document.visibilityState === 'visible')
-        void live.current.run(live.current.checkRemote)
+      if (document.visibilityState !== 'visible' || foregroundChecking) return
+      foregroundChecking = true
+      void live.current.run(async () => {
+        try {
+          await live.current.checkRemote()
+        } finally {
+          foregroundChecking = false
+        }
+      })
     }
     window.addEventListener('focus', foreground)
     window.addEventListener('online', foreground)
+    window.addEventListener('pageshow', foreground)
     document.addEventListener('visibilitychange', foreground)
     void run(checkRemote)
     void run(loadDevices)
     return () => {
       window.removeEventListener('focus', foreground)
       window.removeEventListener('online', foreground)
+      window.removeEventListener('pageshow', foreground)
       document.removeEventListener('visibilitychange', foreground)
     }
   }, [csrf, enabled])

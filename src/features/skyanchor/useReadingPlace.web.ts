@@ -95,7 +95,7 @@ export function useReadingPlace({
     leaving.current = false
     clearScrollIntent()
   }
-  useEffect(() => {
+  useLayoutEffect(() => {
     const active = lifetime.current
     active.alive = true
     return () => {
@@ -103,6 +103,7 @@ export function useReadingPlace({
       active.alive = false
       pendingTarget.current?.cancel()
       cancelAnimationFrame(correctionFrame.current)
+      correcting.current = false
     }
   }, [did, feed, enabled])
   const [notice, setNotice] = useState('')
@@ -336,6 +337,7 @@ export function useReadingPlace({
     }
     window.addEventListener('scroll', onScroll, {passive: true})
     const onPanStart = () => {
+      departures.delete(entry)
       scrollContact.current = 'touch'
       continueScrollIntent()
       leaving.current = false
@@ -350,6 +352,7 @@ export function useReadingPlace({
       panningUntil.current = Date.now() + 150
     }
     const onWheel = () => {
+      departures.delete(entry)
       continueScrollIntent()
       leaving.current = false
       pendingTarget.current?.cancel()
@@ -493,9 +496,8 @@ export function useReadingPlace({
       )
         return
       if (!desired.current || !lifetime.current.alive) return
-      detail.handled = true
       cancelIntent()
-      correct()
+      if (correct() !== undefined) detail.handled = true
     }
     window.addEventListener('skyanchor-restore-navigation', onRestoreEntry)
     const onHidden = () => {
