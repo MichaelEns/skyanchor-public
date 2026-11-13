@@ -176,8 +176,8 @@ export async function verifyThreadBack({
         })
       }
       const did = index
-        ? 'did:plc:hhhhhhhhhhhhhhhhhhhhhhhh'
-        : 'did:plc:iiiiiiiiiiiiiiiiiiiiiiii'
+        ? 'did:plc:kkkkkkkkkkkkkkkkkkkkkkkk'
+        : 'did:plc:llllllllllllllllllllllll'
       const controls = await mockUpstream(context, did)
       const timeline = entries
         .filter(item => !item.reply)
@@ -270,6 +270,11 @@ export async function verifyThreadBack({
         .poll(async () => (await local())?.anchor === (await measure()).key)
         .toBe(true)
       const old = await local()
+      assert.equal(
+        (await cloudBytes()).place,
+        null,
+        'Thread Back setup must not inherit another scenario account or cloud place',
+      )
       await readingAction(page, 'Connect private sync')
       await closeReadingPanel(page)
       const initialHistory = await page.evaluate(() => history.length)

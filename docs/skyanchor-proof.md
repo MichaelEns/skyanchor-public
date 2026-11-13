@@ -27,6 +27,11 @@ explicitly confirms sharing between visits; the regression does not grant
 sharing intent to passive movement or bypass remote/history restore pauses.
 Its isolated post/reply URIs cannot inherit the full runner's earlier shared
 moderation/deletion flags; those original fixtures remain unchanged.
+Its synthetic account IDs are also distinct from the automatic-source and
+reverse-handoff proofs. Reusing those IDs let an earlier scenario's cloud row
+turn the navigation-only setup Save into a CAS conflict in the full runner.
+Setup now asserts there is no inherited cloud row; all confirmation, conflict,
+Back, continued-reading and no-write assertions remain intact.
 
 On the unchanged production artifact, the first card/Back restored correctly
 but subsequent movement failed the local-autosave assertion. The hook's passive

@@ -1258,13 +1258,6 @@ async function runBrowserProof() {
     return
   }
   if (process.argv.includes('--device-checkpoints-only')) {
-    await verifySyncRecovery({
-      phoneBrowser,
-      mockUpstream,
-      signIn,
-      worker,
-      report,
-    })
     await verifyDeviceCheckpoints({
       desktopBrowser,
       phoneBrowser,
@@ -2329,6 +2322,13 @@ async function runBrowserProof() {
     await closeReadingPanel(page)
     await closeReadingPanel(phonePage)
   }
+  await verifySyncRecovery({
+    phoneBrowser,
+    mockUpstream,
+    signIn,
+    worker,
+    report,
+  })
   await verifyDeviceCheckpoints({
     desktopBrowser,
     phoneBrowser,
