@@ -270,6 +270,29 @@ be committed), final geometry and all frame samples. This is a fixture-only
 publication-oracle correction, not another app fix or proof that hosted CI will
 pass; the updated exact candidate still requires its protected hosted run.
 
+Two later acceptance failures exposed missing frame boundaries in this fixture.
+Installed Edge entered the passive-top/resize case with a prior source capture
+still pending. Resize correctly flushed that pending capture at the new viewport,
+rather than exercising the intended no-pending correction branch. Scheduling a
+source scroll capture immediately before the old passive-top probe reproduced
+its exact `after.y > 2` failure locally. Setup now drains that source capture
+through two actual RAF boundaries, then advances the disposable clock past the
+250 ms intent guard before recording its baseline. The original positive-scroll,
+<=2 px old-position, unchanged-local and unchanged-cloud assertions remain.
+The separate pending-capture resize/Back proofs continue to own the other branch.
+
+The next protected run reached immediate no-new completion before the sampler
+had collected two RAF callbacks. Registering a callback is not evidence that
+it ran, and a no-op response must not require a minimum loading duration.
+The sampler now resolves its arming promise only after its first actual sample,
+before releasing the held response. After completion (and exact fresh-prefix
+publication when applicable), two actual RAF boundaries precede the final sample.
+The receipt records the pre-release sample count; `samples.length > 1` and all
+per-frame/final <=2 px assertions remain unchanged. No product delay, longer
+timeout, alternative expected outcome, or product-source change is involved.
+The combined correction passed focused Chromium, installed Edge 157 and
+phone-sized WebKit; protected hosted acceptance remains separately required.
+
 The immediate-input phase pauses only its disposable page's simulated clock
 before Home. Cross-process fixture work while RAF is deliberately held must not
 consume the 250 ms input-ownership budget. It runs one millisecond for the

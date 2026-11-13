@@ -1316,8 +1316,18 @@ export async function verifyNewContent({
         )
         trace('before-top')
       }, did)
+      await current.evaluate(() => {
+        // Drain a pending source capture before testing the no-pending branch.
+        dispatchEvent(new Event('scroll'))
+        return new Promise(resolve =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        )
+      })
+      // Expire the 250 ms reading-intent guard after draining actual capture RAFs.
+      await current.clock.runFor(251)
       const beforePassiveTop = await cloudBytes()
       const passiveCorrection = await current.evaluate(() => {
+        window.fixtureTraceTop('settled-before-passive-top')
         const before = window.fixtureTopTrace.at(-1)
         window.scrollTo(0, 0)
         // A layout correction may run before passive scroll capture reaches RAF.
@@ -1486,22 +1496,27 @@ export async function verifyNewContent({
           )
         await expect.poll(() => !!acceptedWrite()).toBe(true)
         const acceptedHomeWrite = acceptedWrite()
-        await current.evaluate(key => {
-          window.fixtureImmediateSamples = []
-          window.fixtureSampleImmediate = true
-          const sample = () => {
-            if (!window.fixtureSampleImmediate) return
-            const row = [
-              ...document.querySelectorAll('[data-skyanchor-key]'),
-            ].find(node => node.dataset.skyanchorKey === key)
-            if (window.fixtureImmediateSamples.length < 2048)
-              window.fixtureImmediateSamples.push(
-                row?.getBoundingClientRect().top,
-              )
-            requestAnimationFrame(sample)
-          }
-          requestAnimationFrame(sample)
-        }, topKey)
+        await current.evaluate(
+          key =>
+            new Promise(resolve => {
+              window.fixtureImmediateSamples = []
+              window.fixtureSampleImmediate = true
+              const sample = () => {
+                if (!window.fixtureSampleImmediate) return
+                const row = [
+                  ...document.querySelectorAll('[data-skyanchor-key]'),
+                ].find(node => node.dataset.skyanchorKey === key)
+                if (window.fixtureImmediateSamples.length < 2048)
+                  window.fixtureImmediateSamples.push(
+                    row?.getBoundingClientRect().top,
+                  )
+                if (window.fixtureImmediateSamples.length === 1) resolve()
+                requestAnimationFrame(sample)
+              }
+              requestAnimationFrame(sample)
+            }),
+          topKey,
+        )
         if (kind === 'new-head')
           await current.evaluate(() => {
             // Query observer publication uses zero-delay timers, independently of loading UI.
@@ -1525,6 +1540,10 @@ export async function verifyNewContent({
               pending.clear()
             }
           })
+        const samplesBeforeRelease = await current.evaluate(
+          () => window.fixtureImmediateSamples.length,
+        )
+        assert.ok(samplesBeforeRelease >= 1)
         held.release()
         held = undefined
         let labelMilestonePrefix
@@ -1544,6 +1563,12 @@ export async function verifyNewContent({
               post(-201).uri + '|repost:-|reply:-|context:' + post(-201).uri,
               topKey,
             ])
+        await current.evaluate(
+          () =>
+            new Promise(resolve =>
+              requestAnimationFrame(() => requestAnimationFrame(resolve)),
+            ),
+        )
         const afterImmediate = await current.evaluate(key => {
           window.fixtureSampleImmediate = false
           window.fixtureTraceTop('immediate-refresh-integrated')
@@ -1593,6 +1618,7 @@ export async function verifyNewContent({
           after: afterImmediate,
           deltaCSSPx: delta,
           maximumFrameDriftCSSPx: maximumFrameDrift,
+          samplesBeforeRelease,
           unchangedCloudRowAndClock: true,
         })
       }
