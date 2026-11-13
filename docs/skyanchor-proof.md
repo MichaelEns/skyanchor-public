@@ -45,6 +45,67 @@ isolation. Cancelled/new-tab native activations must not capture a departure;
 resumed reading invalidates any abandoned departure, and an unavailable
 semantic correction cannot suppress the route's pixel fallback.
 
+The recurrence investigation found two additional failures on the unchanged
+PR11 production export, distinct from that correction-lifetime repair. A real
+viewport-height resize between a scroll event and its queued capture cleared
+the pan guard and corrected against the previous desired place. Phone-sized
+WebKit rewound 61 px; Chromium returned to the previous occurrence. Also,
+departure cancelled the queued capture while keeping its snapshot only in the
+in-memory entry map. Reloading in the thread discarded that map; cold Back
+restored the older durable offset (61 px wrong in WebKit).
+
+The same focused selector and default browser gate now hold capture RAFs around
+real document scrolling, resize the actual viewport, and navigate to a thread,
+reload it and return cold. They assert exact occurrence/header-relative offset
+within two pixels, the pending durable local place, unchanged cloud row/clock
+and Return/history/historical-pause bytes, and no progress writes. Cold document
+restart loses the in-memory sync session/CSRF, so that phase must make exactly
+one successful existing session-renewal POST and no other private write. Ordinary
+navigation retains the original zero-private-write assertion. Existing native tap, keyboard,
+cancel/new-tab, repeated Back, continued-reading and late-layout assertions stay
+in place. The cold-departure race activates a visible DOM link while RAFs are
+held; it is not a physical touch/swipe or OS process-eviction test.
+
+Resize and departure now flush only an already-pending capture before correction
+or freezing the source. The flush is local and non-intentional, uses the existing
+window persistence and account/feed/epoch guards, and does not unconditionally
+save on navigation, alter Return, or authorize cloud sharing. Completed RAFs
+clear their pending marker so later layout-only resizes still correct normally.
+Hook regressions cover passive/owned pending capture, subsequent reading and
+late layout, plus durable cold restoration. These controlled reproductions do
+not identify the reported phone event or establish the phone's running build;
+the served release alone cannot establish that.
+
+`pnpm skyanchor:e2e --settlement-only` reproduces the later phone report's exact
+"Reading restore did not settle" failure on the unchanged production hook.
+It creates a real Save with a half-CSS-pixel layout transform, removes that
+transform, then selects this same WebKit browser's saved checkpoint and also
+resumes the shared checkpoint from a second browser profile. Both old paths
+reach the correct occurrence but retain a 0.5 px residual, away from either
+scroll boundary. WebKit's whole-CSS-pixel scrolling cannot meet the old 0.25 px
+criterion; repeated corrective scrolls exhaust 60 attempts and trigger the
+existing explicit rollback. This controlled fractional-layout reproduction
+matches the supplied error text, not proof of the physical phone's geometry,
+running release, or exact cause.
+
+Correction and settlement now share a one-CSS-pixel browser-precision tolerance,
+still below the two-pixel acceptance bound. Exact occurrence identity, three
+consecutive measured frames, the 60-attempt bound, cancellation and rollback
+remain required; the original requested offset is persisted unchanged. This
+does not accept a missing occurrence or retry indefinitely. Unit proofs cover
+several fractional offsets under quantized scrolling and an unreachable 1.5 px
+clamped residual that must still fail explicitly without saving.
+
+The focused selector is included in the default browser gate. It compares
+cloud place, clock and device-history bytes before/after both receiving paths,
+checks the exact persisted checkpoint and <=2 px geometry through late row
+growth, then proves own-history continued reading and foreground/resize keep
+the durable historical sharing pause without cloud writes. Bounded synthetic
+failure output records target offset, sampled anchor/header/scroll geometry,
+scroll maximum and visual viewport, with no account credentials. Other default
+proofs retain pruned/deleted/moderated saves, before/after frozen-selection
+revalidation, cancelled recovery, fresh-CAS sharing and account/feed isolation.
+
 `pnpm skyanchor:e2e --profile-only` runs the complete profile proof against the
 existing export after establishing confirmed Following sync. Profile source
 movement uses wheel input (Chromium) or synthetic touch around real viewport
@@ -216,6 +277,51 @@ integration. Subsequent discovery at the current top must not move or write.
 The complete browser runner retains all preceding moderation, device history,
 handoff, reverse, momentum and continuous-history cases. WebKit keyboard
 coverage is not physical iPhone touch acceptance.
+
+The protected recurring-position candidate subsequently failed the immediate
+fresh-head prefix assertion: its "integrated" sample still contained the old
+rows, while the later trace contained the new head and layout correction.
+Absence of the reading button's loading label is not a committed-window
+milestone: higher-priority notices can hide loading, and clearing loading state
+does not await React Query's separately scheduled observer publication.
+`flushSync(setQueryData)` does not synchronously drain those scheduled callbacks.
+
+The fresh-head fixture now holds zero-delay timers around response release,
+retaining RAF and nonzero timers, to exercise delayed observer publication.
+The old oracle with that hold reproduced the same old-prefix failure locally.
+The hold is released in `finally`; the proof then requires the exact two-row
+committed DOM prefix before taking its integration geometry sample. A bounded
+per-frame original-anchor sampler spans release through that sample, so waiting
+cannot hide a painted layout jump. Both the original final <=2 px assertion and
+the new per-frame <=2 px assertion, exact prefix/order, real Home autosave,
+cloud row/clock, cancellation and pending-history checks remain required.
+Receipts include the prefix seen at the old label milestone (which may already
+be committed), final geometry and all frame samples. This is a fixture-only
+publication-oracle correction, not another app fix or proof that hosted CI will
+pass; the updated exact candidate still requires its protected hosted run.
+
+Two later acceptance failures exposed missing frame boundaries in this fixture.
+Installed Edge entered the passive-top/resize case with a prior source capture
+still pending. Resize correctly flushed that pending capture at the new viewport,
+rather than exercising the intended no-pending correction branch. Scheduling a
+source scroll capture immediately before the old passive-top probe reproduced
+its exact `after.y > 2` failure locally. Setup now drains that source capture
+through two actual RAF boundaries, then advances the disposable clock past the
+250 ms intent guard before recording its baseline. The original positive-scroll,
+<=2 px old-position, unchanged-local and unchanged-cloud assertions remain.
+The separate pending-capture resize/Back proofs continue to own the other branch.
+
+The next protected run reached immediate no-new completion before the sampler
+had collected two RAF callbacks. Registering a callback is not evidence that
+it ran, and a no-op response must not require a minimum loading duration.
+The sampler now resolves its arming promise only after its first actual sample,
+before releasing the held response. After completion (and exact fresh-prefix
+publication when applicable), two actual RAF boundaries precede the final sample.
+The receipt records the pre-release sample count; `samples.length > 1` and all
+per-frame/final <=2 px assertions remain unchanged. No product delay, longer
+timeout, alternative expected outcome, or product-source change is involved.
+The combined correction passed focused Chromium, installed Edge 157 and
+phone-sized WebKit; protected hosted acceptance remains separately required.
 
 The immediate-input phase pauses only its disposable page's simulated clock
 before Home. Cross-process fixture work while RAF is deliberately held must not

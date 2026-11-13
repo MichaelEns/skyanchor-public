@@ -150,6 +150,60 @@ export async function verifyReadingPanel(page, report, feed = 'following') {
   )
 }
 
+async function holdReadingCapture(page) {
+  await page.evaluate(() => {
+    const request = window.requestAnimationFrame
+    const cancel = window.cancelAnimationFrame
+    const held = new Map()
+    let paused = true
+    window.requestAnimationFrame = callback => {
+      const id = request.call(window, time => {
+        if (paused) held.set(id, () => callback(time))
+        else callback(time)
+      })
+      return id
+    }
+    window.cancelAnimationFrame = id => {
+      held.delete(id)
+      cancel.call(window, id)
+    }
+    window.fixtureReadingRace = {
+      scrolled: false,
+      pending: () => held.size,
+      release() {
+        paused = false
+        window.requestAnimationFrame = request
+        window.cancelAnimationFrame = cancel
+        for (const callback of held.values()) callback()
+        held.clear()
+      },
+    }
+    addEventListener(
+      'scroll',
+      () => {
+        window.fixtureReadingRace.scrolled = true
+      },
+      {once: true},
+    )
+    dispatchEvent(new Event('touchstart'))
+    scrollBy(0, 61)
+  })
+  await page.waitForFunction(
+    () =>
+      window.fixtureReadingRace.scrolled &&
+      window.fixtureReadingRace.pending() > 0,
+    undefined,
+    {polling: 20},
+  )
+}
+
+async function releaseReadingCapture(page) {
+  await page.evaluate(() => {
+    window.fixtureReadingRace.release()
+    dispatchEvent(new Event('touchcancel'))
+  })
+}
+
 export async function verifyThreadBack({
   desktopBrowser,
   phoneBrowser,
@@ -160,7 +214,10 @@ export async function verifyThreadBack({
   worker,
   entries,
 }) {
-  for (const [index, browser] of [desktopBrowser, phoneBrowser].entries()) {
+  for (const [index, browser] of [
+    [1, phoneBrowser],
+    [0, desktopBrowser],
+  ]) {
     const context = await browser.newContext({
       ...(index
         ? devices['iPhone 13']
@@ -198,16 +255,20 @@ export async function verifyThreadBack({
       controls.setThreadReply(reply)
       const page = await context.newPage()
       const writes = []
+      const coldReloadWrites = []
       const failures = []
       page.on('pageerror', error => failures.push(error.message))
       let navigationOnly = false
+      let coldReload = false
       page.on('request', request => {
         if (
           navigationOnly &&
           new URL(request.url()).pathname.startsWith('/api/skyanchor/') &&
           request.method() !== 'GET'
         )
-          writes.push(request.method())
+          (coldReload ? coldReloadWrites : writes).push(
+            `${request.method()} ${new URL(request.url()).pathname}`,
+          )
       })
       await signIn(page)
       await page.evaluate(() => {
@@ -256,7 +317,9 @@ export async function verifyThreadBack({
         page.evaluate(() =>
           Object.fromEntries(
             Object.entries(localStorage).filter(([key]) =>
-              /^skyanchor:(return|revision|history|sharing)/.test(key),
+              /^skyanchor:(return|revision|history|historic-local|sharing)/.test(
+                key,
+              ),
             ),
           ),
         )
@@ -314,6 +377,131 @@ export async function verifyThreadBack({
         await closeReadingPanel(page)
         const cloudBefore = await cloudBytes()
         const protectedBefore = await protectedBytes()
+        if (visit === 0) {
+          navigationOnly = true
+          const sourceURL = page.url()
+          await holdReadingCapture(page)
+          const coldDeparture = await measure()
+          try {
+            await page.evaluate(() => {
+              const row = [
+                ...document.querySelectorAll('[data-skyanchor-key]'),
+              ].find(node => {
+                const rect = node.getBoundingClientRect()
+                return (
+                  node.getClientRects().length &&
+                  rect.top >= 160 &&
+                  rect.bottom < innerHeight - 80
+                )
+              })
+              const link = row?.querySelector('a[href*="/post/"]')
+              if (!link)
+                throw new Error('Cold departure requires a visible post link')
+              link.click()
+            })
+          } finally {
+            await releaseReadingCapture(page)
+          }
+          await page.waitForURL(/\/post\//)
+          const durableDeparture = await local()
+          coldReload = true
+          const renewed = page.waitForResponse(
+            response =>
+              response.request().method() === 'POST' &&
+              new URL(response.url()).pathname === '/api/skyanchor/session',
+          )
+          await page.reload()
+          await page
+            .getByTestId('postThreadItem-by-reader.test')
+            .filter({visible: true})
+            .first()
+            .waitFor()
+          await page.goBack()
+          await page.waitForURL(sourceURL)
+          await page.getByTestId('skyanchor-reading-button').waitFor()
+          await page.waitForTimeout(500)
+          assert.equal((await renewed).status(), 200)
+          assert.deepEqual(
+            coldReloadWrites,
+            ['POST /api/skyanchor/session'],
+            'A cold document renews its in-memory sync session, never reading progress',
+          )
+          coldReload = false
+          const coldRestored = await measure()
+          assert.equal(coldRestored.key, coldDeparture.key)
+          assert.ok(
+            Math.abs(coldRestored.offset - coldDeparture.offset) <= 2,
+            `Reload while in thread must retain the immediate departure: ${JSON.stringify({coldDeparture, coldRestored})}`,
+          )
+          assert.equal(
+            durableDeparture?.anchor,
+            coldDeparture.key,
+            'Immediate departure must persist its pending local occurrence',
+          )
+          assert.ok(
+            Math.abs(durableDeparture.offset - coldDeparture.offset) <= 2,
+            `Immediate departure must persist its pending offset: ${JSON.stringify({coldDeparture, durableDeparture})}`,
+          )
+          report.measurements.push({
+            name: `${index ? 'WebKit' : 'Chromium'} pending capture departure, thread reload and cold Back`,
+            departure: coldDeparture,
+            restored: coldRestored,
+            thresholdCSSPx: 2,
+          })
+          assert.deepEqual(await protectedBytes(), protectedBefore)
+          assert.deepEqual(await cloudBytes(), cloudBefore)
+          const viewport = page.viewportSize()
+          await holdReadingCapture(page)
+          try {
+            const beforeResize = await measure()
+            await page.setViewportSize({
+              ...viewport,
+              height: viewport.height - 70,
+            })
+            await page.waitForTimeout(100)
+            const afterResize = await measure()
+            assert.equal(
+              afterResize.key,
+              beforeResize.key,
+              'Real viewport resize before the reading RAF preserves occurrence',
+            )
+            assert.ok(
+              Math.abs(afterResize.offset - beforeResize.offset) <= 2,
+              `Real resize before reading RAF must not rewind: ${JSON.stringify({beforeResize, afterResize})}`,
+            )
+            report.measurements.push({
+              name: `${index ? 'WebKit' : 'Chromium'} real viewport resize before reading RAF`,
+              beforeResize,
+              afterResize,
+              thresholdCSSPx: 2,
+            })
+          } finally {
+            await releaseReadingCapture(page)
+          }
+          await page.waitForTimeout(300)
+          const resized = await measure()
+          await expect
+            .poll(async () => {
+              const place = await local()
+              return (
+                place?.anchor === resized.key &&
+                Math.abs(place.offset - resized.offset) <= 2
+              )
+            })
+            .toBe(true)
+          await page.setViewportSize(viewport)
+          await page.waitForTimeout(300)
+          assert.deepEqual(await protectedBytes(), protectedBefore)
+          assert.deepEqual(await cloudBytes(), cloudBefore)
+          await page.evaluate(() => {
+            window.fixtureThreadDepartures = 0
+            addEventListener(
+              'skyanchor-before-navigation',
+              () => window.fixtureThreadDepartures++,
+            )
+          })
+          navigationOnly = false
+        }
         const departure = await measure()
         assert.ok(departure.key)
         const tapKey = await page
@@ -494,11 +682,259 @@ export async function verifyThreadBack({
         initialHistory + 1,
       )
       report.checks.push(
+        `${index ? 'Phone WebKit' : 'Chromium'} pending reading survives real viewport resize and immediate departure/thread reload/cold Back within 2px; local window persists without progress writes or Return/history/pause mutation. Cold restart performs exactly one successful session renewal; ordinary navigation performs no private writes.`,
+      )
+      report.checks.push(
         `${index ? 'Phone WebKit' : 'Chromium'} native card/timestamp and keyboard activation, nested history POP and app Back restore exact occurrence/offset; continued momentum autosaves and late layout follows current reading, without Return/history/cloud writes.`,
       )
     } finally {
       await context.close()
     }
+  }
+}
+
+export async function verifySettlement({
+  phoneBrowser,
+  mockUpstream,
+  signIn,
+  worker,
+  report,
+  entries,
+}) {
+  const did = 'did:plc:nnnnnnnnnnnnnnnnnnnnnnnn'
+  const timeline = JSON.parse(
+    JSON.stringify(entries).replaceAll(entries[0].post.author.did, did),
+  )
+  const contexts = []
+  const placementFailures = []
+  const placeKey = 'skyanchor:following:v1:' + did
+  const localPlace = page =>
+    page.evaluate(key => JSON.parse(localStorage.getItem(key))?.place, placeKey)
+  const cloud = async () => ({
+    place: await worker.db
+      .prepare("SELECT * FROM places WHERE did = ? AND feed = 'following'")
+      .bind(did)
+      .first(),
+    clock: await worker.db.prepare('SELECT * FROM clock').first(),
+    history: (
+      await worker.db
+        .prepare(
+          'SELECT * FROM reading_history WHERE did = ? ORDER BY revision',
+        )
+        .bind(did)
+        .all()
+    ).results,
+  })
+  async function fresh() {
+    const context = await phoneBrowser.newContext({
+      ...devices['iPhone 13'],
+      ignoreHTTPSErrors: true,
+      serviceWorkers: 'block',
+    })
+    contexts.push(context)
+    const controls = await mockUpstream(context, did)
+    controls.setTimeline(timeline)
+    const page = await context.newPage()
+    await signIn(page, 'reader.test')
+    return page
+  }
+  async function trace(page, place) {
+    await page.evaluate(place => {
+      window.fixtureSettlement = []
+      window.fixtureSettlementActive = true
+      const sample = () => {
+        if (!window.fixtureSettlementActive) return
+        const row = [...document.querySelectorAll('[data-skyanchor-key]')].find(
+          node => node.dataset.skyanchorKey === place.anchor,
+        )
+        const header = document.querySelector(
+          '[data-testid="mobileHomeHeader"]',
+        )
+        const bottom = header?.getClientRects().length
+          ? header.getBoundingClientRect().bottom
+          : 0
+        if (window.fixtureSettlement.length < 100)
+          window.fixtureSettlement.push({
+            y: scrollY,
+            max:
+              document.documentElement.scrollHeight -
+              document.documentElement.clientHeight,
+            header: bottom,
+            top: row?.getBoundingClientRect().top,
+            delta: row
+              ? row.getBoundingClientRect().top - bottom - place.offset
+              : null,
+            viewport: {
+              height: visualViewport?.height,
+              top: visualViewport?.offsetTop,
+            },
+          })
+        requestAnimationFrame(sample)
+      }
+      requestAnimationFrame(sample)
+    }, place)
+  }
+  async function restored(page, place, name, historical = false) {
+    const result = page.getByTestId('skyanchor-resume-result')
+    try {
+      await expect(result).toContainText(
+        historical
+          ? 'Restored this saved place locally:'
+          : 'Confirmed locally.',
+      )
+      await page
+        .locator('[data-skyanchor-key]')
+        .first()
+        .evaluate(node => {
+          const late = document.createElement('div')
+          late.dataset.fixtureSettlementLate = 'true'
+          late.style.height = '97px'
+          node.prepend(late)
+        })
+      await page.waitForTimeout(300)
+      const geometry = await page.evaluate(place => {
+        window.fixtureSettlementActive = false
+        const row = [...document.querySelectorAll('[data-skyanchor-key]')].find(
+          node => node.dataset.skyanchorKey === place.anchor,
+        )
+        const header = document.querySelector(
+          '[data-testid="mobileHomeHeader"]',
+        )
+        return {
+          error: row
+            ? Math.abs(
+                row.getBoundingClientRect().top -
+                  (header?.getClientRects().length
+                    ? header.getBoundingClientRect().bottom
+                    : 0) -
+                  place.offset,
+              )
+            : null,
+          trace: window.fixtureSettlement,
+        }
+      }, place)
+      assert.notEqual(geometry.error, null)
+      assert.ok(geometry.error <= 2)
+      assert.deepEqual(await localPlace(page), place)
+      report.measurements.push({name, ...geometry, thresholdCSSPx: 2})
+      await page
+        .locator('[data-fixture-settlement-late]')
+        .evaluate(node => node.remove())
+      await page.waitForTimeout(300)
+    } catch (error) {
+      console.error(
+        'Synthetic settlement failure:',
+        JSON.stringify({
+          name,
+          place,
+          result: await result.textContent(),
+          geometry: await page.evaluate(() => ({
+            first: window.fixtureSettlement.slice(0, 3),
+            last: window.fixtureSettlement.slice(-3),
+            deltas: [
+              ...new Set(window.fixtureSettlement.map(sample => sample.delta)),
+            ],
+          })),
+        }),
+      )
+      placementFailures.push(error.message)
+    }
+  }
+  try {
+    const source = await fresh()
+    await source
+      .getByTestId('postText')
+      .filter({hasText: 'Fixture post 20.'})
+      .first()
+      .scrollIntoViewIfNeeded()
+    await scrollReading(source, 61)
+    await readingAction(source, 'Connect private sync')
+    await closeReadingPanel(source)
+    // Fractional layout before Save, removed before recovery re-renders the window.
+    await source
+      .locator('[data-skyanchor-scope]')
+      .first()
+      .evaluate(node => {
+        node.style.transform = 'translateY(0.5px)'
+      })
+    await readingAction(source, 'Save my place')
+    await expect
+      .poll(async () => typeof (await cloud()).place?.state)
+      .toBe('string')
+    const saved = JSON.parse((await cloud()).place.state)
+    assert.ok(Math.abs(saved.offset % 1) > 0.25)
+    await closeReadingPanel(source)
+    await source
+      .locator('[data-skyanchor-scope]')
+      .first()
+      .evaluate(node => {
+        node.style.transform = ''
+      })
+    await source.evaluate(() => scrollBy(0, 900))
+    await source.waitForTimeout(300)
+    await readingAction(source, 'Check saved places')
+    const device = await source.evaluate(() =>
+      localStorage.getItem('skyanchor:device'),
+    )
+    await source
+      .getByRole('combobox', {name: 'Source of saved place', exact: true})
+      .click()
+    await source
+      .getByRole('option')
+      .filter({hasText: '[' + device.slice(0, 4) + ']'})
+      .click()
+    const baseline = await cloud()
+    await trace(source, saved)
+    await readingAction(source, 'Resume saved place')
+    await restored(
+      source,
+      saved,
+      'WebKit own-profile fractional checkpoint settlement',
+      true,
+    )
+    assert.deepEqual(await cloud(), baseline)
+    if (!placementFailures.length) {
+      const paused = await source.evaluate(
+        did => localStorage.getItem('skyanchor:historic-local:' + did),
+        did,
+      )
+      assert.ok(
+        paused,
+        'Own-browser historical restore must retain sharing pause',
+      )
+      await closeReadingPanel(source)
+      await scrollReading(source, 73)
+      await source.evaluate(() => {
+        dispatchEvent(new Event('resize'))
+        dispatchEvent(new Event('focus'))
+      })
+      await source.waitForTimeout(1000)
+      assert.notDeepEqual(await localPlace(source), saved)
+      assert.equal(
+        await source.evaluate(
+          did => localStorage.getItem('skyanchor:historic-local:' + did),
+          did,
+        ),
+        paused,
+      )
+      assert.deepEqual(await cloud(), baseline)
+    }
+    const receiver = await fresh()
+    await readingAction(receiver, 'Connect private sync')
+    await trace(receiver, saved)
+    await readingAction(receiver, 'Resume other device')
+    await restored(
+      receiver,
+      saved,
+      'WebKit explicit shared fractional checkpoint settlement',
+    )
+    assert.deepEqual(await cloud(), baseline)
+    assert.deepEqual(placementFailures, [])
+    report.checks.push(
+      'Phone WebKit own-profile history and shared Resume accept the exact fractional checkpoint within browser precision, persist its original bytes, and never write cloud progress; historical reading/foreground retain sharing pause.',
+    )
+  } finally {
+    for (const context of contexts) await context.close()
   }
 }
 
@@ -1125,8 +1561,18 @@ export async function verifyNewContent({
         )
         trace('before-top')
       }, did)
+      await current.evaluate(() => {
+        // Drain a pending source capture before testing the no-pending branch.
+        dispatchEvent(new Event('scroll'))
+        return new Promise(resolve =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        )
+      })
+      // Expire the 250 ms reading-intent guard after draining actual capture RAFs.
+      await current.clock.runFor(251)
       const beforePassiveTop = await cloudBytes()
       const passiveCorrection = await current.evaluate(() => {
+        window.fixtureTraceTop('settled-before-passive-top')
         const before = window.fixtureTopTrace.at(-1)
         window.scrollTo(0, 0)
         // A layout correction may run before passive scroll capture reaches RAF.
@@ -1295,12 +1741,81 @@ export async function verifyNewContent({
           )
         await expect.poll(() => !!acceptedWrite()).toBe(true)
         const acceptedHomeWrite = acceptedWrite()
+        await current.evaluate(
+          key =>
+            new Promise(resolve => {
+              window.fixtureImmediateSamples = []
+              window.fixtureSampleImmediate = true
+              const sample = () => {
+                if (!window.fixtureSampleImmediate) return
+                const row = [
+                  ...document.querySelectorAll('[data-skyanchor-key]'),
+                ].find(node => node.dataset.skyanchorKey === key)
+                if (window.fixtureImmediateSamples.length < 2048)
+                  window.fixtureImmediateSamples.push(
+                    row?.getBoundingClientRect().top,
+                  )
+                if (window.fixtureImmediateSamples.length === 1) resolve()
+                requestAnimationFrame(sample)
+              }
+              requestAnimationFrame(sample)
+            }),
+          topKey,
+        )
+        if (kind === 'new-head')
+          await current.evaluate(() => {
+            // Query observer publication uses zero-delay timers, independently of loading UI.
+            const schedule = window.setTimeout
+            const cancel = window.clearTimeout
+            const pending = new Map()
+            let next = 0
+            window.setTimeout = (callback, delay, ...args) => {
+              if (delay !== 0) return schedule(callback, delay, ...args)
+              const id = --next
+              pending.set(id, () => callback(...args))
+              return id
+            }
+            window.clearTimeout = id => {
+              if (!pending.delete(id)) cancel(id)
+            }
+            window.fixtureReleaseNotifications = () => {
+              window.setTimeout = schedule
+              window.clearTimeout = cancel
+              for (const callback of pending.values()) schedule(callback, 0)
+              pending.clear()
+            }
+          })
+        const samplesBeforeRelease = await current.evaluate(
+          () => window.fixtureImmediateSamples.length,
+        )
+        assert.ok(samplesBeforeRelease >= 1)
         held.release()
         held = undefined
-        await expect(
-          current.getByTestId('skyanchor-reading-button'),
-        ).not.toHaveAccessibleName(/Loading new posts/)
+        let labelMilestonePrefix
+        try {
+          await expect(
+            current.getByTestId('skyanchor-reading-button'),
+          ).not.toHaveAccessibleName(/Loading new posts/)
+          labelMilestonePrefix = (await snapshot()).keys.slice(0, 2)
+        } finally {
+          if (kind === 'new-head')
+            await current.evaluate(() => window.fixtureReleaseNotifications())
+        }
+        if (kind === 'new-head')
+          await expect
+            .poll(async () => (await snapshot()).keys.slice(0, 2))
+            .toEqual([
+              post(-201).uri + '|repost:-|reply:-|context:' + post(-201).uri,
+              topKey,
+            ])
+        await current.evaluate(
+          () =>
+            new Promise(resolve =>
+              requestAnimationFrame(() => requestAnimationFrame(resolve)),
+            ),
+        )
         const afterImmediate = await current.evaluate(key => {
+          window.fixtureSampleImmediate = false
           window.fixtureTraceTop('immediate-refresh-integrated')
           const row = [
             ...document.querySelectorAll('[data-skyanchor-key]'),
@@ -1310,11 +1825,22 @@ export async function verifyNewContent({
             firstVisible: window.fixtureTopTrace.at(-1).anchor,
             anchor: row?.dataset.skyanchorKey,
             top: row?.getBoundingClientRect().top,
+            samples: window.fixtureImmediateSamples,
           }
         }, topKey)
         assert.equal(afterImmediate.anchor, topKey)
         const delta = Math.abs(afterImmediate.top - beforeImmediate.top)
         assert.ok(delta <= 2, `Immediate ${kind} Refresh drift: ${delta}px`)
+        assert.ok(afterImmediate.samples.length > 1)
+        const maximumFrameDrift = Math.max(
+          ...afterImmediate.samples.map(top =>
+            Math.abs(top - beforeImmediate.top),
+          ),
+        )
+        assert.ok(
+          maximumFrameDrift <= 2,
+          `Immediate ${kind} per-frame Refresh drift: ${maximumFrameDrift}px`,
+        )
         if (kind === 'no-new') assert.ok(Math.abs(afterImmediate.y) <= 2)
         else
           assert.deepEqual((await snapshot()).keys.slice(0, 2), [
@@ -1333,8 +1859,11 @@ export async function verifyNewContent({
             device: immediateBaseline.place.device,
           },
           before: beforeImmediate,
+          labelMilestonePrefix,
           after: afterImmediate,
           deltaCSSPx: delta,
+          maximumFrameDriftCSSPx: maximumFrameDrift,
+          samplesBeforeRelease,
           unchangedCloudRowAndClock: true,
         })
       }

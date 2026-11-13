@@ -12,6 +12,8 @@ function readingFixture({
   horizontalScrollbar = false,
   overlayScrollbar = false,
   initialPlace,
+  quantizedScroll = false,
+  clampedScroll = false,
 } = {}) {
   const frames = []
   let nextFrame = 0
@@ -71,6 +73,8 @@ function readingFixture({
     innerWidth: 1280,
     visualViewport: {offsetTop: 0, height: 844},
     scrollBy({top}) {
+      if (quantizedScroll) top = Math.round(this.scrollY + top) - this.scrollY
+      if (clampedScroll) top = Math.max(0, top)
       this.scrollY += top
       rowTop -= top
       if (naturalHeader) headerBottom = 47
@@ -340,6 +344,53 @@ function readingFixture({
 }
 
 const targetPlace = {version: 1, anchor: 'target', offset: -42, neighbors: []}
+
+test('Viewport resize drains the queued local reading capture before correcting the previous place', () => {
+  for (const owned of [false, true]) {
+    const fixture = readingFixture({initialPlace: targetPlace})
+    fixture.flush()
+    if (owned) fixture.events.get('touchstart')()
+    fixture.scrollBy(61)
+    const before = fixture.rowTop
+    fixture.events.get('resize')()
+    assert.equal(
+      fixture.rowTop,
+      before,
+      'Resize before the reading RAF must not rewind the actual viewport',
+    )
+    fixture.flush()
+    assert.equal(fixture.saved.at(-1)?.offset, targetPlace.offset - 61)
+    assert.ok(fixture.dispatched.every(event => !event.intentional))
+    fixture.move(before + 97)
+    fixture.events.get('resize')()
+    fixture.flush()
+    assert.equal(fixture.rowTop, before, 'Late layout follows the newer place')
+    fixture.scrollBy(23)
+    fixture.flush()
+    assert.equal(fixture.saved.at(-1)?.offset, targetPlace.offset - 84)
+    fixture.cleanup()
+  }
+})
+
+test('Immediate navigation flushes pending reading locally so a cold entry cannot resurrect the previous window', () => {
+  const fixture = readingFixture({initialPlace: targetPlace})
+  fixture.flush()
+  fixture.events.get('touchstart')()
+  fixture.scrollBy(61)
+  fixture.depart()
+  fixture.flush()
+  assert.equal(
+    fixture.saved.at(-1)?.offset,
+    targetPlace.offset - 61,
+    'Departure must not discard the pending durable reading capture',
+  )
+  assert.ok(fixture.dispatched.every(event => !event.intentional))
+  const cold = readingFixture({initialPlace: fixture.saved.at(-1)})
+  cold.flush()
+  assert.equal(cold.rowTop, fixture.rowTop)
+  fixture.cleanup()
+  cold.cleanup()
+})
 
 test('Back reactivation releases correction before continued touch momentum and saves the newer viewport', () => {
   const fixture = readingFixture()
@@ -732,6 +783,30 @@ test('Return remeasures natural-to-sticky geometry and saves only after stable p
   await completion
   assert.equal(fixture.rowTop, 5)
   assert.deepEqual(fixture.saved, [targetPlace])
+})
+
+test('Exact occurrence settlement handles browser scroll quantization without changing the saved offset', async () => {
+  for (const offset of [-42.5, -42.875, -42.125]) {
+    const fixture = readingFixture({quantizedScroll: true})
+    const place = {...targetPlace, offset}
+    const completion = fixture.hook.setTarget(place, true)
+    fixture.flush()
+    await completion
+    assert.ok(Math.abs(fixture.rowTop - 143 - place.offset) <= 0.5)
+    assert.deepEqual(fixture.saved, [place])
+  }
+})
+
+test('Unreachable clamped placement outside browser precision still fails without saving', async () => {
+  const fixture = readingFixture({clampedScroll: true})
+  fixture.move(143 + targetPlace.offset - 1.5)
+  const failure = assert.rejects(
+    fixture.hook.setTarget(targetPlace, true),
+    /did not settle/,
+  )
+  fixture.flush()
+  await failure
+  assert.deepEqual(fixture.saved, [])
 })
 
 test('A newer explicit target cancels older queued restoration without stale writes', async () => {
