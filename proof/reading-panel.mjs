@@ -150,6 +150,60 @@ export async function verifyReadingPanel(page, report, feed = 'following') {
   )
 }
 
+async function holdReadingCapture(page) {
+  await page.evaluate(() => {
+    const request = window.requestAnimationFrame
+    const cancel = window.cancelAnimationFrame
+    const held = new Map()
+    let paused = true
+    window.requestAnimationFrame = callback => {
+      const id = request.call(window, time => {
+        if (paused) held.set(id, () => callback(time))
+        else callback(time)
+      })
+      return id
+    }
+    window.cancelAnimationFrame = id => {
+      held.delete(id)
+      cancel.call(window, id)
+    }
+    window.fixtureReadingRace = {
+      scrolled: false,
+      pending: () => held.size,
+      release() {
+        paused = false
+        window.requestAnimationFrame = request
+        window.cancelAnimationFrame = cancel
+        for (const callback of held.values()) callback()
+        held.clear()
+      },
+    }
+    addEventListener(
+      'scroll',
+      () => {
+        window.fixtureReadingRace.scrolled = true
+      },
+      {once: true},
+    )
+    dispatchEvent(new Event('touchstart'))
+    scrollBy(0, 61)
+  })
+  await page.waitForFunction(
+    () =>
+      window.fixtureReadingRace.scrolled &&
+      window.fixtureReadingRace.pending() > 0,
+    undefined,
+    {polling: 20},
+  )
+}
+
+async function releaseReadingCapture(page) {
+  await page.evaluate(() => {
+    window.fixtureReadingRace.release()
+    dispatchEvent(new Event('touchcancel'))
+  })
+}
+
 export async function verifyThreadBack({
   desktopBrowser,
   phoneBrowser,
@@ -160,7 +214,10 @@ export async function verifyThreadBack({
   worker,
   entries,
 }) {
-  for (const [index, browser] of [desktopBrowser, phoneBrowser].entries()) {
+  for (const [index, browser] of [
+    [1, phoneBrowser],
+    [0, desktopBrowser],
+  ]) {
     const context = await browser.newContext({
       ...(index
         ? devices['iPhone 13']
@@ -198,16 +255,20 @@ export async function verifyThreadBack({
       controls.setThreadReply(reply)
       const page = await context.newPage()
       const writes = []
+      const coldReloadWrites = []
       const failures = []
       page.on('pageerror', error => failures.push(error.message))
       let navigationOnly = false
+      let coldReload = false
       page.on('request', request => {
         if (
           navigationOnly &&
           new URL(request.url()).pathname.startsWith('/api/skyanchor/') &&
           request.method() !== 'GET'
         )
-          writes.push(request.method())
+          (coldReload ? coldReloadWrites : writes).push(
+            `${request.method()} ${new URL(request.url()).pathname}`,
+          )
       })
       await signIn(page)
       await page.evaluate(() => {
@@ -256,7 +317,9 @@ export async function verifyThreadBack({
         page.evaluate(() =>
           Object.fromEntries(
             Object.entries(localStorage).filter(([key]) =>
-              /^skyanchor:(return|revision|history|sharing)/.test(key),
+              /^skyanchor:(return|revision|history|historic-local|sharing)/.test(
+                key,
+              ),
             ),
           ),
         )
@@ -314,6 +377,131 @@ export async function verifyThreadBack({
         await closeReadingPanel(page)
         const cloudBefore = await cloudBytes()
         const protectedBefore = await protectedBytes()
+        if (visit === 0) {
+          navigationOnly = true
+          const sourceURL = page.url()
+          await holdReadingCapture(page)
+          const coldDeparture = await measure()
+          try {
+            await page.evaluate(() => {
+              const row = [
+                ...document.querySelectorAll('[data-skyanchor-key]'),
+              ].find(node => {
+                const rect = node.getBoundingClientRect()
+                return (
+                  node.getClientRects().length &&
+                  rect.top >= 160 &&
+                  rect.bottom < innerHeight - 80
+                )
+              })
+              const link = row?.querySelector('a[href*="/post/"]')
+              if (!link)
+                throw new Error('Cold departure requires a visible post link')
+              link.click()
+            })
+          } finally {
+            await releaseReadingCapture(page)
+          }
+          await page.waitForURL(/\/post\//)
+          const durableDeparture = await local()
+          coldReload = true
+          const renewed = page.waitForResponse(
+            response =>
+              response.request().method() === 'POST' &&
+              new URL(response.url()).pathname === '/api/skyanchor/session',
+          )
+          await page.reload()
+          await page
+            .getByTestId('postThreadItem-by-reader.test')
+            .filter({visible: true})
+            .first()
+            .waitFor()
+          await page.goBack()
+          await page.waitForURL(sourceURL)
+          await page.getByTestId('skyanchor-reading-button').waitFor()
+          await page.waitForTimeout(500)
+          assert.equal((await renewed).status(), 200)
+          assert.deepEqual(
+            coldReloadWrites,
+            ['POST /api/skyanchor/session'],
+            'A cold document renews its in-memory sync session, never reading progress',
+          )
+          coldReload = false
+          const coldRestored = await measure()
+          assert.equal(coldRestored.key, coldDeparture.key)
+          assert.ok(
+            Math.abs(coldRestored.offset - coldDeparture.offset) <= 2,
+            `Reload while in thread must retain the immediate departure: ${JSON.stringify({coldDeparture, coldRestored})}`,
+          )
+          assert.equal(
+            durableDeparture?.anchor,
+            coldDeparture.key,
+            'Immediate departure must persist its pending local occurrence',
+          )
+          assert.ok(
+            Math.abs(durableDeparture.offset - coldDeparture.offset) <= 2,
+            `Immediate departure must persist its pending offset: ${JSON.stringify({coldDeparture, durableDeparture})}`,
+          )
+          report.measurements.push({
+            name: `${index ? 'WebKit' : 'Chromium'} pending capture departure, thread reload and cold Back`,
+            departure: coldDeparture,
+            restored: coldRestored,
+            thresholdCSSPx: 2,
+          })
+          assert.deepEqual(await protectedBytes(), protectedBefore)
+          assert.deepEqual(await cloudBytes(), cloudBefore)
+          const viewport = page.viewportSize()
+          await holdReadingCapture(page)
+          try {
+            const beforeResize = await measure()
+            await page.setViewportSize({
+              ...viewport,
+              height: viewport.height - 70,
+            })
+            await page.waitForTimeout(100)
+            const afterResize = await measure()
+            assert.equal(
+              afterResize.key,
+              beforeResize.key,
+              'Real viewport resize before the reading RAF preserves occurrence',
+            )
+            assert.ok(
+              Math.abs(afterResize.offset - beforeResize.offset) <= 2,
+              `Real resize before reading RAF must not rewind: ${JSON.stringify({beforeResize, afterResize})}`,
+            )
+            report.measurements.push({
+              name: `${index ? 'WebKit' : 'Chromium'} real viewport resize before reading RAF`,
+              beforeResize,
+              afterResize,
+              thresholdCSSPx: 2,
+            })
+          } finally {
+            await releaseReadingCapture(page)
+          }
+          await page.waitForTimeout(300)
+          const resized = await measure()
+          await expect
+            .poll(async () => {
+              const place = await local()
+              return (
+                place?.anchor === resized.key &&
+                Math.abs(place.offset - resized.offset) <= 2
+              )
+            })
+            .toBe(true)
+          await page.setViewportSize(viewport)
+          await page.waitForTimeout(300)
+          assert.deepEqual(await protectedBytes(), protectedBefore)
+          assert.deepEqual(await cloudBytes(), cloudBefore)
+          await page.evaluate(() => {
+            window.fixtureThreadDepartures = 0
+            addEventListener(
+              'skyanchor-before-navigation',
+              () => window.fixtureThreadDepartures++,
+            )
+          })
+          navigationOnly = false
+        }
         const departure = await measure()
         assert.ok(departure.key)
         const tapKey = await page
@@ -492,6 +680,9 @@ export async function verifyThreadBack({
       assert.equal(
         await page.evaluate(() => history.length),
         initialHistory + 1,
+      )
+      report.checks.push(
+        `${index ? 'Phone WebKit' : 'Chromium'} pending reading survives real viewport resize and immediate departure/thread reload/cold Back within 2px; local window persists without progress writes or Return/history/pause mutation. Cold restart performs exactly one successful session renewal; ordinary navigation performs no private writes.`,
       )
       report.checks.push(
         `${index ? 'Phone WebKit' : 'Chromium'} native card/timestamp and keyboard activation, nested history POP and app Back restore exact occurrence/offset; continued momentum autosaves and late layout follows current reading, without Return/history/cloud writes.`,

@@ -322,9 +322,17 @@ export function useReadingPlace({
         Date.now() < userScrollUntil.current
       if (intentional) continueScrollIntent()
       const epoch = intentEpoch.current
-      frame = requestAnimationFrame(() =>
-        capture(intentional && epoch === intentEpoch.current),
-      )
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        capture(intentional && epoch === intentEpoch.current)
+      })
+    }
+    const flushCapture = () => {
+      if (!frame) return
+      cancelAnimationFrame(frame)
+      frame = 0
+      // Flush real pending reading locally, without granting sharing intent.
+      capture()
     }
     const observer = new ResizeObserver(correct)
     getNodes().forEach(node => observer.observe(node))
@@ -437,6 +445,7 @@ export function useReadingPlace({
     }
     const onResize = () => {
       cancelIntent()
+      flushCapture()
       correct()
     }
     window.addEventListener('pointerdown', onPointerDown, true)
@@ -475,6 +484,7 @@ export function useReadingPlace({
       const place = snapshot()
       if (!place) return
       cancelIntent()
+      flushCapture()
       departures.delete(entry)
       departures.set(entry, {place, epoch: readingEpoch(did)})
       if (departures.size > 64)

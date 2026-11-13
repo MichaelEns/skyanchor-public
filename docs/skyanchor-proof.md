@@ -45,6 +45,37 @@ isolation. Cancelled/new-tab native activations must not capture a departure;
 resumed reading invalidates any abandoned departure, and an unavailable
 semantic correction cannot suppress the route's pixel fallback.
 
+The recurrence investigation found two additional failures on the unchanged
+PR11 production export, distinct from that correction-lifetime repair. A real
+viewport-height resize between a scroll event and its queued capture cleared
+the pan guard and corrected against the previous desired place. Phone-sized
+WebKit rewound 61 px; Chromium returned to the previous occurrence. Also,
+departure cancelled the queued capture while keeping its snapshot only in the
+in-memory entry map. Reloading in the thread discarded that map; cold Back
+restored the older durable offset (61 px wrong in WebKit).
+
+The same focused selector and default browser gate now hold capture RAFs around
+real document scrolling, resize the actual viewport, and navigate to a thread,
+reload it and return cold. They assert exact occurrence/header-relative offset
+within two pixels, the pending durable local place, unchanged cloud row/clock
+and Return/history/historical-pause bytes, and no progress writes. Cold document
+restart loses the in-memory sync session/CSRF, so that phase must make exactly
+one successful existing session-renewal POST and no other private write. Ordinary
+navigation retains the original zero-private-write assertion. Existing native tap, keyboard,
+cancel/new-tab, repeated Back, continued-reading and late-layout assertions stay
+in place. The cold-departure race activates a visible DOM link while RAFs are
+held; it is not a physical touch/swipe or OS process-eviction test.
+
+Resize and departure now flush only an already-pending capture before correction
+or freezing the source. The flush is local and non-intentional, uses the existing
+window persistence and account/feed/epoch guards, and does not unconditionally
+save on navigation, alter Return, or authorize cloud sharing. Completed RAFs
+clear their pending marker so later layout-only resizes still correct normally.
+Hook regressions cover passive/owned pending capture, subsequent reading and
+late layout, plus durable cold restoration. These controlled reproductions do
+not identify the reported phone event or establish the phone's running build;
+the served release alone cannot establish that.
+
 `pnpm skyanchor:e2e --profile-only` runs the complete profile proof against the
 existing export after establishing confirmed Following sync. Profile source
 movement uses wheel input (Chromium) or synthetic touch around real viewport
