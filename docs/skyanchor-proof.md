@@ -248,6 +248,28 @@ The complete browser runner retains all preceding moderation, device history,
 handoff, reverse, momentum and continuous-history cases. WebKit keyboard
 coverage is not physical iPhone touch acceptance.
 
+The protected recurring-position candidate subsequently failed the immediate
+fresh-head prefix assertion: its "integrated" sample still contained the old
+rows, while the later trace contained the new head and layout correction.
+Absence of the reading button's loading label is not a committed-window
+milestone: higher-priority notices can hide loading, and clearing loading state
+does not await React Query's separately scheduled observer publication.
+`flushSync(setQueryData)` does not synchronously drain those scheduled callbacks.
+
+The fresh-head fixture now holds zero-delay timers around response release,
+retaining RAF and nonzero timers, to exercise delayed observer publication.
+The old oracle with that hold reproduced the same old-prefix failure locally.
+The hold is released in `finally`; the proof then requires the exact two-row
+committed DOM prefix before taking its integration geometry sample. A bounded
+per-frame original-anchor sampler spans release through that sample, so waiting
+cannot hide a painted layout jump. Both the original final <=2 px assertion and
+the new per-frame <=2 px assertion, exact prefix/order, real Home autosave,
+cloud row/clock, cancellation and pending-history checks remain required.
+Receipts include the prefix seen at the old label milestone (which may already
+be committed), final geometry and all frame samples. This is a fixture-only
+publication-oracle correction, not another app fix or proof that hosted CI will
+pass; the updated exact candidate still requires its protected hosted run.
+
 The immediate-input phase pauses only its disposable page's simulated clock
 before Home. Cross-process fixture work while RAF is deliberately held must not
 consume the 250 ms input-ownership budget. It runs one millisecond for the

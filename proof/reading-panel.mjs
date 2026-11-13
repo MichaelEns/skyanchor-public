@@ -1486,12 +1486,66 @@ export async function verifyNewContent({
           )
         await expect.poll(() => !!acceptedWrite()).toBe(true)
         const acceptedHomeWrite = acceptedWrite()
+        await current.evaluate(key => {
+          window.fixtureImmediateSamples = []
+          window.fixtureSampleImmediate = true
+          const sample = () => {
+            if (!window.fixtureSampleImmediate) return
+            const row = [
+              ...document.querySelectorAll('[data-skyanchor-key]'),
+            ].find(node => node.dataset.skyanchorKey === key)
+            if (window.fixtureImmediateSamples.length < 2048)
+              window.fixtureImmediateSamples.push(
+                row?.getBoundingClientRect().top,
+              )
+            requestAnimationFrame(sample)
+          }
+          requestAnimationFrame(sample)
+        }, topKey)
+        if (kind === 'new-head')
+          await current.evaluate(() => {
+            // Query observer publication uses zero-delay timers, independently of loading UI.
+            const schedule = window.setTimeout
+            const cancel = window.clearTimeout
+            const pending = new Map()
+            let next = 0
+            window.setTimeout = (callback, delay, ...args) => {
+              if (delay !== 0) return schedule(callback, delay, ...args)
+              const id = --next
+              pending.set(id, () => callback(...args))
+              return id
+            }
+            window.clearTimeout = id => {
+              if (!pending.delete(id)) cancel(id)
+            }
+            window.fixtureReleaseNotifications = () => {
+              window.setTimeout = schedule
+              window.clearTimeout = cancel
+              for (const callback of pending.values()) schedule(callback, 0)
+              pending.clear()
+            }
+          })
         held.release()
         held = undefined
-        await expect(
-          current.getByTestId('skyanchor-reading-button'),
-        ).not.toHaveAccessibleName(/Loading new posts/)
+        let labelMilestonePrefix
+        try {
+          await expect(
+            current.getByTestId('skyanchor-reading-button'),
+          ).not.toHaveAccessibleName(/Loading new posts/)
+          labelMilestonePrefix = (await snapshot()).keys.slice(0, 2)
+        } finally {
+          if (kind === 'new-head')
+            await current.evaluate(() => window.fixtureReleaseNotifications())
+        }
+        if (kind === 'new-head')
+          await expect
+            .poll(async () => (await snapshot()).keys.slice(0, 2))
+            .toEqual([
+              post(-201).uri + '|repost:-|reply:-|context:' + post(-201).uri,
+              topKey,
+            ])
         const afterImmediate = await current.evaluate(key => {
+          window.fixtureSampleImmediate = false
           window.fixtureTraceTop('immediate-refresh-integrated')
           const row = [
             ...document.querySelectorAll('[data-skyanchor-key]'),
@@ -1501,11 +1555,22 @@ export async function verifyNewContent({
             firstVisible: window.fixtureTopTrace.at(-1).anchor,
             anchor: row?.dataset.skyanchorKey,
             top: row?.getBoundingClientRect().top,
+            samples: window.fixtureImmediateSamples,
           }
         }, topKey)
         assert.equal(afterImmediate.anchor, topKey)
         const delta = Math.abs(afterImmediate.top - beforeImmediate.top)
         assert.ok(delta <= 2, `Immediate ${kind} Refresh drift: ${delta}px`)
+        assert.ok(afterImmediate.samples.length > 1)
+        const maximumFrameDrift = Math.max(
+          ...afterImmediate.samples.map(top =>
+            Math.abs(top - beforeImmediate.top),
+          ),
+        )
+        assert.ok(
+          maximumFrameDrift <= 2,
+          `Immediate ${kind} per-frame Refresh drift: ${maximumFrameDrift}px`,
+        )
         if (kind === 'no-new') assert.ok(Math.abs(afterImmediate.y) <= 2)
         else
           assert.deepEqual((await snapshot()).keys.slice(0, 2), [
@@ -1524,8 +1589,10 @@ export async function verifyNewContent({
             device: immediateBaseline.place.device,
           },
           before: beforeImmediate,
+          labelMilestonePrefix,
           after: afterImmediate,
           deltaCSSPx: delta,
+          maximumFrameDriftCSSPx: maximumFrameDrift,
           unchangedCloudRowAndClock: true,
         })
       }
