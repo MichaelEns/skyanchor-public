@@ -14,6 +14,8 @@ import {
 } from './domain'
 
 const departures = new Map<string, {place: ReadingPlace; epoch: number}>()
+// Fractional layout offsets can be finer than WebKit's whole-CSS-pixel scrolling.
+const positionTolerance = 1
 
 export function useReadingPlace({
   did,
@@ -254,7 +256,7 @@ export function useReadingPlace({
     const offset = chosen.fallback ? 0 : desired.current.offset
     const delta =
       node.getBoundingClientRect().top - visibleHeaderBottom() - offset
-    if (Math.abs(delta) > 0.25) {
+    if (Math.abs(delta) > positionTolerance) {
       clearScrollIntent()
       correcting.current = true
       window.scrollBy({top: delta, behavior: 'instant'})
@@ -619,7 +621,7 @@ export function useReadingPlace({
           stableFrames =
             delta !== undefined &&
             Number.isFinite(delta) &&
-            Math.abs(delta) <= 0.25
+            Math.abs(delta) <= positionTolerance
               ? stableFrames + 1
               : 0
           if (stableFrames >= 3) {

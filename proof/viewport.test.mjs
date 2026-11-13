@@ -12,6 +12,8 @@ function readingFixture({
   horizontalScrollbar = false,
   overlayScrollbar = false,
   initialPlace,
+  quantizedScroll = false,
+  clampedScroll = false,
 } = {}) {
   const frames = []
   let nextFrame = 0
@@ -71,6 +73,8 @@ function readingFixture({
     innerWidth: 1280,
     visualViewport: {offsetTop: 0, height: 844},
     scrollBy({top}) {
+      if (quantizedScroll) top = Math.round(this.scrollY + top) - this.scrollY
+      if (clampedScroll) top = Math.max(0, top)
       this.scrollY += top
       rowTop -= top
       if (naturalHeader) headerBottom = 47
@@ -779,6 +783,30 @@ test('Return remeasures natural-to-sticky geometry and saves only after stable p
   await completion
   assert.equal(fixture.rowTop, 5)
   assert.deepEqual(fixture.saved, [targetPlace])
+})
+
+test('Exact occurrence settlement handles browser scroll quantization without changing the saved offset', async () => {
+  for (const offset of [-42.5, -42.875, -42.125]) {
+    const fixture = readingFixture({quantizedScroll: true})
+    const place = {...targetPlace, offset}
+    const completion = fixture.hook.setTarget(place, true)
+    fixture.flush()
+    await completion
+    assert.ok(Math.abs(fixture.rowTop - 143 - place.offset) <= 0.5)
+    assert.deepEqual(fixture.saved, [place])
+  }
+})
+
+test('Unreachable clamped placement outside browser precision still fails without saving', async () => {
+  const fixture = readingFixture({clampedScroll: true})
+  fixture.move(143 + targetPlace.offset - 1.5)
+  const failure = assert.rejects(
+    fixture.hook.setTarget(targetPlace, true),
+    /did not settle/,
+  )
+  fixture.flush()
+  await failure
+  assert.deepEqual(fixture.saved, [])
 })
 
 test('A newer explicit target cancels older queued restoration without stale writes', async () => {

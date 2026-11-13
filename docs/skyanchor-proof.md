@@ -76,6 +76,36 @@ late layout, plus durable cold restoration. These controlled reproductions do
 not identify the reported phone event or establish the phone's running build;
 the served release alone cannot establish that.
 
+`pnpm skyanchor:e2e --settlement-only` reproduces the later phone report's exact
+"Reading restore did not settle" failure on the unchanged production hook.
+It creates a real Save with a half-CSS-pixel layout transform, removes that
+transform, then selects this same WebKit browser's saved checkpoint and also
+resumes the shared checkpoint from a second browser profile. Both old paths
+reach the correct occurrence but retain a 0.5 px residual, away from either
+scroll boundary. WebKit's whole-CSS-pixel scrolling cannot meet the old 0.25 px
+criterion; repeated corrective scrolls exhaust 60 attempts and trigger the
+existing explicit rollback. This controlled fractional-layout reproduction
+matches the supplied error text, not proof of the physical phone's geometry,
+running release, or exact cause.
+
+Correction and settlement now share a one-CSS-pixel browser-precision tolerance,
+still below the two-pixel acceptance bound. Exact occurrence identity, three
+consecutive measured frames, the 60-attempt bound, cancellation and rollback
+remain required; the original requested offset is persisted unchanged. This
+does not accept a missing occurrence or retry indefinitely. Unit proofs cover
+several fractional offsets under quantized scrolling and an unreachable 1.5 px
+clamped residual that must still fail explicitly without saving.
+
+The focused selector is included in the default browser gate. It compares
+cloud place, clock and device-history bytes before/after both receiving paths,
+checks the exact persisted checkpoint and <=2 px geometry through late row
+growth, then proves own-history continued reading and foreground/resize keep
+the durable historical sharing pause without cloud writes. Bounded synthetic
+failure output records target offset, sampled anchor/header/scroll geometry,
+scroll maximum and visual viewport, with no account credentials. Other default
+proofs retain pruned/deleted/moderated saves, before/after frozen-selection
+revalidation, cancelled recovery, fresh-CAS sharing and account/feed isolation.
+
 `pnpm skyanchor:e2e --profile-only` runs the complete profile proof against the
 existing export after establishing confirmed Following sync. Profile source
 movement uses wheel input (Chromium) or synthetic touch around real viewport

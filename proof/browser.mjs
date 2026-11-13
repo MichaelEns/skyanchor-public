@@ -32,6 +32,7 @@ import {
   legacyReturnFixture,
   scrollReading,
   verifyThreadBack,
+  verifySettlement,
 } from './reading-panel.mjs'
 
 const require = createRequire(import.meta.url)
@@ -1365,6 +1366,19 @@ async function runBrowserProof() {
     report.passed = true
     return
   }
+  if (process.argv.includes('--settlement-only')) {
+    await verifySettlement({
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+      entries,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
+  }
   if (process.argv.includes('--profile-only')) {
     await scrollReading(page, 400)
     const connected = page.waitForResponse(
@@ -2383,6 +2397,14 @@ async function runBrowserProof() {
     entries,
     post,
     installViewportFixture,
+  })
+  await verifySettlement({
+    phoneBrowser,
+    mockUpstream,
+    signIn,
+    worker,
+    report,
+    entries,
   })
   await verifyThreadBack({
     desktopBrowser,

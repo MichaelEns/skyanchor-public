@@ -693,6 +693,251 @@ export async function verifyThreadBack({
   }
 }
 
+export async function verifySettlement({
+  phoneBrowser,
+  mockUpstream,
+  signIn,
+  worker,
+  report,
+  entries,
+}) {
+  const did = 'did:plc:nnnnnnnnnnnnnnnnnnnnnnnn'
+  const timeline = JSON.parse(
+    JSON.stringify(entries).replaceAll(entries[0].post.author.did, did),
+  )
+  const contexts = []
+  const placementFailures = []
+  const placeKey = 'skyanchor:following:v1:' + did
+  const localPlace = page =>
+    page.evaluate(key => JSON.parse(localStorage.getItem(key))?.place, placeKey)
+  const cloud = async () => ({
+    place: await worker.db
+      .prepare("SELECT * FROM places WHERE did = ? AND feed = 'following'")
+      .bind(did)
+      .first(),
+    clock: await worker.db.prepare('SELECT * FROM clock').first(),
+    history: (
+      await worker.db
+        .prepare(
+          'SELECT * FROM reading_history WHERE did = ? ORDER BY revision',
+        )
+        .bind(did)
+        .all()
+    ).results,
+  })
+  async function fresh() {
+    const context = await phoneBrowser.newContext({
+      ...devices['iPhone 13'],
+      ignoreHTTPSErrors: true,
+      serviceWorkers: 'block',
+    })
+    contexts.push(context)
+    const controls = await mockUpstream(context, did)
+    controls.setTimeline(timeline)
+    const page = await context.newPage()
+    await signIn(page, 'reader.test')
+    return page
+  }
+  async function trace(page, place) {
+    await page.evaluate(place => {
+      window.fixtureSettlement = []
+      window.fixtureSettlementActive = true
+      const sample = () => {
+        if (!window.fixtureSettlementActive) return
+        const row = [...document.querySelectorAll('[data-skyanchor-key]')].find(
+          node => node.dataset.skyanchorKey === place.anchor,
+        )
+        const header = document.querySelector(
+          '[data-testid="mobileHomeHeader"]',
+        )
+        const bottom = header?.getClientRects().length
+          ? header.getBoundingClientRect().bottom
+          : 0
+        if (window.fixtureSettlement.length < 100)
+          window.fixtureSettlement.push({
+            y: scrollY,
+            max:
+              document.documentElement.scrollHeight -
+              document.documentElement.clientHeight,
+            header: bottom,
+            top: row?.getBoundingClientRect().top,
+            delta: row
+              ? row.getBoundingClientRect().top - bottom - place.offset
+              : null,
+            viewport: {
+              height: visualViewport?.height,
+              top: visualViewport?.offsetTop,
+            },
+          })
+        requestAnimationFrame(sample)
+      }
+      requestAnimationFrame(sample)
+    }, place)
+  }
+  async function restored(page, place, name, historical = false) {
+    const result = page.getByTestId('skyanchor-resume-result')
+    try {
+      await expect(result).toContainText(
+        historical
+          ? 'Restored this saved place locally:'
+          : 'Confirmed locally.',
+      )
+      await page
+        .locator('[data-skyanchor-key]')
+        .first()
+        .evaluate(node => {
+          const late = document.createElement('div')
+          late.dataset.fixtureSettlementLate = 'true'
+          late.style.height = '97px'
+          node.prepend(late)
+        })
+      await page.waitForTimeout(300)
+      const geometry = await page.evaluate(place => {
+        window.fixtureSettlementActive = false
+        const row = [...document.querySelectorAll('[data-skyanchor-key]')].find(
+          node => node.dataset.skyanchorKey === place.anchor,
+        )
+        const header = document.querySelector(
+          '[data-testid="mobileHomeHeader"]',
+        )
+        return {
+          error: row
+            ? Math.abs(
+                row.getBoundingClientRect().top -
+                  (header?.getClientRects().length
+                    ? header.getBoundingClientRect().bottom
+                    : 0) -
+                  place.offset,
+              )
+            : null,
+          trace: window.fixtureSettlement,
+        }
+      }, place)
+      assert.notEqual(geometry.error, null)
+      assert.ok(geometry.error <= 2)
+      assert.deepEqual(await localPlace(page), place)
+      report.measurements.push({name, ...geometry, thresholdCSSPx: 2})
+      await page
+        .locator('[data-fixture-settlement-late]')
+        .evaluate(node => node.remove())
+      await page.waitForTimeout(300)
+    } catch (error) {
+      console.error(
+        'Synthetic settlement failure:',
+        JSON.stringify({
+          name,
+          place,
+          result: await result.textContent(),
+          geometry: await page.evaluate(() => ({
+            first: window.fixtureSettlement.slice(0, 3),
+            last: window.fixtureSettlement.slice(-3),
+            deltas: [
+              ...new Set(window.fixtureSettlement.map(sample => sample.delta)),
+            ],
+          })),
+        }),
+      )
+      placementFailures.push(error.message)
+    }
+  }
+  try {
+    const source = await fresh()
+    await source
+      .getByTestId('postText')
+      .filter({hasText: 'Fixture post 20.'})
+      .first()
+      .scrollIntoViewIfNeeded()
+    await scrollReading(source, 61)
+    await readingAction(source, 'Connect private sync')
+    await closeReadingPanel(source)
+    // Fractional layout before Save, removed before recovery re-renders the window.
+    await source
+      .locator('[data-skyanchor-scope]')
+      .first()
+      .evaluate(node => {
+        node.style.transform = 'translateY(0.5px)'
+      })
+    await readingAction(source, 'Save my place')
+    await expect
+      .poll(async () => typeof (await cloud()).place?.state)
+      .toBe('string')
+    const saved = JSON.parse((await cloud()).place.state)
+    assert.ok(Math.abs(saved.offset % 1) > 0.25)
+    await closeReadingPanel(source)
+    await source
+      .locator('[data-skyanchor-scope]')
+      .first()
+      .evaluate(node => {
+        node.style.transform = ''
+      })
+    await source.evaluate(() => scrollBy(0, 900))
+    await source.waitForTimeout(300)
+    await readingAction(source, 'Check saved places')
+    const device = await source.evaluate(() =>
+      localStorage.getItem('skyanchor:device'),
+    )
+    await source
+      .getByRole('combobox', {name: 'Source of saved place', exact: true})
+      .click()
+    await source
+      .getByRole('option')
+      .filter({hasText: '[' + device.slice(0, 4) + ']'})
+      .click()
+    const baseline = await cloud()
+    await trace(source, saved)
+    await readingAction(source, 'Resume saved place')
+    await restored(
+      source,
+      saved,
+      'WebKit own-profile fractional checkpoint settlement',
+      true,
+    )
+    assert.deepEqual(await cloud(), baseline)
+    if (!placementFailures.length) {
+      const paused = await source.evaluate(
+        did => localStorage.getItem('skyanchor:historic-local:' + did),
+        did,
+      )
+      assert.ok(
+        paused,
+        'Own-browser historical restore must retain sharing pause',
+      )
+      await closeReadingPanel(source)
+      await scrollReading(source, 73)
+      await source.evaluate(() => {
+        dispatchEvent(new Event('resize'))
+        dispatchEvent(new Event('focus'))
+      })
+      await source.waitForTimeout(1000)
+      assert.notDeepEqual(await localPlace(source), saved)
+      assert.equal(
+        await source.evaluate(
+          did => localStorage.getItem('skyanchor:historic-local:' + did),
+          did,
+        ),
+        paused,
+      )
+      assert.deepEqual(await cloud(), baseline)
+    }
+    const receiver = await fresh()
+    await readingAction(receiver, 'Connect private sync')
+    await trace(receiver, saved)
+    await readingAction(receiver, 'Resume other device')
+    await restored(
+      receiver,
+      saved,
+      'WebKit explicit shared fractional checkpoint settlement',
+    )
+    assert.deepEqual(await cloud(), baseline)
+    assert.deepEqual(placementFailures, [])
+    report.checks.push(
+      'Phone WebKit own-profile history and shared Resume accept the exact fractional checkpoint within browser precision, persist its original bytes, and never write cloud progress; historical reading/foreground retain sharing pause.',
+    )
+  } finally {
+    for (const context of contexts) await context.close()
+  }
+}
+
 export async function verifyNewContent({
   desktopBrowser,
   phoneBrowser,
