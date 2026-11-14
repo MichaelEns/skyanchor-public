@@ -1068,6 +1068,10 @@ export async function verifyNewContent({
         .scrollIntoViewIfNeeded()
       await current.evaluate(() => window.scrollBy(0, 80))
       await current.waitForTimeout(1000)
+      await expect(arrow).toBeVisible()
+      const idleBackground = await arrow.evaluate(
+        node => getComputedStyle(node).backgroundColor,
+      )
       await readingAction(current, 'Connect private sync')
       await readingAction(current, 'Save my place')
       await closeReadingPanel(current)
@@ -1114,12 +1118,13 @@ export async function verifyNewContent({
       const noNewStart = polls()
       await current.clock.runFor(60_000)
       await expect.poll(polls).toBe(noNewStart + 1)
-      await expect(arrow).toHaveCount(0)
-      await readingAction(current, 'Refresh')
+      await expect(arrow).toBeVisible()
+      await expect(current.getByTestId('skyanchor-toolbar')).toHaveCount(0)
+      await arrow.click()
+      await expect(arrow).toHaveAccessibleName(
+        'Load new posts without moving your place',
+      )
       await readingPanel(current)
-      await expect(
-        current.getByRole('button', {name: 'Refresh', exact: true}),
-      ).toBeEnabled()
       await expect(current.getByTestId('skyanchor-new')).toHaveCount(0)
       await closeReadingPanel(current)
       assert.deepEqual(
@@ -1142,6 +1147,11 @@ export async function verifyNewContent({
         background: getComputedStyle(node).backgroundColor,
         icon: getComputedStyle(node.querySelector('svg')).color,
       }))
+      assert.notEqual(
+        style.background,
+        idleBackground,
+        'Known new posts highlight the available direct action',
+      )
       assert.notEqual(style.background, 'rgba(0, 0, 0, 0)')
       assert.notEqual(style.icon, 'rgb(0, 0, 0)')
       const bounds = await arrow.boundingBox()
@@ -1209,9 +1219,23 @@ export async function verifyNewContent({
       await held.reached
       incoming.unshift({post: post(-1000)})
       controls.setTimeline([...incoming, ...initial])
+      const expectedNew = incoming.map(
+        item => item.post.uri + '|repost:-|reply:-|context:' + item.post.uri,
+      )
       held.release()
       held = undefined
-      await expect(current.getByTestId('loadLatestBtn')).toHaveCount(0)
+      await expect
+        .poll(async () => (await snapshot()).keys.slice(0, incoming.length))
+        .toEqual(expectedNew)
+      await expect(arrow).toHaveAccessibleName(
+        'Load new posts without moving your place',
+      )
+      await expect(arrow).toBeVisible()
+      assert.equal(
+        await arrow.evaluate(node => getComputedStyle(node).backgroundColor),
+        idleBackground,
+        'After loading, the action stays available without claiming new posts',
+      )
       await current.waitForTimeout(500)
       const samples = await current.evaluate(() => {
         window.fixtureWatchingLoad = false
@@ -1234,9 +1258,6 @@ export async function verifyNewContent({
       assert.ok(
         Math.abs(afterLoading.top - before.top) <= 2,
         'Loading newer posts must preserve the immediate viewport within 2 CSS pixels',
-      )
-      const expectedNew = incoming.map(
-        item => item.post.uri + '|repost:-|reply:-|context:' + item.post.uri,
       )
       assert.deepEqual(
         afterLoading.keys.slice(0, incoming.length),
@@ -1492,7 +1513,10 @@ export async function verifyNewContent({
       await expect(
         current.getByTestId('skyanchor-reading-button'),
       ).not.toHaveAccessibleName(/Loading new posts/)
-      await expect(current.getByTestId('loadLatestBtn')).toHaveCount(0)
+      await expect(arrow).toBeVisible()
+      await expect(arrow).toHaveAccessibleName(
+        'Load new posts without moving your place',
+      )
       await current.evaluate(did => {
         window.fixtureTopTrace = []
         const trace = (phase, extra = {}) => {
@@ -1946,7 +1970,7 @@ export async function verifyNewContent({
         'New-content fixture has no runtime or unexpected HTTP failures',
       )
       report.checks.push(
-        `Production ${index === 0 ? 'desktop' : 'phone WebKit'}: 60s non-inserting discovery, actual arrow loads 151 ordered occurrences across five pages including a racing fresh head with <=2px per-frame drift and unchanged cloud place, immediate pre-RAF post/Back twice including nested reply Back and late row layout, natural upward traversal, retained older pagination, cancellation/no-overlap preservation, fresh revalidation, repost detection, no-new silence and stale navigated poll discarded.`,
+        `Production ${index === 0 ? 'desktop' : 'phone WebKit'}: the direct arrow remains available while reading down, including before discovery and after no-new or successful loads; 60s non-inserting discovery highlights known posts, actual arrow loads 151 ordered occurrences across five pages including a racing fresh head with <=2px per-frame drift and unchanged cloud place, immediate pre-RAF post/Back twice including nested reply Back and late row layout, natural upward traversal, retained older pagination, cancellation/no-overlap preservation, fresh revalidation, repost detection, no-new silence and stale navigated poll discarded.`,
       )
     } catch (error) {
       const current = context.pages()[0]
