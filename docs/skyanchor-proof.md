@@ -13,6 +13,16 @@ immediate Back, cancellation, viewport geometry, regional PDS handoff and
 contrast expectations. They do not authenticate a real account or claim
 physical-device acceptance.
 
+The Following lower-left action is available while scrolled down even before
+discovery, matching the existing profile-feed control. The production
+`--new-content-only` proof fails its early visibility assertion on the
+unchanged product. It now activates the direct action with Reading place
+closed for a no-new response, preserving exact local/cloud bytes. Discovery
+highlights the same action; after the verified 151-occurrence bridge it remains
+available with its idle style. Exact committed prefix, current occurrence,
+per-frame offset, cloud revision/state, no hidden history gap and top-of-feed
+no-new silence remain enforced. No polling interval or sync behavior changes.
+
 `pnpm skyanchor:e2e --thread-back-only` runs the production thread-return
 regression in desktop Chromium and phone-sized WebKit. It uses native card-body
 click/tap, timestamp and keyboard activation, nested browser history POP and the

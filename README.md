@@ -13,6 +13,13 @@ intervening history through exact overlap, preserving the visible older window.
 Immediate Back restores the departure occurrence. Return and explicit remote
 Resume confirm placement before consuming checkpoints.
 
+The lower-left arrow remains available while reading down Following, without
+opening Reading place. It checks and loads newer posts without moving the
+current occurrence; its highlight means the background check has found new
+posts. After loading it remains available without the highlight. At the top it
+appears only for known new posts or an active load. Profile feeds retain their
+existing direct control; native and other feeds are unchanged.
+
 Reading places save locally. Connect private sync opts each account/browser
 into debounced saves. Other-device places are offered without moving the view;
 Resume other device and Keep mine remain explicit choices. Supported sync
