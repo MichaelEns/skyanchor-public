@@ -209,6 +209,7 @@ export async function verifyDeviceCheckpoints({
     errors = []
   const requests = new Map(),
     profileIds = new Map()
+  const documentTransitions = []
   let sourceHold
   const writeCount = page =>
     writes.filter(item => item.device === profileIds.get(page)).length
@@ -251,11 +252,21 @@ export async function verifyDeviceCheckpoints({
     controls.setTimeline(scenarioTimeline)
     const page = await context.newPage()
     controlsByPage.set(page, controls)
+    page.on('framenavigated', frame => {
+      if (frame === page.mainFrame())
+        documentTransitions.push({
+          profile: profileIds.get(page),
+          time: Date.now(),
+          url: frame.url(),
+        })
+    })
     page.on('pageerror', error => errors.push(error.message))
     page.on('request', request => {
       if (new URL(request.url()).pathname !== '/api/skyanchor/place') return
       const body = request.postDataJSON()
       const record = {
+        number: requests.size + 1,
+        started: Date.now(),
         profile: profileIds.get(page),
         method: request.method(),
         expectedRevision: body?.revision,
@@ -276,6 +287,7 @@ export async function verifyDeviceCheckpoints({
         const value = await response.json()
         record.revision = value.revision ?? value.current?.revision
       } catch (error) {
+        record.parseError = error.message
         errors.push('Checkpoint response parse failed: ' + error.message)
       } finally {
         record.parsed = true
@@ -289,6 +301,8 @@ export async function verifyDeviceCheckpoints({
       const record = requests.get(request)
       if (record) {
         record.finished = true
+        record.failure = request.failure()?.errorText
+        record.failedAt = Date.now()
         errors.push(
           'Checkpoint request failed: ' + request.failure()?.errorText,
         )
@@ -768,6 +782,15 @@ export async function verifyDeviceCheckpoints({
     assert.deepEqual(await cloud(), deleted)
     assert.equal((await history(aId)).length, 0)
     assert.ok(chosen.revision < chosenCurrent.revision)
+    if (errors.length)
+      console.error(
+        'Checkpoint synthetic boundary evidence:',
+        JSON.stringify({
+          requests: [...requests.values()],
+          documentTransitions,
+          errors,
+        }),
+      )
     assert.deepEqual(errors, [])
     report.deviceCheckpoints = {
       profiles: 3,

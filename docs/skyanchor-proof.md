@@ -37,6 +37,12 @@ sleep is treated as completion: navigation aborts the request (and can race
 `response.json()`), violating the original no-request-errors assertion.
 Tracking both completion and parsing preserves that assertion and every
 cloud/history/no-PUT check; aborted requests are not filtered out or accepted.
+Bounded synthetic failure evidence retains request sequence, start/failure
+times, response-parse state and document transitions before the unchanged
+empty-error assertion. A later full run still reported an aborted request
+without this attribution; the instrumented full browser run passed. That is
+not proof that every navigation timing variation has been eliminated, and
+the exact committed candidate still requires all local and hosted gates.
 
 Saved-window loading tests hold actual source revalidation promises. The
 unchanged implementation starts one 25-post request; the optimized
