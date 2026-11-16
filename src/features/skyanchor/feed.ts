@@ -371,18 +371,29 @@ export async function restoreWindow(
     ),
   ]
   const posts: app.bsky.feed.defs.PostView[] = []
-  for (let i = 0; i < uris.length; i += 25) {
-    const response = await client.call(
-      app.bsky.feed.getPosts,
-      {
-        uris: uris.slice(i, i + 25),
-      },
-      {signal: recovery?.signal},
+  // Independent revalidation batches can overlap without showing unchecked posts.
+  for (let i = 0; i < uris.length; i += 75) {
+    const responses = await Promise.all(
+      [0, 25, 50]
+        .map(offset =>
+          uris.slice(i + offset, Math.min(i + offset + 25, i + 75)),
+        )
+        .filter(batch => batch.length)
+        .map(async batch => {
+          const response = await client.call(
+            app.bsky.feed.getPosts,
+            {uris: batch},
+            {signal: recovery?.signal},
+          )
+          recovery?.consume(
+            JSON.stringify(lexToJson(response.posts)).length * 2,
+          )
+          if (recovery && response.posts.length > 25)
+            throw new RemoteRecoveryError('response-limit')
+          return response
+        }),
     )
-    recovery?.consume(JSON.stringify(lexToJson(response.posts)).length * 2)
-    if (recovery && response.posts.length > 25)
-      throw new RemoteRecoveryError('response-limit')
-    posts.push(...response.posts)
+    for (const response of responses) posts.push(...response.posts)
   }
   const current = new Map(posts.map(post => [post.uri, post]))
   const feed = saved.flatMap<app.bsky.feed.defs.FeedViewPost>(item => {

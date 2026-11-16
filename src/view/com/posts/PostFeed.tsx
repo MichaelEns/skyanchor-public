@@ -923,6 +923,7 @@ let PostFeed = ({
       !readingScope.current.active
     )
       return
+    if (resumeRequest.current) return
     if (newerRequest.current) {
       newerRequest.current.abort()
       return
@@ -988,7 +989,9 @@ let PostFeed = ({
       })
       const message = controller.signal.aborted
         ? l`Loading cancelled. Your reading window is unchanged.`
-        : l`Could not connect all newer history within service or retrieval limits. Your window is unchanged; retry Load new posts.`
+        : readingFeed !== 'following'
+          ? l`Could not connect all newer history within service or retrieval limits. Your window is unchanged. Retry Load new posts, or open Reading place and choose Go to latest posts.`
+          : l`Could not connect all newer history within service or retrieval limits. Your window is unchanged; retry Load new posts.`
       setReadingError(message)
       Toast.show(message)
     } finally {
@@ -1000,6 +1003,149 @@ let PostFeed = ({
         newerRequest.current = undefined
         updateStatus('')
       }
+    }
+  }
+  const committedReading = useRef({data, feedItems})
+  committedReading.current = {data, feedItems}
+  const goToLatest = async () => {
+    if (
+      !skyanchorEnabled ||
+      !readingFeed ||
+      readingFeed === 'following' ||
+      !currentAccount ||
+      !readingScope.current.active ||
+      readingScope.current.did !== currentAccount.did ||
+      readingScope.current.feed !== readingFeed
+    )
+      throw new Error(l`The profile reading window is not active.`)
+    if (newerRequest.current || resumeRequest.current)
+      throw new Error(l`Finish or cancel the current reading operation first.`)
+    const started = readingScope.current
+    const did = currentAccount.did
+    const epoch = readingEpoch(did)
+    const controller = new AbortController()
+    resumeRequest.current = controller
+    const cancel = () => controller.abort()
+    const timeout = setTimeout(cancel, 15_000)
+    const key = RQKEY(feed, feedParams)
+    let retrieving = true
+    const y = window.scrollY
+    const active = () =>
+      !controller.signal.aborted &&
+      readingScope.current === started &&
+      started.active &&
+      started.did === did &&
+      started.feed === readingFeed &&
+      readingEpoch(did) === epoch &&
+      (!retrieving || window.scrollY === y)
+    window.addEventListener('wheel', cancel, {passive: true})
+    window.addEventListener('touchstart', cancel, {passive: true})
+    const storedKey = readingStorageKey(
+      'skyanchor:following:v1:',
+      did,
+      readingFeed,
+    )
+    const storedBefore = localStorage.getItem(storedKey)
+    const returnKey = readingStorageKey(RETURN_PREFIX, did, readingFeed)
+    const returnBefore = localStorage.getItem(returnKey)
+    let raw: {pages: FeedPageUnselected[]; pageParams: unknown[]} | undefined
+    let integrated: typeof raw
+    let local: ReadingPlace | undefined
+    try {
+      await queryClient.cancelQueries({queryKey: key, exact: true})
+      raw = queryClient.getQueryData(key)
+      local = reading.snapshot()
+      if (!raw || !local || !active())
+        throw new Error(l`The current reading window is not ready.`)
+      const checkpoint =
+        returnBefore === null ? snapshotWindow(local, raw.pages) : undefined
+      const api = readingFeedAPI(appviewClient, readingFeed)
+      const response = await api.fetch({
+        cursor: undefined,
+        limit: 30,
+        signal: controller.signal,
+      })
+      if (!active() || queryClient.getQueryData(key) !== raw)
+        throw new Error(
+          l`The reading window changed. Latest posts were not opened.`,
+        )
+      retrieving = false
+      const page = {...response, api, fetchedAt: Date.now()}
+      reading.abandonTarget(() =>
+        queryClient.setQueryData(key, {
+          pages: [page],
+          pageParams: [undefined],
+        }),
+      )
+      integrated = queryClient.getQueryData(key)
+      // Wait for the selected, moderated query result, not an old rendered row.
+      for (let frame = 0; frame < 60; frame++) {
+        if (!active()) throw new Error(l`Opening latest posts was cancelled.`)
+        if (committedReading.current.data?.pages[0]?.api === api) break
+        await new Promise<void>(resolve =>
+          requestAnimationFrame(() => resolve()),
+        )
+      }
+      if (committedReading.current.data?.pages[0]?.api !== api)
+        throw new Error(l`The latest profile window did not finish rendering.`)
+      const keys = committedReading.current.feedItems.flatMap(row => {
+        const key = getRowKey(row)
+        return key ? [key] : []
+      })
+      if (!keys.length)
+        throw new Error(
+          l`No displayable posts were returned. Your old place was kept.`,
+        )
+      const place: ReadingPlace = {
+        version: 1,
+        anchor: keys[0],
+        offset: 0,
+        neighbors: keys.slice(1, 9),
+      }
+      scrollElRef?.current?.scrollToOffset({offset: 0, animated: false})
+      await reading.setTarget(place, true, controller.signal)
+      if (!active() || queryClient.getQueryData(key) !== integrated)
+        throw new Error(l`The profile reading window changed during placement.`)
+      if (checkpoint) {
+        saveReturnCheckpoint(localStorage, did, checkpoint, readingFeed)
+        setCanReturn(true)
+      }
+      reportNewContent(false)
+      setReadingError('')
+    } catch (error) {
+      if (
+        integrated &&
+        readingScope.current === started &&
+        started.active &&
+        readingEpoch(did) === epoch &&
+        queryClient.getQueryData(key) === integrated
+      ) {
+        reading.abandonTarget(() => queryClient.setQueryData(key, raw))
+        if (storedBefore === null) localStorage.removeItem(storedKey)
+        else localStorage.setItem(storedKey, storedBefore)
+        if (local) {
+          try {
+            await reading.setTarget(local, true)
+          } catch (rollbackError) {
+            logger.warn('SkyAnchor latest rollback placement failed', {
+              safeMessage: rollbackError,
+            })
+          }
+        }
+      }
+      logger.warn('SkyAnchor latest profile context was not opened', {
+        safeMessage: error,
+      })
+      throw new Error(
+        l`Could not open latest posts. Your saved place and Return were kept.` +
+          (error instanceof Error ? ' ' + error.message : ''),
+      )
+    } finally {
+      clearTimeout(timeout)
+      window.removeEventListener('wheel', cancel)
+      window.removeEventListener('touchstart', cancel)
+      if (resumeRequest.current === controller)
+        resumeRequest.current = undefined
     }
   }
   const returnToPlace = async () => {
@@ -1681,6 +1827,7 @@ let PostFeed = ({
           canReturn={canReturn}
           onRefresh={loadNewer}
           onLatest={loadNewer}
+          onGoToLatest={readingFeed !== 'following' ? goToLatest : undefined}
           loading={newerStatus}
           onReturn={returnToPlace}
           capture={reading.capture}

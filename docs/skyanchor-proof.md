@@ -13,6 +13,25 @@ immediate Back, cancellation, viewport geometry, regional PDS handoff and
 contrast expectations. They do not authenticate a real account or claim
 physical-device acceptance.
 
+`pnpm skyanchor:e2e --profile-latest-only` covers explicit profile latest
+recovery on desktop Chromium and phone-sized WebKit, also included in the
+default browser gate. A synthetic author history with no overlap must first
+fail the ordinary bridge without moving. Latest then uses a new API window
+and selected/moderated rows, confirms exact placement within two CSS pixels,
+preserves an existing Return or records a departure, and leaves cloud
+place/history, private PUT count and Following unchanged. Return recovers the
+old occurrence/offset; failed and empty responses roll back, and successful
+latest survives cold reload. This does not identify a user's unprovided
+profile error or claim physical iPhone acceptance.
+
+Saved-window loading tests hold actual source revalidation promises. The
+unchanged implementation starts one 25-post request; the optimized
+implementation starts three, never more, and completes a 90-post window in
+two network dependency rounds rather than four. Every batch must succeed
+before return; deleted posts remain excluded and a failed batch rejects the
+window. This improves the saved-window phase of initial feed loading, not a
+claim that every startup bottleneck or a physical network delay is resolved.
+
 The Following lower-left action is available while scrolled down even before
 discovery, matching the existing profile-feed control. The production
 `--new-content-only` proof fails its early visibility assertion on the

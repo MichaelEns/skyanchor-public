@@ -11,6 +11,7 @@ export function ReadingToolbar(_props: {
   loading: string
   onRefresh: () => Promise<void>
   onLatest: () => Promise<void>
+  onGoToLatest?: () => Promise<void>
   onReturn: () => Promise<void>
   capture: () => ReadingPlace | undefined
   snapshot: () => ReadingPlace | undefined
