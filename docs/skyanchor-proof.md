@@ -23,6 +23,12 @@ place/history, private PUT count and Following unchanged. Return recovers the
 old occurrence/offset; failed and empty responses roll back, and successful
 latest survives cold reload. This does not identify a user's unprovided
 profile error or claim physical iPhone acceptance.
+The disposable profile-recovery accounts sign out through the real Settings
+UI before their contexts close, verifying their sessions are revoked. Merely
+closing those contexts left two valid fixture sessions and broke the existing
+full-run assertion that another account's signout leaves exactly one session.
+That assertion is unchanged; fixture ownership is cleaned up rather than
+broadening its expected count.
 
 Saved-window loading tests hold actual source revalidation promises. The
 unchanged implementation starts one 25-post request; the optimized

@@ -20,7 +20,7 @@ export async function verifyProfileLatest({
   labeler,
 }) {
   for (const [index, browser] of [desktopBrowser, phoneBrowser].entries()) {
-    const owner = 'did:plc:' + (index ? 'm' : 'l').repeat(24)
+    const owner = 'did:plc:' + (index ? 'recent' : 'latest').repeat(4)
     const identity = `author|${author}|posts_and_author_threads`
     const key = 'skyanchor:following:v1:' + owner + ':' + identity
     const returnKey = key.replace('skyanchor:following:', 'skyanchor:return:')
@@ -316,6 +316,28 @@ export async function verifyProfileLatest({
       report.checks.push(
         `${index ? 'Phone WebKit' : 'Chromium'} stale author bridge fails without moving; explicit latest uses a fresh moderated window, settles within 2px, preserves Return/cloud/history/Following and survives reload; failed/empty latest rolls back.`,
       )
+      await closeReadingPanel(current)
+      await current.goto(origin + '/settings')
+      await current
+        .getByRole('button', {name: 'Sign out', exact: true})
+        .first()
+        .click()
+      await current.getByText('Sign out?', {exact: true}).waitFor()
+      await current
+        .getByRole('button', {name: 'Sign out', exact: true})
+        .last()
+        .click()
+      await expect
+        .poll(
+          async () =>
+            (
+              await worker.db
+                .prepare('SELECT COUNT(*) AS count FROM sessions WHERE did = ?')
+                .bind(owner)
+                .first()
+            ).count,
+        )
+        .toBe(0)
     } finally {
       await context.close()
     }
