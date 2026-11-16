@@ -13,6 +13,19 @@ intervening history through exact overlap, preserving the visible older window.
 Immediate Back restores the departure occurrence. Return and explicit remote
 Resume confirm placement before consuming checkpoints.
 
+On profile Posts, Replies and Media, **Reading place > Go to latest posts**
+explicitly opens a fresh current window without requiring overlap with old
+history. Normal Refresh and the arrow still preserve the current reading
+position. Latest keeps an existing Return, or saves the departure there if
+none exists; it does not publish the new view to private sync.
+Failed or empty latest requests keep the prior local window and Return.
+
+Cold opening at a saved place still revalidates every post and reply context.
+Up to three independent 25-post requests now run together instead of
+serially. A 90-post saved window without extra reply context takes two
+revalidation request rounds rather than four, with no unchecked cached posts
+displayed and no reduction in moderation or session checks.
+
 The lower-left arrow remains available while reading down Following, without
 opening Reading place. It checks and loads newer posts without moving the
 current occurrence; its highlight means the background check has found new

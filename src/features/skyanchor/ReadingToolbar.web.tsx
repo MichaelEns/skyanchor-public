@@ -56,6 +56,7 @@ export function ReadingToolbar({
   loading,
   onRefresh,
   onLatest,
+  onGoToLatest,
   onReturn,
   capture,
   snapshot,
@@ -70,6 +71,7 @@ export function ReadingToolbar({
   loading: string
   onRefresh: () => Promise<void>
   onLatest: () => Promise<void>
+  onGoToLatest?: () => Promise<void>
   onReturn: () => Promise<void>
   capture: () => ReadingPlace | undefined
   snapshot: () => ReadingPlace | undefined
@@ -1325,6 +1327,55 @@ export function ReadingToolbar({
                 <Text>
                   <Trans>This profile tab has its own reading place.</Trans>
                 </Text>
+              )}
+              {onGoToLatest && (
+                <View style={a.gap_sm}>
+                  <Text>
+                    <Trans>
+                      If older history cannot connect, open a fresh latest
+                      window. This moves you to the newest displayable post.
+                      Your existing Return is kept, or your current place is
+                      saved there if no Return exists. Shared progress is not
+                      replaced.
+                    </Trans>
+                  </Text>
+                  <Button
+                    label={l`Go to latest posts`}
+                    size="large"
+                    color="secondary"
+                    disabled={busy || !!loading}
+                    onPress={() =>
+                      navigateFromPanel(async () => {
+                        setResult(undefined)
+                        choiceEpoch.current++
+                        checkSequence.current++
+                        activeCheck.current = 0
+                        automatic.current = false
+                        pending.current = false
+                        userMoved.current = false
+                        pendingPlace.current = undefined
+                        initialShare.current = false
+                        const started = generation.current
+                        await writeSettled.current
+                        if (
+                          started !== generation.current ||
+                          !live.current.enabled
+                        )
+                          throw new Error(
+                            l`Account or feed changed; latest posts were not opened.`,
+                          )
+                        await onGoToLatest()
+                        setResult({
+                          message: l`Latest posts opened locally. Shared progress and your Return are preserved.`,
+                          error: false,
+                        })
+                      })
+                    }>
+                    <ButtonText>
+                      <Trans>Go to latest posts</Trans>
+                    </ButtonText>
+                  </Button>
+                </View>
               )}
               <Text testID="skyanchor-source-state" role="status">
                 {restoredLocal ? (

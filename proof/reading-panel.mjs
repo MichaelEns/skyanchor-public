@@ -45,6 +45,7 @@ export async function readingAction(page, name, feed) {
       'Load new posts without moving your place',
       'Return to my place',
       'Resume other device',
+      'Go to latest posts',
     ].includes(name)
   )
     await expect(page.getByTestId('skyanchor-toolbar')).toHaveCount(0)

@@ -12,6 +12,7 @@ import {workerRuntime, didA, didB} from './runtime.mjs'
 import {buildInputs} from '../scripts/skyanchor/inputs.mjs'
 import {verifyComposer} from './composer.mjs'
 import {verifyYouTube} from './youtube.mjs'
+import {verifyProfileLatest} from './profile-latest.mjs'
 import {
   verifyAutomaticSource,
   verifyHandoff,
@@ -1234,6 +1235,23 @@ async function runBrowserProof() {
       .waitFor({timeout: 30_000})
     await current.waitForTimeout(500)
   }
+  if (process.argv.includes('--profile-latest-only')) {
+    await verifyProfileLatest({
+      desktopBrowser,
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      worker,
+      author: didSharon,
+      original: authorFeeds.get(didSharon),
+      origin,
+      report,
+      labeler: api.moderation.did,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
+  }
   if (
     process.argv.includes('--youtube-only') ||
     process.argv.includes('--youtube-real-only')
@@ -1694,6 +1712,18 @@ async function runBrowserProof() {
     report.checks.push(
       'Delayed upstream image completes after cold restore without anchor drift',
     )
+    await verifyProfileLatest({
+      desktopBrowser,
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      worker,
+      author: didSharon,
+      original: authorFeeds.get(didSharon),
+      origin,
+      report,
+      labeler: api.moderation.did,
+    })
     await legacyReturnFixture(page, didA)
     await readingPanel(page)
     await expect(
