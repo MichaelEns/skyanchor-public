@@ -214,7 +214,9 @@ export async function verifyDeviceCheckpoints({
     writes.filter(item => item.device === profileIds.get(page)).length
   const pendingRequests = page =>
     [...requests.values()].filter(
-      item => item.profile === profileIds.get(page) && !item.finished,
+      item =>
+        item.profile === profileIds.get(page) &&
+        (!item.finished || (item.status !== undefined && !item.parsed)),
     )
   const key = 'skyanchor:following:v1:' + did
   const local = page =>
@@ -260,6 +262,7 @@ export async function verifyDeviceCheckpoints({
         status: undefined,
         revision: undefined,
         finished: false,
+        parsed: false,
       }
       requests.set(request, record)
       if (request.method() === 'PUT')
@@ -274,6 +277,8 @@ export async function verifyDeviceCheckpoints({
         record.revision = value.revision ?? value.current?.revision
       } catch (error) {
         errors.push('Checkpoint response parse failed: ' + error.message)
+      } finally {
+        record.parsed = true
       }
     })
     page.on('requestfinished', request => {
@@ -632,11 +637,23 @@ export async function verifyDeviceCheckpoints({
     assert.equal(writeCount(b), putsBeforeRestore)
     await scrollReading(b, 90)
     await b.waitForTimeout(1200)
+    let foregroundRead = false
+    const delayedForegroundRead = async route => {
+      if (route.request().method() !== 'GET' || foregroundRead)
+        return route.fallback()
+      foregroundRead = true
+      await new Promise(resolve => setTimeout(resolve, 800))
+      return route.fallback()
+    }
+    await b.context().route('**/api/skyanchor/place', delayedForegroundRead)
     await b.evaluate(() => dispatchEvent(new Event('focus')))
+    await expect.poll(() => foregroundRead).toBe(true)
     await b.waitForTimeout(500)
     assert.deepEqual(await cloud(), beforeRestore)
     assert.equal(writeCount(b), putsBeforeRestore)
+    await expect.poll(() => pendingRequests(b).length).toBe(0)
     await b.reload()
+    await b.context().unroute('**/api/skyanchor/place', delayedForegroundRead)
     await b.getByTestId('skyanchor-reading-button').waitFor()
     await readingPanel(b)
     await expect(b.getByTestId('skyanchor-source-state')).toContainText(

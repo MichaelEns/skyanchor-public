@@ -30,6 +30,14 @@ full-run assertion that another account's signout leaves exactly one session.
 That assertion is unchanged; fixture ownership is cleaned up rather than
 broadening its expected count.
 
+The full device-history proof also waits for its foreground checkpoint read
+and response parsing to finish before deliberately reloading the browser.
+A controlled 800 ms read reproduces the hosted failure when the old 500 ms
+sleep is treated as completion: navigation aborts the request (and can race
+`response.json()`), violating the original no-request-errors assertion.
+Tracking both completion and parsing preserves that assertion and every
+cloud/history/no-PUT check; aborted requests are not filtered out or accepted.
+
 Saved-window loading tests hold actual source revalidation promises. The
 unchanged implementation starts one 25-post request; the optimized
 implementation starts three, never more, and completes a 90-post window in
