@@ -1256,6 +1256,21 @@ async function runBrowserProof() {
     report.passed = true
     return
   }
+  if (process.argv.includes('--automatic-source-only')) {
+    await verifyAutomaticSource({
+      desktopBrowser,
+      phoneBrowser,
+      origin,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+      holdApi,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
+  }
   if (process.argv.includes('--phone-search-only')) {
     await verifyPhoneSearch({
       phoneBrowser,

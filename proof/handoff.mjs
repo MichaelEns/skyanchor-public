@@ -1775,7 +1775,21 @@ export async function verifyAutomaticSource({
     const online = await confirmed(a, device, recovered.revision)
     phone.controls.expireAccess()
     phone.expected.set('POST /api/skyanchor/session 401', 1)
+    const rejectedAccess = a.waitForResponse(
+      response =>
+        new URL(response.url()).pathname === '/api/skyanchor/session' &&
+        response.request().method() === 'POST' &&
+        response.status() === 401,
+    )
+    const renewedAccess = a.waitForResponse(
+      response =>
+        new URL(response.url()).pathname === '/api/skyanchor/session' &&
+        response.request().method() === 'POST' &&
+        response.status() === 200,
+    )
     await readingAction(a, 'Reconnect private sync')
+    await rejectedAccess
+    await (await renewedAccess).finished()
     await expect(
       a.getByRole('button', {name: 'Reconnect private sync', exact: true}),
     ).toBeEnabled()

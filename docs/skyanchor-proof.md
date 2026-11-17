@@ -32,6 +32,13 @@ oversized single occurrence, missing raw occurrence or profile capacity limit
 still fails explicitly and retains old saved bytes. These synthetic failures
 match mechanisms behind the supplied local-save messages, not proof of the
 phone's exact storage quota or exception.
+The existing automatic-source renewal proof now observes the actual expired
+access 401 and the successful renewal response before checking its exact
+expected-error count. An enabled Reconnect button alone could still reflect
+the preceding render when the assertion ran. The 401 must really occur and
+be consumed, renewal must complete, and subsequent automatic sharing must
+advance the actual D1 row; no expected error or revision check is removed.
+`--automatic-source-only` exposes that unchanged full-gate scenario directly.
 
 `pnpm skyanchor:e2e --profile-latest-only` covers explicit profile latest
 recovery on desktop Chromium and phone-sized WebKit, also included in the
