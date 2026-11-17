@@ -6,10 +6,13 @@ import {flushSync} from 'react-dom'
 import {logger} from '#/logger'
 import {
   chooseAnchor,
+  isStorageQuotaError,
+  ReadingCacheSizeError,
   ReadingCapacityError,
   readingEpoch,
   type ReadingFeed,
   type ReadingPlace,
+  ReadingWindowError,
   readSnapshot,
 } from './domain'
 
@@ -54,6 +57,7 @@ export function useReadingPlace({
   const intentEpoch = useRef(0)
   const correctedScrollY = useRef<number | undefined>(undefined)
   const capturePaused = useRef(false)
+  const localSaveFailed = useRef(false)
   const pendingTarget = useRef<{cancel: () => void; frame: number} | undefined>(
     undefined,
   )
@@ -95,6 +99,7 @@ export function useReadingPlace({
     initialized.current = false
     activated.current = false
     leaving.current = false
+    localSaveFailed.current = false
     clearScrollIntent()
   }
   useLayoutEffect(() => {
@@ -109,6 +114,7 @@ export function useReadingPlace({
     }
   }, [did, feed, enabled])
   const [notice, setNotice] = useState('')
+  const [saveError, setSaveError] = useState('')
   const latest = useRef({keys, save, headerOffset, enabled})
   latest.current = {keys, save, headerOffset, enabled}
   const keySignature = keys.join('\n')
@@ -197,16 +203,25 @@ export function useReadingPlace({
   function capture(intentional = false) {
     if (leaving.current || switching.current || capturePaused.current)
       return undefined
-    if (correcting.current || !initialized.current) return desired.current
+    if (correcting.current || !initialized.current)
+      return localSaveFailed.current ? undefined : desired.current
     const place = snapshot()
-    return place ? savePlace(place, intentional) : desired.current
+    return place
+      ? savePlace(place, intentional)
+      : localSaveFailed.current
+        ? undefined
+        : desired.current
   }
 
   function savePlace(place: ReadingPlace, intentional = false) {
-    const changed = JSON.stringify(desired.current) !== JSON.stringify(place)
+    const changed =
+      localSaveFailed.current ||
+      JSON.stringify(desired.current) !== JSON.stringify(place)
     try {
       latest.current.save(place)
       desired.current = place
+      localSaveFailed.current = false
+      setSaveError('')
       if (changed)
         window.dispatchEvent(
           new CustomEvent('skyanchor-place', {
@@ -214,11 +229,20 @@ export function useReadingPlace({
           }),
         )
     } catch (error) {
+      // Keep correction anchored to the visible position, never the older durable save.
+      desired.current = place
+      localSaveFailed.current = true
       logger.error('SkyAnchor could not save reading place', {message: error})
-      setNotice(
+      setSaveError(
         error instanceof ReadingCapacityError
           ? l`Local profile reading-place capacity reached (64 filters). Existing places were not evicted.`
-          : l`Reading place could not be saved locally.`,
+          : isStorageQuotaError(error)
+            ? l`On-device storage could not save even this post's reading context. Keep this tab open; do not clear website data. Other saved places were kept.`
+            : error instanceof ReadingCacheSizeError
+              ? l`This post's reading context exceeds the local save limit. Other saved places were kept.`
+              : error instanceof ReadingWindowError
+                ? l`The visible post no longer matches the loaded reading window. No position was replaced. Retry saving when loading finishes.`
+                : l`Reading place could not be saved locally. Keep this tab open; other saved places were kept.`,
       )
       return undefined
     }
@@ -541,7 +565,8 @@ export function useReadingPlace({
   }, [enabled, did, feed, entry, keySignature])
 
   return {
-    notice,
+    notice: saveError || notice,
+    saveError,
     capture,
     snapshot,
     preserve(place: ReadingPlace, update: () => void) {

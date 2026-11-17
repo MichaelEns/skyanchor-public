@@ -212,6 +212,9 @@ function readingFixture({
         return {
           chooseAnchor: place => ({key: place.anchor, fallback: false}),
           ReadingCapacityError: class extends Error {},
+          ReadingCacheSizeError: class extends Error {},
+          ReadingWindowError: class extends Error {},
+          isStorageQuotaError: () => false,
           readingEpoch: () => epoch,
           readSnapshot: () =>
             initialPlace ? {place: initialPlace} : undefined,

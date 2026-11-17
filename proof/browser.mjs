@@ -13,6 +13,7 @@ import {buildInputs} from '../scripts/skyanchor/inputs.mjs'
 import {verifyComposer} from './composer.mjs'
 import {verifyYouTube} from './youtube.mjs'
 import {verifyProfileLatest} from './profile-latest.mjs'
+import {verifyLocalSaving} from './local-save.mjs'
 import {
   verifyAutomaticSource,
   verifyHandoff,
@@ -1235,6 +1236,19 @@ async function runBrowserProof() {
       .waitFor({timeout: 30_000})
     await current.waitForTimeout(500)
   }
+  if (process.argv.includes('--local-save-only')) {
+    await verifyLocalSaving({
+      desktopBrowser,
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
+  }
   if (process.argv.includes('--profile-latest-only')) {
     await verifyProfileLatest({
       desktopBrowser,
@@ -1712,6 +1726,14 @@ async function runBrowserProof() {
     report.checks.push(
       'Delayed upstream image completes after cold restore without anchor drift',
     )
+    await verifyLocalSaving({
+      desktopBrowser,
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+    })
     await verifyProfileLatest({
       desktopBrowser,
       phoneBrowser,

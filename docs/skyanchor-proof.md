@@ -13,6 +13,26 @@ immediate Back, cancellation, viewport geometry, regional PDS handoff and
 contrast expectations. They do not authenticate a real account or claim
 physical-device acceptance.
 
+`pnpm skyanchor:e2e --local-save-only` covers on-device save failure and
+recovery on Chromium and phone-sized WebKit, also in the default browser gate.
+Controlled denied writes reproduce the local failure without touching real
+account storage. The UI must identify local saving (not just sync), retain
+the old durable bytes, keep correction at the current in-memory occurrence
+through resize and send no progress PUT. A subsequent limited-capacity
+storage write must save a smaller exact-occurrence cache, clear the error,
+and explicitly share that correct place. Other keys and Return remain
+unchanged, and the recovered occurrence survives reload.
+
+Owning source tests reproduce the released `Reading cache exceeds bound`
+and quota exceptions: the old persistence path does not try a smaller cache.
+The new bounded retries halve only the current cache's contiguous record
+count down to one, keeping its exact occurrence and whole post/reply context;
+there is no unrelated-key deletion or silent anchor fallback. A denied store,
+oversized single occurrence, missing raw occurrence or profile capacity limit
+still fails explicitly and retains old saved bytes. These synthetic failures
+match mechanisms behind the supplied local-save messages, not proof of the
+phone's exact storage quota or exception.
+
 `pnpm skyanchor:e2e --profile-latest-only` covers explicit profile latest
 recovery on desktop Chromium and phone-sized WebKit, also included in the
 default browser gate. A synthetic author history with no overlap must first

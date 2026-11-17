@@ -54,6 +54,15 @@ Choose Keep mine only on the browser whose current place you intend to share,
 not an old destination merely to clear its red dot. Background saves are best
 effort, not a guarantee.
 
+Local reading caches retry with a smaller contiguous window if the full cache
+exceeds its size bound or the browser's storage quota. The exact current
+occurrence, offset and complete source records remain intact; other places,
+Return and sessions are not evicted. If even one occurrence cannot be stored,
+the app keeps the current anchor in memory, reports an on-device save error
+at the top of Reading place and does not claim a cloud save. Keep that tab
+open; do not clear website data or resume an older shared place to fix it.
+A later successful local save clears that error.
+
 **Source of saved place** defaults to **Latest shared place**. Choose a named
 browser profile to see its latest save and two older distinct occurrences for
 this feed, including this browser's own saves. Times describe confirmed server

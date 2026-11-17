@@ -33,6 +33,17 @@ export type ReadingFeed =
   | `author|${string}|posts_with_media`
 export const MAX_READING_FEEDS = 64
 export class ReadingCapacityError extends Error {}
+export class ReadingCacheSizeError extends Error {}
+export class ReadingWindowError extends Error {}
+export function isStorageQuotaError(error: unknown) {
+  return (
+    !!error &&
+    typeof error === 'object' &&
+    'name' in error &&
+    (error.name === 'QuotaExceededError' ||
+      error.name === 'NS_ERROR_DOM_QUOTA_REACHED')
+  )
+}
 export function validReadingFeed(value: unknown): value is ReadingFeed {
   return (
     value === 'following' ||
@@ -198,7 +209,7 @@ export function saveSnapshot(
     throw new Error('Invalid reading snapshot')
   const text = JSON.stringify(snapshot)
   if (new TextEncoder().encode(text).byteLength > MAX_SNAPSHOT_BYTES)
-    throw new Error('Reading cache exceeds bound')
+    throw new ReadingCacheSizeError('Reading cache exceeds bound')
   storage.setItem(readingStorageKey(STORAGE_PREFIX, did, feed), text)
 }
 

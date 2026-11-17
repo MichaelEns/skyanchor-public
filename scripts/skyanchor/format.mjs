@@ -17,6 +17,8 @@ files.push(
   path.join('proof', 'profile-reading.mjs'),
   path.join('proof', 'profile-latest.mjs'),
   path.join('proof', 'restore-loading.test.mjs'),
+  path.join('proof', 'local-save.test.mjs'),
+  path.join('proof', 'local-save.mjs'),
   path.join('proof', 'handoff.mjs'),
   path.join('proof', 'reading-panel.mjs'),
   path.join('proof', 'auth-contrast.mjs'),
