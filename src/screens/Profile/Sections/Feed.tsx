@@ -143,19 +143,23 @@ export function ProfileFeedSection({
         isVideoFeed={isVideoFeed}
         ref={readingFeedRef}
       />
-      {(isScrolledDown || hasNew || !!newerStatus) && (
-        <LoadLatestBtn
-          onPress={onScrollToTop}
-          status={newerStatus}
-          label={
-            newerStatus ||
-            (IS_WEB && validReadingFeed(feed)
-              ? _(msg`Load new posts without moving your place`)
-              : _(msg`Load new posts`))
-          }
-          showIndicator={hasNew}
-        />
-      )}
+      {isFocused &&
+        ((IS_WEB && currentAccount && validReadingFeed(feed)) ||
+          isScrolledDown ||
+          hasNew ||
+          !!newerStatus) && (
+          <LoadLatestBtn
+            onPress={onScrollToTop}
+            status={newerStatus}
+            label={
+              newerStatus ||
+              (IS_WEB && validReadingFeed(feed)
+                ? _(msg`Load new posts without moving your place`)
+                : _(msg`Load new posts`))
+            }
+            showIndicator={hasNew}
+          />
+        )}
     </View>
   )
 }

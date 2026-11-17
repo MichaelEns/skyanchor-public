@@ -196,6 +196,25 @@
         }
       ]
     },
+    "picomatch": {
+      "inventorySha256": "83fdaad87320c8afb2e753fbe71393b26743a1481ec8a033635da9d8dff2dad3",
+      "assessment": "No fixed release is published for this advisory; installed 2.3.2 and 4.0.4 are not claimed patched. All copies and direct consumer trees are inventoried: Expo CLI exportAssets uses reviewed app assetPatternsToBeBundled (not configured for this web export), createFileTransform builds filters from local tooling options, Metro sideEffects compiles integrity-pinned package.json declarations, Parcel watcher converts local ignore options, lint-staged compiles reviewed package.json task keys, Jest util/haste-map/message-util compile checked-in test/coverage patterns, and anymatch/micromatch/readdirp/tinyglobby match configured local filesystem globs. Attacker-controlled feed/search/post strings are not patterns supplied to this toolchain, and neither picomatch nor these matching services is in the sealed browser or Worker runtime. The one-shot reviewed web export/tests run outside the deployed service with read-only CI credentials; no public pattern upload, hosted dev server, arbitrary user build configuration or general glob service is authorized. This assessment applies only to the exact supplier/consumer inventory, lock, release configs and advisory identity. Runtime bundling, consumer or config drift remains unresolved and fails closed.",
+      "advisories": [
+        {
+          "id": "GHSA-fc5q-39xc-vjpf",
+          "supplierId": 1247710,
+          "cwe": "CWE-1333",
+          "url": "https://github.com/advisories/GHSA-fc5q-39xc-vjpf",
+          "unpublishedPatch": true,
+          "package": "picomatch",
+          "severity": "high",
+          "title": "picomatch vulnerable to ReDoS through single-branch repeated extglobs",
+          "vulnerable": "<=4.0.7",
+          "patched": null,
+          "versions": ["2.3.2", "4.0.4"]
+        }
+      ]
+    },
     "minimatch": {
       "inventorySha256": "e2b7eff992050c95878d08647a1d3d17dc9e0f352e623f0d81146b1efbcb03f6",
       "assessment": "Consumers are the fully inventoried glob copies, test-exclude, @expo/fingerprint, @ts-morph/common and ESLint configuration tooling. The release uses checked-in catalog/module/project/instrumentation patterns and package-owned fixed glob patterns, not network-supplied globparts. test-exclude matches filename against configured include/exclude; fingerprint Path.js builds matchers from local ignore patterns; ts-morph common uses minimatch for source-file patterns in lexicon generation. Lexicon source and build configs are versioned, not a public schema/pattern upload endpoint. Existing vulnerable amplification is not claimed fixed; release CI is a bounded read-only job and public requests cannot invoke this toolchain. Package/consumer/pattern/config/lock drift or runtime bundling fails closed; do not use this assessment for an untrusted build-as-a-service.",

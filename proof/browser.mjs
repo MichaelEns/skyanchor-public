@@ -14,6 +14,7 @@ import {verifyComposer} from './composer.mjs'
 import {verifyYouTube} from './youtube.mjs'
 import {verifyProfileLatest} from './profile-latest.mjs'
 import {verifyLocalSaving} from './local-save.mjs'
+import {verifyPhoneSearch} from './phone-search.mjs'
 import {
   verifyAutomaticSource,
   verifyHandoff,
@@ -852,6 +853,12 @@ async function mockUpstream(context, owner = didA) {
       result = {checkEmailConfirmed: false, topicsEnabled: true}
     else if (nsid === 'app.bsky.unspecced.getSuggestedFeeds')
       result = {feeds: []}
+    else if (nsid === 'app.bsky.unspecced.getPopularFeedGenerators')
+      result = {feeds: []}
+    else if (nsid === 'app.bsky.unspecced.getSuggestedUsersForExplore')
+      result = {actors: []}
+    else if (nsid === 'app.bsky.unspecced.getSuggestedStarterPacks')
+      result = {starterPacks: []}
     else if (
       nsid === 'app.bsky.unspecced.getSuggestedUsers' ||
       nsid === 'app.bsky.actor.getSuggestions'
@@ -1243,6 +1250,18 @@ async function runBrowserProof() {
       mockUpstream,
       signIn,
       worker,
+      report,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
+  }
+  if (process.argv.includes('--phone-search-only')) {
+    await verifyPhoneSearch({
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      origin,
       report,
     })
     assert.deepEqual(unexpected, [])
@@ -1726,6 +1745,13 @@ async function runBrowserProof() {
     report.checks.push(
       'Delayed upstream image completes after cold restore without anchor drift',
     )
+    await verifyPhoneSearch({
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      origin,
+      report,
+    })
     await verifyLocalSaving({
       desktopBrowser,
       phoneBrowser,

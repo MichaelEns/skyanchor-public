@@ -434,6 +434,7 @@ export function SearchScreenShell({
         profileDid: profile.did,
         position,
       })
+      textInput.current?.blur()
       handleProfileClick(profile)
       navigation.navigate('Profile', {name: profile.handle})
     },

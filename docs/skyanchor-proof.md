@@ -72,15 +72,47 @@ before return; deleted posts remain excluded and a failed batch rejects the
 window. This improves the saved-window phase of initial feed loading, not a
 claim that every startup bottleneck or a physical network delay is resolved.
 
-The Following lower-left action is available while scrolled down even before
+The Following lower-left action is available at the top and while scrolled down even before
 discovery, matching the existing profile-feed control. The production
 `--new-content-only` proof fails its early visibility assertion on the
 unchanged product. It now activates the direct action with Reading place
 closed for a no-new response, preserving exact local/cloud bytes. Discovery
 highlights the same action; after the verified 151-occurrence bridge it remains
 available with its idle style. Exact committed prefix, current occurrence,
-per-frame offset, cloud revision/state, no hidden history gap and top-of-feed
-no-new silence remain enforced. No polling interval or sync behavior changes.
+per-frame offset, cloud revision/state and no hidden history gap remain
+enforced. No-new checks leave the action available without a new-content
+highlight, so checking never requires an otherwise pointless scroll. Inactive
+Following actions stay hidden and a new profile cannot inherit a stale
+Following highlight. No polling interval or sync behavior changes.
+
+`pnpm skyanchor:e2e --phone-search-only`, also in the full browser gate, checks
+the actual search input font at default, smaller and larger text preferences,
+then selects a real autocomplete profile and verifies focus/keyboard release.
+The released input measured 15 CSS pixels; the new web-only floor is 16 after
+the existing text-scale multiplication. Viewport policy and pinch zoom remain
+unchanged. Headless WebKit checks the cause and focus behavior, not physical
+iOS keyboard auto-zoom or a forced reset of the user's chosen zoom.
+
+The November 17 supplier audit newly identified
+[GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf)
+in build-only picomatch 2.3.2/4.0.4. The registry's latest 4.0.7 is also
+affected; there is no published fixed version, and neither installed copy is
+claimed patched. A separate restricted-use review covers every installed
+copy and direct consumer tree, not just capped audit paths: Expo local asset
+patterns and file transforms, Metro package sideEffects, Parcel ignore
+options, lint-staged task keys, Jest test/coverage patterns, and
+anymatch/micromatch/readdirp/tinyglobby filesystem patterns. These inputs are
+reviewed project/configuration or frozen package metadata, not app feed,
+search, post or uploaded pattern inputs. The sealed browser and Worker
+inventories must still exclude picomatch.
+
+The exact advisory identity, versions, complete inventory and unchanged
+frozen lock remain bound by the existing build-use policy. Tests explicitly
+reject runtime bundling, a new consumer, another advisory/version or claimed
+vendor fix. No audit entry is removed, dependency hash faked, gate disabled
+or runtime waiver granted. This is not a generally safe glob service, and a
+future published security fix requires a new supplier review. The raw
+advisory remains visible in the report.
 
 `pnpm skyanchor:e2e --thread-back-only` runs the production thread-return
 regression in desktop Chromium and phone-sized WebKit. It uses native card-body
