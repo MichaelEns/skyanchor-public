@@ -1061,7 +1061,7 @@ export async function verifyNewContent({
         name: 'Load new posts without moving your place',
         exact: true,
       })
-      await expect(arrow).toHaveCount(0)
+      await expect(arrow).toBeVisible()
       await current
         .locator('[data-skyanchor-key]')
         .filter({hasText: 'Fixture post 20.'})
@@ -1645,7 +1645,7 @@ export async function verifyNewContent({
           return window.fixtureTopTrace
         }),
       })
-      await expect(arrow).toHaveCount(0)
+      await expect(arrow).toBeVisible()
 
       assert.ok(Math.abs(await current.evaluate(() => scrollY)) <= 2)
       const immediateRefreshCases = []
@@ -1937,7 +1937,10 @@ export async function verifyNewContent({
       await current.getByTestId('homeScreenFeedTabs-selector-0').click()
       await expect(arrow).toBeVisible()
       await arrow.click()
-      await expect(arrow).toHaveCount(0)
+      await expect(arrow).toBeVisible()
+      await expect(arrow).toHaveAccessibleName(
+        'Load new posts without moving your place',
+      )
 
       controls.setTimeline([
         {post: post(-203)},
@@ -1959,7 +1962,15 @@ export async function verifyNewContent({
       held.release()
       held = undefined
       await current.waitForTimeout(200)
-      await expect(current.getByTestId('loadLatestBtn')).toHaveCount(0)
+      await expect(current.getByTestId('loadLatestBtn')).toHaveCount(1)
+      assert.equal(
+        await current
+          .getByTestId('loadLatestBtn')
+          .getByRole('button')
+          .evaluate(node => getComputedStyle(node).backgroundColor),
+        idleBackground,
+        'The new profile action must not inherit the stale Following highlight',
+      )
       await expect(
         current.locator(
           '[data-skyanchor-reading-slot="following"] [data-testid="skyanchor-reading-button"]',
@@ -1971,7 +1982,7 @@ export async function verifyNewContent({
         'New-content fixture has no runtime or unexpected HTTP failures',
       )
       report.checks.push(
-        `Production ${index === 0 ? 'desktop' : 'phone WebKit'}: the direct arrow remains available while reading down, including before discovery and after no-new or successful loads; 60s non-inserting discovery highlights known posts, actual arrow loads 151 ordered occurrences across five pages including a racing fresh head with <=2px per-frame drift and unchanged cloud place, immediate pre-RAF post/Back twice including nested reply Back and late row layout, natural upward traversal, retained older pagination, cancellation/no-overlap preservation, fresh revalidation, repost detection, no-new silence and stale navigated poll discarded.`,
+        `Production ${index === 0 ? 'desktop' : 'phone WebKit'}: the direct arrow remains available at the top and while reading down, including before discovery and after no-new or successful loads; 60s non-inserting discovery highlights known posts, actual arrow loads 151 ordered occurrences across five pages including a racing fresh head with <=2px per-frame drift and unchanged cloud place, immediate pre-RAF post/Back twice including nested reply Back and late row layout, natural upward traversal, retained older pagination, cancellation/no-overlap preservation, fresh revalidation, repost detection, no-new checks without a highlight and stale navigated polls discarded.`,
       )
     } catch (error) {
       const current = context.pages()[0]

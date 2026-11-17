@@ -171,3 +171,47 @@ test('Runtime exposure and consumer, lock or release-boundary drift fail closed'
     /^UNRESOLVED/,
   )
 })
+
+test('Unpatched picomatch review is restricted to the exact non-runtime supplier and consumer boundary', () => {
+  const review = usagePolicy.reviews.picomatch
+  const known = review.advisories[0]
+  assert.equal(known.id, 'GHSA-fc5q-39xc-vjpf')
+  assert.equal(known.patched, null)
+  assert.deepEqual(known.versions, ['2.3.2', '4.0.4'])
+  assert.match(review.assessment, /not claimed patched/)
+  const advisory = {
+    id: known.supplierId,
+    cwe: known.cwe,
+    url: known.url,
+    github_advisory_id: known.id,
+    module_name: known.package,
+    severity: known.severity,
+    title: known.title,
+    vulnerable_versions: known.vulnerable,
+    patched_versions: known.patched,
+    patched_versions_unpublished: true,
+    findings: known.versions.map(version => ({version})),
+  }
+  const inventory = {sha256: review.inventorySha256}
+  assert.match(
+    assessBuildUsage(advisory, inventory, context),
+    /^Reviewed restricted/,
+  )
+  assert.match(
+    assessBuildUsage(advisory, inventory, {...context, bundled: true}),
+    /^UNRESOLVED/,
+  )
+  assert.match(
+    assessBuildUsage(advisory, {sha256: 'new-consumer'}, context),
+    /^UNRESOLVED/,
+  )
+  for (const change of [
+    {github_advisory_id: 'GHSA-new-picomatch'},
+    {patched_versions: '>=4.0.8'},
+    {findings: [{version: '4.0.7'}]},
+  ])
+    assert.match(
+      assessBuildUsage({...advisory, ...change}, inventory, context),
+      /^UNRESOLVED/,
+    )
+})

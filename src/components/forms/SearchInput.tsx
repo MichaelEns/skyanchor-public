@@ -1,11 +1,11 @@
 import {useEffect, useRef} from 'react'
-import {type TextInput, View} from 'react-native'
+import {StyleSheet, type TextInput, View} from 'react-native'
 import {useLingui} from '@lingui/react/macro'
 
 import {HITSLOP_10} from '#/lib/constants'
 import {mergeRefs} from '#/lib/merge-refs'
 import {listenFocusSearch} from '#/state/events'
-import {atoms as a, useTheme} from '#/alf'
+import {atoms as a, useAlf, useTheme, web} from '#/alf'
 import {Button, ButtonIcon} from '#/components/Button'
 import * as TextField from '#/components/forms/TextField'
 import {MagnifyingGlass_Stroke2_Corner0_Rounded as MagnifyingGlassIcon} from '#/components/icons/MagnifyingGlass'
@@ -28,9 +28,11 @@ export function SearchInput({
   onClearText,
   hotkey,
   ref,
+  style,
   ...rest
 }: Props) {
   const t = useTheme()
+  const {fonts} = useAlf()
   const {t: l} = useLingui()
   const showClear = !!value && value.length > 0
   const internalRef = useRef<React.ComponentRef<typeof TextInput>>(null)
@@ -71,6 +73,13 @@ export function SearchInput({
                   paddingRight: 24,
                 }
               : {},
+            style,
+            web({
+              fontSize: Math.max(
+                StyleSheet.flatten(style)?.fontSize ?? a.text_md.fontSize,
+                16 / fonts.scaleMultiplier,
+              ),
+            }),
           ]}
           {...rest}
         />

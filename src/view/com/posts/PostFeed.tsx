@@ -1825,6 +1825,7 @@ let PostFeed = ({
           }
           hasNew={!!hasNewContent}
           canReturn={canReturn}
+          localSaveError={reading.saveError}
           onRefresh={loadNewer}
           onLatest={loadNewer}
           onGoToLatest={readingFeed !== 'following' ? goToLatest : undefined}

@@ -10,11 +10,14 @@ import {type FeedPageUnselected} from '#/state/queries/post-feed'
 import {app} from '#/lexicons'
 import * as bsky from '#/types/bsky'
 import {
+  isStorageQuotaError,
   MAX_OCCURRENCES,
   occurrenceKey,
+  ReadingCacheSizeError,
   type ReadingFeed,
   type ReadingPlace,
   type ReadingSnapshot,
+  ReadingWindowError,
   readSnapshot,
   saveSnapshot,
 } from './domain'
@@ -175,12 +178,32 @@ export function persistWindow(
   pages: FeedPageUnselected[],
   identity: ReadingFeed = 'following',
 ) {
-  saveSnapshot(localStorage, did, snapshotWindow(place, pages), identity)
+  let snapshot = snapshotWindow(place, pages)
+  for (;;) {
+    try {
+      saveSnapshot(localStorage, did, snapshot, identity)
+      return
+    } catch (error) {
+      if (
+        snapshot.feed.length <= 1 ||
+        (!(error instanceof ReadingCacheSizeError) &&
+          !isStorageQuotaError(error))
+      )
+        throw error
+      // Retry only this cache entry, retaining the exact occurrence and whole records.
+      snapshot = snapshotWindow(
+        place,
+        pages,
+        Math.max(1, Math.floor(snapshot.feed.length / 2)),
+      )
+    }
+  }
 }
 
 export function snapshotWindow(
   place: ReadingPlace,
   pages: FeedPageUnselected[],
+  limit = MAX_OCCURRENCES,
 ): ReadingSnapshot {
   const feed = pages.flatMap(page => page.feed)
   const index = feed.findIndex(item =>
@@ -195,11 +218,13 @@ export function snapshotWindow(
     ].includes(place.anchor),
   )
   if (index === -1)
-    throw new Error('Visible occurrence is not in the active reading window')
-  const start = Math.max(0, index - 15)
+    throw new ReadingWindowError(
+      'Visible occurrence is not in the active reading window',
+    )
+  const start = Math.max(0, index - Math.min(15, Math.floor(limit / 2)))
   return {
     place,
-    feed: lexToJson(feed.slice(start, start + MAX_OCCURRENCES)) as unknown[],
+    feed: lexToJson(feed.slice(start, start + limit)) as unknown[],
   }
 }
 

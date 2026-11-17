@@ -11,6 +11,7 @@ export function useReadingPlace(_options: {
 }) {
   return {
     notice: '',
+    saveError: '',
     capture: (): ReadingPlace | undefined => undefined,
     snapshot: (): ReadingPlace | undefined => undefined,
     preserve: (_place: ReadingPlace, update: () => void) => update(),

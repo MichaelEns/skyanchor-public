@@ -26,12 +26,17 @@ serially. A 90-post saved window without extra reply context takes two
 revalidation request rounds rather than four, with no unchecked cached posts
 displayed and no reduction in moderation or session checks.
 
-The lower-left arrow remains available while reading down Following, without
+The lower-left arrow remains available at the top and while reading down Following, without
 opening Reading place. It checks and loads newer posts without moving the
 current occurrence; its highlight means the background check has found new
-posts. After loading it remains available without the highlight. At the top it
-appears only for known new posts or an active load. Profile feeds retain their
-existing direct control; native and other feeds are unchanged.
+posts. After loading it remains available without the highlight, including
+between discovery checks at the top. Supported profile feeds do the same;
+native and other feeds are unchanged.
+
+Web search fields use at least 16 CSS pixels after text-size preferences,
+preventing iPhone's small-input focus zoom. Selecting an autocomplete profile
+releases input focus before navigation. Pinch zoom and the viewport policy
+are unchanged; no forced zoom reset is applied.
 
 Reading places save locally. Connect private sync opts each account/browser
 into debounced saves. Other-device places are offered without moving the view;
@@ -53,6 +58,15 @@ pauses sharing: further scrolling remains local until Resume or Keep mine.
 Choose Keep mine only on the browser whose current place you intend to share,
 not an old destination merely to clear its red dot. Background saves are best
 effort, not a guarantee.
+
+Local reading caches retry with a smaller contiguous window if the full cache
+exceeds its size bound or the browser's storage quota. The exact current
+occurrence, offset and complete source records remain intact; other places,
+Return and sessions are not evicted. If even one occurrence cannot be stored,
+the app keeps the current anchor in memory, reports an on-device save error
+at the top of Reading place and does not claim a cloud save. Keep that tab
+open; do not clear website data or resume an older shared place to fix it.
+A later successful local save clears that error.
 
 **Source of saved place** defaults to **Latest shared place**. Choose a named
 browser profile to see its latest save and two older distinct occurrences for

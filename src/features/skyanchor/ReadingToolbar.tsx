@@ -6,6 +6,7 @@ export function ReadingToolbar(_props: {
   feed?: ReadingFeed
   account: SessionAccount
   notice: string
+  localSaveError?: string
   hasNew: boolean
   canReturn: boolean
   loading: string

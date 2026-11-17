@@ -13,6 +13,8 @@ import {buildInputs} from '../scripts/skyanchor/inputs.mjs'
 import {verifyComposer} from './composer.mjs'
 import {verifyYouTube} from './youtube.mjs'
 import {verifyProfileLatest} from './profile-latest.mjs'
+import {verifyLocalSaving} from './local-save.mjs'
+import {verifyPhoneSearch} from './phone-search.mjs'
 import {
   verifyAutomaticSource,
   verifyHandoff,
@@ -851,6 +853,12 @@ async function mockUpstream(context, owner = didA) {
       result = {checkEmailConfirmed: false, topicsEnabled: true}
     else if (nsid === 'app.bsky.unspecced.getSuggestedFeeds')
       result = {feeds: []}
+    else if (nsid === 'app.bsky.unspecced.getPopularFeedGenerators')
+      result = {feeds: []}
+    else if (nsid === 'app.bsky.unspecced.getSuggestedUsersForExplore')
+      result = {actors: []}
+    else if (nsid === 'app.bsky.unspecced.getSuggestedStarterPacks')
+      result = {starterPacks: []}
     else if (
       nsid === 'app.bsky.unspecced.getSuggestedUsers' ||
       nsid === 'app.bsky.actor.getSuggestions'
@@ -1234,6 +1242,46 @@ async function runBrowserProof() {
       .first()
       .waitFor({timeout: 30_000})
     await current.waitForTimeout(500)
+  }
+  if (process.argv.includes('--local-save-only')) {
+    await verifyLocalSaving({
+      desktopBrowser,
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
+  }
+  if (process.argv.includes('--automatic-source-only')) {
+    await verifyAutomaticSource({
+      desktopBrowser,
+      phoneBrowser,
+      origin,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+      holdApi,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
+  }
+  if (process.argv.includes('--phone-search-only')) {
+    await verifyPhoneSearch({
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      origin,
+      report,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
   }
   if (process.argv.includes('--profile-latest-only')) {
     await verifyProfileLatest({
@@ -1712,6 +1760,21 @@ async function runBrowserProof() {
     report.checks.push(
       'Delayed upstream image completes after cold restore without anchor drift',
     )
+    await verifyPhoneSearch({
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      origin,
+      report,
+    })
+    await verifyLocalSaving({
+      desktopBrowser,
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      worker,
+      report,
+    })
     await verifyProfileLatest({
       desktopBrowser,
       phoneBrowser,

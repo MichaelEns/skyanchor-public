@@ -51,6 +51,7 @@ export function ReadingToolbar({
   feed = 'following',
   account,
   notice,
+  localSaveError = '',
   hasNew,
   canReturn,
   loading,
@@ -66,6 +67,7 @@ export function ReadingToolbar({
   feed?: ReadingFeed
   account: SessionAccount
   notice: string
+  localSaveError?: string
   hasNew: boolean
   canReturn: boolean
   loading: string
@@ -621,7 +623,11 @@ export function ReadingToolbar({
         l`Offline: no write sent. Reconnect and resolve any stale revision explicitly.`,
       )
     const place = capture()
-    if (!place) throw new Error(l`No visible reading place to save`)
+    if (!place)
+      throw new Error(
+        localSaveError ||
+          l`No visible reading place could be saved. Close Reading place and retry on the post you are reading. Your old checkpoints are kept.`,
+      )
     writing.current = true
     let finishWrite: () => void = () => {}
     writeSettled.current = new Promise(resolve => {
@@ -1323,6 +1329,19 @@ export function ReadingToolbar({
               <Text style={[a.text_xl, a.font_bold, {paddingRight: 32}]}>
                 <Trans>Reading place</Trans>
               </Text>
+              {!!localSaveError && (
+                <View style={a.gap_sm} testID="skyanchor-local-save-error">
+                  <Text role="alert">{localSaveError}</Text>
+                  <Text>
+                    <Trans>
+                      This is an on-device saving problem, before cloud sync.
+                      Keep your current tab open. Reconnecting cannot repair a
+                      local save, and Resume other device opens the older shared
+                      position rather than saving this view.
+                    </Trans>
+                  </Text>
+                </View>
+              )}
               {feed !== 'following' && (
                 <Text>
                   <Trans>This profile tab has its own reading place.</Trans>
@@ -1378,7 +1397,13 @@ export function ReadingToolbar({
                 </View>
               )}
               <Text testID="skyanchor-source-state" role="status">
-                {restoredLocal ? (
+                {localSaveError ? (
+                  <Trans>
+                    Your visible place is not saved locally or confirmed shared.
+                    Keep this tab open and retry saving; do not replace it with
+                    an older device's place.
+                  </Trans>
+                ) : restoredLocal ? (
                   <Trans>
                     Restored saved place is local only. Latest shared is
                     unchanged. Scrolling, Return, and reopening do not share it.
@@ -1671,7 +1696,9 @@ export function ReadingToolbar({
                 </Text>
               )}
               <Text testID="skyanchor-connection-status" style={a.font_bold}>
-                {connectionLabel}
+                {localSaveError
+                  ? l`On-device save needs attention`
+                  : connectionLabel}
               </Text>
               <Text>
                 <Trans>Account</Trans>: @{account.handle}.{' '}

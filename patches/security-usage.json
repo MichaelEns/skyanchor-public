@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "scope": "Reviewed personal static-web release commands only, not general Expo/native/Atlas tooling safety. No exemption may apply to a bundled browser or Worker package.",
   "lockSha256": "a34079622ae1cb80267738d9bfc3766b21ee17f3e97d0881ba52ea9b92563edc",
-  "boundarySha256": "ee43006f146dd9679199cbc8352202f869fcf7d6f228418bcf0a7acf08c92914",
+  "boundarySha256": "57c803fe787e672d3c96ab4453cddc26b698bc6d6282478470ffcc7e1bd5f69f",
   "boundaryFiles": [
     ".gitattributes",
     "worker/index.ts",
@@ -193,6 +193,25 @@
           "vulnerable": ">=9.0.0 <=14.0.1",
           "patched": ">=14.0.2",
           "versions": ["10.5.0", "11.1.0", "13.0.6", "9.3.5"]
+        }
+      ]
+    },
+    "picomatch": {
+      "inventorySha256": "83fdaad87320c8afb2e753fbe71393b26743a1481ec8a033635da9d8dff2dad3",
+      "assessment": "No fixed release is published for this advisory; installed 2.3.2 and 4.0.4 are not claimed patched. All copies and direct consumer trees are inventoried: Expo CLI exportAssets uses reviewed app assetPatternsToBeBundled (not configured for this web export), createFileTransform builds filters from local tooling options, Metro sideEffects compiles integrity-pinned package.json declarations, Parcel watcher converts local ignore options, lint-staged compiles reviewed package.json task keys, Jest util/haste-map/message-util compile checked-in test/coverage patterns, and anymatch/micromatch/readdirp/tinyglobby match configured local filesystem globs. Attacker-controlled feed/search/post strings are not patterns supplied to this toolchain, and neither picomatch nor these matching services is in the sealed browser or Worker runtime. The one-shot reviewed web export/tests run outside the deployed service with read-only CI credentials; no public pattern upload, hosted dev server, arbitrary user build configuration or general glob service is authorized. This assessment applies only to the exact supplier/consumer inventory, lock, release configs and advisory identity. Runtime bundling, consumer or config drift remains unresolved and fails closed.",
+      "advisories": [
+        {
+          "id": "GHSA-fc5q-39xc-vjpf",
+          "supplierId": 1247710,
+          "cwe": "CWE-1333",
+          "url": "https://github.com/advisories/GHSA-fc5q-39xc-vjpf",
+          "unpublishedPatch": true,
+          "package": "picomatch",
+          "severity": "high",
+          "title": "picomatch vulnerable to ReDoS through single-branch repeated extglobs",
+          "vulnerable": "<=4.0.7",
+          "patched": null,
+          "versions": ["2.3.2", "4.0.4"]
         }
       ]
     },

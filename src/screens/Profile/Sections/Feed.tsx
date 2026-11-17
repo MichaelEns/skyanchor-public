@@ -143,7 +143,9 @@ export function ProfileFeedSection({
         isVideoFeed={isVideoFeed}
         ref={readingFeedRef}
       />
-      {(isScrolledDown || hasNew || !!newerStatus) && (
+      {(IS_WEB && currentAccount && validReadingFeed(feed)
+        ? isFocused
+        : isScrolledDown || hasNew || !!newerStatus) && (
         <LoadLatestBtn
           onPress={onScrollToTop}
           status={newerStatus}

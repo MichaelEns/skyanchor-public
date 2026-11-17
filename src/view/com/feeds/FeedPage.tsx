@@ -194,7 +194,7 @@ export function FeedPage({
       {isPageFocused &&
         screenFocused &&
         (IS_WEB && feed === 'following'
-          ? isScrolledDown || hasNew || !!newerStatus
+          ? hasSession || isScrolledDown || hasNew || !!newerStatus
           : (isScrolledDown || hasNew) &&
             !isFollowingV2Eligible(ax) &&
             !(isFollowingV2HomeDotEnabled(ax) && !gtMobile)) && (
