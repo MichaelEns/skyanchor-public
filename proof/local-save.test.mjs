@@ -143,3 +143,14 @@ test('ordinary saving keeps the full bounded cache and a missing occurrence is n
   assert.throws(value.save, domain.ReadingWindowError)
   assert.equal(value.data.get(domain.STORAGE_PREFIX + did), before)
 })
+
+test('ordinary short windows retain the original fifteen preceding records before any pressure retry', () => {
+  const value = fixture()
+  value.rows.splice(22)
+  value.place.anchor = domain.occurrenceKey(uri(20))
+  value.save()
+  assert.equal(value.read().feed.length, 17)
+  assert.equal(value.read().feed[0].post.uri, uri(5))
+  assert.equal(value.attempts.length, 1)
+  value.unchanged()
+})

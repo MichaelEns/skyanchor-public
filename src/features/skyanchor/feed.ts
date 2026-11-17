@@ -178,28 +178,24 @@ export function persistWindow(
   pages: FeedPageUnselected[],
   identity: ReadingFeed = 'following',
 ) {
-  let limit = Math.min(
-    MAX_OCCURRENCES,
-    pages.reduce((count, page) => count + page.feed.length, 0),
-  )
+  let snapshot = snapshotWindow(place, pages)
   for (;;) {
     try {
-      saveSnapshot(
-        localStorage,
-        did,
-        snapshotWindow(place, pages, limit),
-        identity,
-      )
+      saveSnapshot(localStorage, did, snapshot, identity)
       return
     } catch (error) {
       if (
-        limit <= 1 ||
+        snapshot.feed.length <= 1 ||
         (!(error instanceof ReadingCacheSizeError) &&
           !isStorageQuotaError(error))
       )
         throw error
       // Retry only this cache entry, retaining the exact occurrence and whole records.
-      limit = Math.max(1, Math.floor(limit / 2))
+      snapshot = snapshotWindow(
+        place,
+        pages,
+        Math.max(1, Math.floor(snapshot.feed.length / 2)),
+      )
     }
   }
 }
