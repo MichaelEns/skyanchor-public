@@ -13,6 +13,24 @@ immediate Back, cancellation, viewport geometry, regional PDS handoff and
 contrast expectations. They do not authenticate a real account or claim
 physical-device acceptance.
 
+`pnpm skyanchor:e2e --foreground-shell-only` reproduces both floating controls
+being too low after a zero footer-height report and too high after an
+oversized stale report. It invokes the actual React Native Web layout handler
+without changing the real footer's geometry. The released app remains
+92 pixels out of place after foreground in the first case. The corrected
+hook remeasures the real footer on focus/pageshow/visibility return and keeps
+both controls 16 pixels above it within two CSS pixels.
+
+The same phone-sized WebKit proof changes visual-viewport metrics after the
+foreground event without a resize event. Bounded follow-up reads must recover
+the footer and both controls, without changing scroll or reading/Return bytes.
+Owning hook tests cover synchronous cancellation of a suspended RAF, late
+silent metrics, stale zero and tall measurements, root layout observation,
+hidden zero-size readings and complete timer/listener/observer cleanup.
+The existing full viewport proof retains keyboard, pinch, elastic overscroll,
+safe-area and orientation assertions. This simulates a relevant lifecycle
+mechanism; it does not claim to reproduce physical iOS suspension exactly.
+
 `pnpm skyanchor:e2e --local-save-only` covers on-device save failure and
 recovery on Chromium and phone-sized WebKit, also in the default browser gate.
 Controlled denied writes reproduce the local failure without touching real

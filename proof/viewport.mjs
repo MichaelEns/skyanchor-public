@@ -40,6 +40,9 @@ export function installViewportFixture() {
     viewport.dispatchEvent(new Event('resize'))
     viewport.dispatchEvent(new Event('scroll'))
   }
+  window.fixtureViewportSilent = values => {
+    override = values
+  }
   window.fixtureViewportListeners = () =>
     [...listeners].map(([type, entries]) => [type, entries.size])
   const safeAreas = () => {

@@ -15,6 +15,7 @@ import {verifyYouTube} from './youtube.mjs'
 import {verifyProfileLatest} from './profile-latest.mjs'
 import {verifyLocalSaving} from './local-save.mjs'
 import {verifyPhoneSearch} from './phone-search.mjs'
+import {verifyForegroundShell} from './foreground-shell.mjs'
 import {
   verifyAutomaticSource,
   verifyHandoff,
@@ -1243,6 +1244,18 @@ async function runBrowserProof() {
       .waitFor({timeout: 30_000})
     await current.waitForTimeout(500)
   }
+  if (process.argv.includes('--foreground-shell-only')) {
+    await verifyForegroundShell({
+      phoneBrowser,
+      mockUpstream,
+      signIn,
+      origin,
+      report,
+    })
+    assert.deepEqual(unexpected, [])
+    report.passed = true
+    return
+  }
   if (process.argv.includes('--local-save-only')) {
     await verifyLocalSaving({
       desktopBrowser,
@@ -1556,6 +1569,13 @@ async function runBrowserProof() {
     'Production sign-in resolves a new gesture only after the actual welcome phase is ready: fresh/open, late presentation after an initial outer lookup, real dismissal, previously shown preference across navigation, or isolated pre-timer auth entry. Each phase has one eligible action and completes two-field fake-account Home navigation; advancing the clock with login fields visible never presents welcome over auth entry.',
   )
   await verifyViewport({page: phonePage, report})
+  await verifyForegroundShell({
+    phoneBrowser,
+    mockUpstream,
+    signIn,
+    origin,
+    report,
+  })
   const healthCallsBefore = upstreamCalls.filter(
     call => call.nsid === '_health',
   ).length
