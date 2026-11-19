@@ -905,8 +905,16 @@ test('Web viewport lifecycle batches events, reconciles foreground, and cleans e
   })
   const window = Object.assign(target(), {visualViewport: viewport})
   const values = new Map()
+  let footerMeasurement = 92
+  let shellFooterHeight = 0
+  const footer = {
+    getClientRects: () => [{}],
+    getBoundingClientRect: () => ({height: footerMeasurement}),
+  }
   const document = Object.assign(target(), {
+    visibilityState: 'visible',
     activeElement: null,
+    querySelector: () => footer,
     documentElement: {
       clientHeight: 844,
       style: {
@@ -920,6 +928,10 @@ test('Web viewport lifecycle batches events, reconciles foreground, and cleans e
     },
   })
   const frames = new Map()
+  const timers = new Map()
+  let nextTimer = 0
+  let observerCallback
+  let observing = false
   let nextFrame = 0
   let cleanup
   const exports = {}
@@ -933,6 +945,24 @@ test('Web viewport lifecycle batches events, reconciles foreground, and cleans e
       window,
       document,
       HTMLElement: class {},
+      setTimeout(callback) {
+        timers.set(++nextTimer, callback)
+        return nextTimer
+      },
+      clearTimeout(id) {
+        timers.delete(id)
+      },
+      ResizeObserver: class {
+        constructor(callback) {
+          observerCallback = callback
+        }
+        observe() {
+          observing = true
+        }
+        disconnect() {
+          observing = false
+        }
+      },
       requestAnimationFrame(callback) {
         frames.set(++nextFrame, callback)
         return nextFrame
@@ -947,6 +977,17 @@ test('Web viewport lifecycle batches events, reconciles foreground, and cleans e
               cleanup = effect()
             },
           }
+        if (name === '#/state/shell/shell-layout')
+          return {
+            useShellLayout: () => ({
+              footerHeight: {
+                get: () => shellFooterHeight,
+                set: value => {
+                  shellFooterHeight = value
+                },
+              },
+            }),
+          }
         assert.equal(name, '#/logger')
         return {
           logger: {
@@ -960,11 +1001,18 @@ test('Web viewport lifecycle batches events, reconciles foreground, and cleans e
   )
   exports.useWebViewport()
   assert.equal(values.get('--skyanchor-viewport-bottom'), '0px')
+  assert.equal(shellFooterHeight, 92)
+  assert.equal(timers.size, 6)
   Object.assign(viewport, {height: 914, offsetTop: 20})
   viewport.fire('resize')
   viewport.fire('scroll')
-  document.fire('visibilitychange')
   assert.equal(frames.size, 1)
+  document.fire('visibilitychange')
+  assert.equal(
+    frames.size,
+    0,
+    'Foreground replaces a possibly suspended frame synchronously',
+  )
   const flush = () => {
     for (const [id, callback] of frames) {
       frames.delete(id)
@@ -978,9 +1026,56 @@ test('Web viewport lifecycle batches events, reconciles foreground, and cleans e
   window.fire('pageshow')
   flush()
   assert.equal(values.get('--skyanchor-viewport-bottom'), '124px')
+  shellFooterHeight = 0
+  window.fire('focus')
+  assert.equal(
+    shellFooterHeight,
+    92,
+    'Foreground repairs a stale zero footer measurement',
+  )
+  shellFooterHeight = 360
+  document.fire('visibilitychange')
+  assert.equal(
+    shellFooterHeight,
+    92,
+    'Foreground repairs a stale oversized footer measurement',
+  )
+  // The initial foreground read is stale; metrics settle without resize events.
+  Object.assign(viewport, {height: 844, offsetTop: 0})
+  for (const [id, callback] of timers) {
+    timers.delete(id)
+    callback()
+  }
+  flush()
+  assert.equal(values.get('--skyanchor-viewport-bottom'), '0px')
+  footerMeasurement = 126
+  observerCallback()
+  flush()
+  assert.equal(
+    shellFooterHeight,
+    126,
+    'Layout observation remeasures real footer geometry',
+  )
+  window.fire('resize')
+  assert.equal(frames.size, 1)
+  document.visibilityState = 'hidden'
+  footerMeasurement = 0
+  document.fire('visibilitychange')
+  assert.equal(frames.size, 0)
+  assert.equal(timers.size, 0)
+  assert.equal(
+    shellFooterHeight,
+    126,
+    'Hidden zero-sized geometry cannot replace the last valid measurement',
+  )
+  document.visibilityState = 'visible'
+  footerMeasurement = 92
+  window.fire('pageshow')
   window.fire('resize')
   cleanup()
   assert.equal(frames.size, 0)
   assert.equal(values.size, 0)
+  assert.equal(timers.size, 0)
+  assert.equal(observing, false)
   assert.equal(viewport.count() + window.count() + document.count(), 0)
 })

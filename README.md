@@ -38,6 +38,12 @@ preventing iPhone's small-input focus zoom. Selecting an autocomplete profile
 releases input focus before navigation. Pinch zoom and the viewport policy
 are unchanged; no forced zoom reset is applied.
 
+On web foreground return, the shell remeasures the visible bottom bar instead
+of trusting its last layout report. Compose and the new-posts arrow share
+that measured clearance. A bounded set of follow-up measurements catches
+late viewport restoration without continuous polling, scrolling or saving
+reading progress. Keyboard, pinch zoom and native shell behavior are retained.
+
 Reading places save locally. Connect private sync opts each account/browser
 into debounced saves. Other-device places are offered without moving the view;
 Resume other device and Keep mine remain explicit choices. Supported sync

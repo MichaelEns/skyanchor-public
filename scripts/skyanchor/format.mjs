@@ -20,6 +20,7 @@ files.push(
   path.join('proof', 'local-save.test.mjs'),
   path.join('proof', 'local-save.mjs'),
   path.join('proof', 'phone-search.mjs'),
+  path.join('proof', 'foreground-shell.mjs'),
   path.join('proof', 'handoff.mjs'),
   path.join('proof', 'reading-panel.mjs'),
   path.join('proof', 'auth-contrast.mjs'),

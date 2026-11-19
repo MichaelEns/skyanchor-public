@@ -1,6 +1,7 @@
 import {useEffect} from 'react'
 
 import {logger} from '#/logger'
+import {useShellLayout} from '#/state/shell/shell-layout'
 
 export function viewportEdges(
   layoutHeight: number,
@@ -32,13 +33,16 @@ export function viewportEdges(
 }
 
 export function useWebViewport() {
+  const {footerHeight} = useShellLayout()
   useEffect(() => {
     const viewport = window.visualViewport
     const root = document.documentElement
     let frame = 0
+    let settling: ReturnType<typeof setTimeout>[] = []
     let reportedInvalid = false
     const update = () => {
       frame = 0
+      if (document.visibilityState === 'hidden') return
       const active = document.activeElement
       const editing =
         active instanceof HTMLElement &&
@@ -47,7 +51,7 @@ export function useWebViewport() {
       try {
         edges = viewportEdges(
           root.clientHeight,
-          viewport ?? undefined,
+          window.visualViewport ?? undefined,
           editing,
           {
             scrollY: window.scrollY,
@@ -66,31 +70,64 @@ export function useWebViewport() {
       reportedInvalid = false
       root.style.setProperty('--skyanchor-viewport-top', `${edges.top}px`)
       root.style.setProperty('--skyanchor-viewport-bottom', `${edges.bottom}px`)
+      const footer = document.querySelector<HTMLElement>(
+        '[data-testid="mobileBottomBar"]',
+      )
+      if (footer?.getClientRects().length) {
+        const height = footer.getBoundingClientRect().height
+        if (
+          Number.isFinite(height) &&
+          height > 0 &&
+          footerHeight.get() !== height
+        )
+          footerHeight.set(height)
+      }
     }
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(update)
     }
-    update()
+    const stopSettling = () => {
+      for (const timer of settling) clearTimeout(timer)
+      settling = []
+    }
+    const reconcile = () => {
+      stopSettling()
+      // A suspended frame or the first restored viewport reading may be stale.
+      cancelAnimationFrame(frame)
+      frame = 0
+      if (document.visibilityState === 'hidden') return
+      update()
+      settling = [50, 150, 300, 600, 1000, 1500].map(delay =>
+        setTimeout(schedule, delay),
+      )
+    }
+    reconcile()
+    const resizeObserver = new ResizeObserver(schedule)
+    resizeObserver.observe(root)
     viewport?.addEventListener('resize', schedule)
     viewport?.addEventListener('scroll', schedule)
     window.addEventListener('resize', schedule)
     window.addEventListener('scroll', schedule, {passive: true})
-    window.addEventListener('pageshow', schedule)
+    window.addEventListener('pageshow', reconcile)
+    window.addEventListener('focus', reconcile)
     document.addEventListener('focusin', schedule)
     document.addEventListener('focusout', schedule)
-    document.addEventListener('visibilitychange', schedule)
+    document.addEventListener('visibilitychange', reconcile)
     return () => {
+      stopSettling()
       cancelAnimationFrame(frame)
+      resizeObserver.disconnect()
       viewport?.removeEventListener('resize', schedule)
       viewport?.removeEventListener('scroll', schedule)
       window.removeEventListener('resize', schedule)
       window.removeEventListener('scroll', schedule)
-      window.removeEventListener('pageshow', schedule)
+      window.removeEventListener('pageshow', reconcile)
+      window.removeEventListener('focus', reconcile)
       document.removeEventListener('focusin', schedule)
       document.removeEventListener('focusout', schedule)
-      document.removeEventListener('visibilitychange', schedule)
+      document.removeEventListener('visibilitychange', reconcile)
       root.style.removeProperty('--skyanchor-viewport-top')
       root.style.removeProperty('--skyanchor-viewport-bottom')
     }
-  }, [])
+  }, [footerHeight])
 }
