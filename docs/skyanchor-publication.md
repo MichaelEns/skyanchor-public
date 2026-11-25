@@ -66,6 +66,24 @@ are permitted. Ordinary application use does not run Actions.
 
 ## Protection and activation
 
+Substantive stable releases produce an **assistant review queued** work item,
+not a request for the user to personally review routine changes. GitHub alone
+still merges only the deliberately narrow verified documentation scope.
+Assistant-managed review runs outside CI with the owner's existing authorized
+resources and retains all exact-candidate, privacy, cost and saved-state gates.
+If the configured machine/chat is unavailable, the item remains queued and
+must not imply a review, merge or deployment took place.
+
+Versioned dependency-patch filenames containing `@` are valid discovery paths,
+including Expo's scoped packages. Inspection accepts that character without
+relaxing the trivial classifier: dependency patches are substantive. Existing
+path traversal, spaces, controls and malformed-record rejections remain.
+Discovery inventories every changed path, but does not expand patches or run
+content checks for files already outside the trivial documentation allowlist.
+This avoids thousands of unnecessary Git invocations on large application,
+asset and dependency releases; it does not classify those files as safe to
+merge or replace the assistant's substantive review.
+
 Keep the workflow token default read-only. Require approval for **all external
 contributors** before fork workflows run. Configure strict main protection with
 the single required check `SkyAnchor exact candidate` bound to GitHub Actions
