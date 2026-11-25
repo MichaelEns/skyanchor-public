@@ -173,10 +173,25 @@ export function reconstruct(root, base, release) {
     if (!match) throw new Error('Unrecognized upstream path record')
     const [, oldMode, mode, oldBlob, newBlob, status, file] = match
     if (
-      !/^[a-zA-Z0-9_./-]+$/.test(file) ||
+      !/^[a-zA-Z0-9_./@-]+$/.test(file) ||
       file.split('/').some(part => !part || part === '.' || part === '..')
     )
       throw new Error('Unsafe upstream path')
+    if (
+      status !== 'M' ||
+      mode !== '100644' ||
+      !/^docs\/(?:build|testing)\.md$/.test(file)
+    )
+      return {
+        file,
+        mode,
+        status,
+        sameBase: false,
+        added: 0,
+        deleted: 0,
+        plain: false,
+        newBlob,
+      }
     const existing = g('ls-tree', base, '--', file)
     const sameBase = existing === `${oldMode} blob ${oldBlob}\t${file}`
     const stats = g(
@@ -550,8 +565,31 @@ function output(name, value) {
     `${name}=${JSON.stringify(value)}\n`,
   )
 }
+export function upstreamReviewNotice(plan) {
+  if (
+    !plan ||
+    plan.updates !== true ||
+    plan.trivial !== false ||
+    !tagPattern.test(plan.tag) ||
+    !sha.test(plan.upstream) ||
+    !sha.test(plan.base)
+  )
+    throw new Error('Invalid substantive upstream review identity')
+  return {
+    title: `Official ${plan.tag}: assistant review queued`,
+    body:
+      `<!-- skyanchor-upstream:${plan.upstream} -->\n` +
+      `Public upstream ${plan.upstream} against ${plan.base} is outside the GitHub-only trivial scope.\n\n` +
+      'This is a work queue for assistant-managed review, not a request for the user to approve routine code. ' +
+      'The assistant must review and integrate the release, preserve SkyAnchor custom behavior and saved state, ' +
+      'pass the fresh exact candidate gates, and use protected exact-head merging before any verified deployment.\n\n' +
+      'No approval, merge or deployment has occurred. Do not bypass checks or grant broader CI credentials. ' +
+      'The assistant workflow requires its configured machine and chat to be available; privacy, cost or permission blockers must be reported explicitly.',
+  }
+}
+
 async function notify(plan) {
-  const title = `Official ${plan.tag}: manual review required`
+  const notice = upstreamReviewNotice(plan)
   const issues = await api(
     'issues?state=all&per_page=100&creator=github-actions%5Bbot%5D',
   )
@@ -562,8 +600,7 @@ async function notify(plan) {
   await api('issues', {
     method: 'POST',
     body: JSON.stringify({
-      title,
-      body: `${marker}\nPublic upstream ${plan.upstream} against ${plan.base} is outside verified trivial scope. Owner review and a fresh exact gate are required. No approval or merge was generated.`,
+      ...notice,
     }),
   })
 }

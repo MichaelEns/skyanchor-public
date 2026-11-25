@@ -17,6 +17,7 @@ import {
   gitAt,
   repository,
   digest,
+  upstreamReviewNotice,
 } from '../scripts/skyanchor/upstream.mjs'
 import {
   ownerMerge,
@@ -1239,6 +1240,40 @@ test('Main advances and unsafe path records halt without changing the source', t
   )
   const blob = gitAt(f.official.repo, ['hash-object', '-w', '--stdin'], {
     input: 'escape\n',
+  })
+
+  test('Versioned dependency-patch filenames with @ queue substantive review without expanding trivial merges', t => {
+    const f = fixture(t)
+    const upstream = f.commit(
+      f.official,
+      'patches/@expo__cli@58.1.19.patch',
+      'Reviewed public supplier patch fixture.\n',
+    )
+    f.fetch(upstream)
+    const plan = reconstruct(f.current.repo, f.base, {tag: '1.138.0', upstream})
+    assert.equal(plan.updates, true)
+    assert.equal(plan.trivial, false)
+    assert.equal(plan.changeCount, 1)
+    assert.equal(f.current.g('rev-parse', 'HEAD'), f.base)
+    assert.equal(f.current.g('status', '--porcelain'), '')
+    const notice = upstreamReviewNotice(plan)
+    assert.equal(notice.title, 'Official 1.138.0: assistant review queued')
+    assert.ok(notice.body.includes(`<!-- skyanchor-upstream:${upstream} -->`))
+    assert.match(notice.body, /not a request for the user to approve/)
+    assert.match(notice.body, /No approval, merge or deployment has occurred/)
+    assert.match(notice.body, /protected exact-head/)
+    for (const change of [
+      {trivial: true},
+      {updates: false},
+      {base: 'unverified'},
+      {tag: 'release/../bad'},
+      {upstream: 'not-a-commit'},
+    ]) {
+      assert.throws(
+        () => upstreamReviewNotice({...plan, ...change}),
+        /identity/,
+      )
+    }
   })
   f.official.g(
     'update-index',
